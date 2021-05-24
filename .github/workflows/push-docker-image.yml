@@ -1,5 +1,5 @@
 
-name: AWS Deploy
+name: Push Docker Image
 
 on:
   workflow_dispatch:
@@ -13,19 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: ['prod', 'hs2']
         package: ['server', 'frontend', 'preview-service']
         include:
-          - environment: prod
-            region: eu-west-1
-          - environment: hs2
-            region: eu-west-2
           - package: 'server'
             cxName: 'spec-cx-server'
-            serviceName: 'specklev2'
           - package: 'frontend'
             cxName: 'spec-cx-frontend'
-            serviceName: 'specklev2-frontend'
           - package: 'preview-service'
             cxName: 'spec-cx-preview'
     steps:
@@ -37,7 +30,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ matrix.region }}
+          aws-region: eu-west-1
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -48,32 +41,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: ${{ matrix.cxName }}
-          IMAGE_TAG: v${{ github.sha }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build --build-arg SPECKLE_SERVER_VERSION=$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest -f packages/${{ matrix.package }}/Dockerfile .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY --all-tags
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          
-      - name: Download task definition
-        if: matrix.package != 'preview-service'
-        run: |
-          aws ecs describe-task-definition --task-definition specklev2-${{ matrix.package }}-${{ matrix.environment }} --query taskDefinition > task-definition.json
-          
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        if: matrix.package != 'preview-service'
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: specklev2-${{ matrix.package }}-${{ matrix.environment }}
-          image: ${{ steps.build-image.outputs.image }}
-          
-          
-      - name: Deploy Amazon ECS task definition
-        if:  matrix.package != 'preview-service' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ matrix.serviceName }}-${{ matrix.environment }}
-          cluster: specklev2-server-${{ matrix.environment }}
-          wait-for-service-stability: true
+          docker build --build-arg SPECKLE_SERVER_VERSION=$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f packages/${{ matrix.package }}/Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
