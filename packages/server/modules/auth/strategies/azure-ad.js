@@ -34,20 +34,6 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
   app.get( '/auth/azure', 
             session, 
             sessionStorage,
-            function(req, res, next) {
-              console.log('authenticating');
-              console.log(process.env.AZURE_AD_IDENTITY_METADATA);
-              console.log(process.env.AZURE_AD_CLIENT_ID);
-              console.log(process.env.AZURE_AD_ISSUER);
-              console.log(process.env.AZURE_AD_CLIENT_SECRET);
-              console.log(process.env.CANONICAL_URL);
-              fetch('https://google.com')
-                .then(response => response.text())
-                .then(function(text) {
-                  console.log(text);
-                })
-              next();
-            },
             passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } )
   );
   app.post( '/auth/azure/callback',

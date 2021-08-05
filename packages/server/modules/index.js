@@ -1,4 +1,18 @@
 'use strict'
+function requestLogger(httpModule){
+  var original = httpModule.request
+  httpModule.request = function(options, callback){
+    if(options.host === 'login.microsoftonline.com') {
+      console.log(options)
+    }
+    
+    console.log(options.href||options.proto+"://"+options.host+options.path, options.method)
+    return original(options, callback)
+  }
+}
+
+requestLogger(require('http'))
+requestLogger(require('https'))
 const fs = require( 'fs' )
 const path = require( 'path' )
 const appRoot = require( 'app-root-path' )
