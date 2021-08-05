@@ -23,7 +23,7 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
     allowHttpForRedirectUrl: true,
     clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
     scope: [ 'profile', 'email', 'openid' ],
-    loggingLevel: process.env.NODE_ENV === 'development' ? 'verbose' : 'error',
+    loggingLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
     passReqToCallback: true
   }, async ( req, iss, sub, profile, accessToken, refreshToken, done ) => {
     done( null, profile )
@@ -36,6 +36,11 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
             sessionStorage,
             function(req, res, next) {
               console.log('authenticating');
+              console.log(process.env.AZURE_AD_IDENTITY_METADATA);
+              console.log(process.env.AZURE_AD_CLIENT_ID);
+              console.log(process.env.AZURE_AD_ISSUER);
+              console.log(process.env.AZURE_AD_CLIENT_SECRET);
+              console.log(process.env.CANONICAL_URL);
               fetch('https://google.com')
                 .then(response => response.text())
                 .then(function(text) {
