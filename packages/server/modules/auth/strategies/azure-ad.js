@@ -2,6 +2,7 @@
 'use strict'
 
 const passport = require( 'passport' )
+const fetch = require('node-fetch')
 const OIDCStrategy = require( 'passport-azure-ad' ).OIDCStrategy
 const URL = require( 'url' ).URL
 const debug = require( 'debug' )
@@ -22,7 +23,7 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
     allowHttpForRedirectUrl: true,
     clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
     scope: [ 'profile', 'email', 'openid' ],
-    loggingLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
+    loggingLevel: process.env.NODE_ENV === 'development' ? 'verbose' : 'error',
     passReqToCallback: true
   }, async ( req, iss, sub, profile, accessToken, refreshToken, done ) => {
     done( null, profile )
@@ -30,7 +31,20 @@ module.exports = async ( app, session, sessionStorage, finalizeAuth ) => {
 
   passport.use( strategy )
 
-  app.get( '/auth/azure', session, sessionStorage, passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } ) )
+  app.get( '/auth/azure', 
+            session, 
+            sessionStorage,
+            function(req, res, next) {
+              console.log('authenticating');
+              fetch('https://google.com')
+                .then(response => response.text())
+                .then(function(text) {
+                  console.log(text);
+                })
+              next();
+            },
+            passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } )
+  );
   app.post( '/auth/azure/callback',
     session,
     passport.authenticate( 'azuread-openidconnect', { failureRedirect: '/error?message=Failed to authenticate.' } ),
