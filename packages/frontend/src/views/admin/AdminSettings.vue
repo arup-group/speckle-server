@@ -32,14 +32,12 @@
           </div>
           <p class="mt-2">{{ defaultGlobals.label }}</p>
           <div class="flex-grow-1">
-            <v-textarea
+            <v-text-field
               v-model="defaultGlobalsString"
               persistent-hint
               :hint="defaultGlobals.hint"
-              :rules="rules.checkGlobals()"
               class="ma-0 body-2"
-              rows="2"
-            ></v-textarea>
+            ></v-text-field>
           </div>
         </div>
       </v-card-text>
@@ -90,7 +88,7 @@ export default {
         createDefaultGlobals: {
           label: 'Add default globals on stream creation',
           hint:
-            'Automatically add the specified set of globals to all streams created on this server',
+            'Whether to automatically add the specified set of globals to all streams created on this server',
           type: 'boolean'
         }
       },
@@ -98,22 +96,7 @@ export default {
         label: 'Default globals',
         hint:
           'A json string containing a set of default globals and their default values, to be added to all streams on this server on stream creation'
-      },
-      rules: {
-        checkGlobals() {
-          return [
-            (v) => {
-              try {
-                JSON.parse(v)
-              } catch (e) {
-                return 'Invalid JSON string'
-              }
-              return true
-            }
-          ]
-        }
-      },
-      errors: []
+      }
     }
   },
   apollo: {
