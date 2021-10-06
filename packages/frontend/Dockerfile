@@ -3,6 +3,8 @@
 # build stage
 FROM node:16.13-bullseye-slim as build-stage
 
+ARG VUE_APP_GRAPHQL_WS
+
 WORKDIR /opt/viewer
 COPY packages/viewer/package*.json ./
 RUN npm install
