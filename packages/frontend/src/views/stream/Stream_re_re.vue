@@ -182,6 +182,15 @@
           </v-list-item-content>
         </v-list-item>
 
+        <v-list-item link :to="`/streams/${stream.id}/uploads`">
+          <v-list-item-icon>
+            <v-icon small>mdi-arrow-up</v-icon>
+          </v-list-item-icon>
+          <v-list-item-content>
+            <v-list-item-title>Import IFC</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
         <v-list-item link :to="`/streams/${stream.id}/webhooks`">
           <v-list-item-icon>
             <v-icon small>mdi-webhook</v-icon>
