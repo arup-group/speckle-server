@@ -449,6 +449,27 @@
       :stream-id="$route.params.streamId"
       :stream-name="stream.name"
     />
+    <v-snackbar
+      v-model="snackbar"
+      rounded="pill"
+      :timeout="10000"
+      style="z-index: 10000"
+      :color="`${$vuetify.theme.dark ? 'primary' : 'primary'}`"
+    >
+      <template v-if="snackbarInfo.type === 'commit'">
+        <span>New commit created!</span>
+      </template>
+      <template v-if="snackbarInfo.type === 'branch'">
+        <span>Branch "{{ snackbarInfo.name }}" created!</span>
+      </template>
+
+      <template #action="{ attrs }">
+        <v-btn color="white" text v-bind="attrs" @click="goToItemAndCloseSnackbar()">View</v-btn>
+        <v-btn color="pink" icon v-bind="attrs" @click="snackbar = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -467,8 +488,8 @@ export default {
     return {
       streamNav: true,
       error: '',
-      commitSnackbar: false,
-      commitSnackbarInfo: {},
+      snackbar: false,
+      snackbarInfo: {},
       editStreamDialog: false,
       shareStream: false,
       branchMenuOpen: false,
@@ -538,6 +559,26 @@ export default {
       }
     },
     $subscribe: {
+      branchCreated: {
+        query: gql`
+          subscription($streamId: String!) {
+            branchCreated(streamId: $streamId)
+          }
+        `,
+        variables() {
+          return {
+            streamId: this.$route.params.streamId
+          }
+        },
+        result(args) {
+          if (!args.data.branchCreated) return
+          this.snackbar = true
+          this.snackbarInfo = { ...args.data.branchCreated, type: 'branch' }
+        },
+        skip() {
+          return !this.loggedIn
+        }
+      },
       commitCreated: {
         query: gql`
           subscription($streamId: String!) {
@@ -551,8 +592,9 @@ export default {
         },
         result(commitInfo) {
           if (!commitInfo.data.commitCreated) return
-          this.commitSnackbar = true
-          this.commitSnackbarInfo = commitInfo.data.commitCreated
+          console.log(commitInfo)
+          this.snackbar = true
+          this.snackbarInfo = { ...commitInfo.data.commitCreated, type: 'commit' }
         },
         skip() {
           return !this.loggedIn
@@ -598,12 +640,13 @@ export default {
     }
   },
   watch: {
-    $route(to, from) {
+    $route() {
       // Ensures branch menu is open when navigating to a branch url
       if (this.$route.name.toLowerCase().includes('branch') && !this.branchMenuOpen)
         this.branchMenuOpen = true
-
+      // closes any share dialog
       this.shareStream = false
+      this.snackbar = false
     }
   },
   mounted() {
@@ -624,6 +667,17 @@ export default {
     }
   },
   methods: {
+    goToItemAndCloseSnackbar() {
+      if (this.snackbarInfo.type === 'commit') {
+        this.$router.push(`/streams/${this.$route.params.streamId}/commits/${this.snackbarInfo.id}`)
+      } else if (this.snackbarInfo.type === 'branch') {
+        this.$router.push(
+          `/streams/${this.$route.params.streamId}/branches/${this.snackbarInfo.name}`
+        )
+        this.refetchBranches()
+      }
+      this.snackbar = false
+    },
     copyToClipboard(e) {
       e.target.select()
       document.execCommand('copy')
