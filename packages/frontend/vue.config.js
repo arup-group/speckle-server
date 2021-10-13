@@ -1,4 +1,7 @@
 module.exports = {
+  configureWebpack: {
+    devtool: 'source-map'
+  },
   productionSourceMap: true,
   pages: {
     app: {
@@ -16,6 +19,7 @@ module.exports = {
   },
   devServer: {
     host: 'localhost',
+    proxy: 'http://localhost:3000',
     historyApiFallback: {
       rewrites: [
         { from: /^\/$/, to: '/app.html' },
