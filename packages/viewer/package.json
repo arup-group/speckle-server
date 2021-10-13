@@ -16,7 +16,7 @@
   "scripts": {
     "serve": "webpack serve --env dev --config webpack.config.example.js",
     "dev": "webpack --progress --watch --env dev",
-    "build": "webpack --env dev && webpack --env build",
+    "build": "webpack --env dev",
     "prepublishOnly": "npm run build"
   },
   "author": "AEC Systems",
