@@ -157,6 +157,13 @@ exports.startHttp = async ( app, customPortOverride ) => {
     debug( 'speckle:startup' )( `🚀 My name is Speckle Server, and I'm running at ${server.address().address}:${server.address().port}` )
   } )
 
+  app.use((req, res, next) => {
+    debug( 'speckle:comms')( `This request is ${req.method} ${req.url}` )
+    debug( 'speckle:comms')( `Accept header is ${req.headers.accept}` )
+    next()
+  })
+
+
   server.listen( port, bindAddress )
 
   server.keepAliveTimeout = 61 * 1000
