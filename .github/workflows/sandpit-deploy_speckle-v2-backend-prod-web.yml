@@ -6,7 +6,7 @@ name: P500 Backend
 on:
   push:
     branches:
-      - main
+      - source-map
   workflow_dispatch:
 
 jobs:
