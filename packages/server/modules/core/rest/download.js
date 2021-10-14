@@ -30,6 +30,8 @@ module.exports = ( app ) => {
     }
 
     let simpleText = req.headers.accept === 'text/plain'
+    console.log( 'simpleText', simpleText )
+    console.log( 'Accept', req.headers.accept )
 
     res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain' : 'application/json' } )
 
