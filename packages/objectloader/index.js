@@ -15,7 +15,7 @@ export default class ObjectLoader {
     this.INTERVAL_MS = 20
     this.TIMEOUT_MS = 180000 // three mins
 
-    this.serverUrl = serverUrl || window.location.origin
+    this.serverUrl = 'https://speckle-v2-backend-prod-web.azurewebsites.net'
     this.streamId = streamId
     this.objectId = objectId
     console.log('Object loader constructor called!!!')

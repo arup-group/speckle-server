@@ -29,7 +29,7 @@ export default class ViewerObjectLoader {
       throw new Error( 'Unexpected object url format.' )
     }
 
-    this.serverUrl = url.origin
+    this.serverUrl = 'https://speckle-v2-backend-prod-web.azurewebsites.net'
     this.streamId = segments[2]
     this.objectId = segments[4]
 
