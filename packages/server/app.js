@@ -59,7 +59,7 @@ exports.init = async ( ) => {
 
   app.use((req, res, next) => {
     debug( 'speckle:comms')( `This request is ${req.method} ${req.url}` )
-    debug( 'speckle:comms')( `Accept header is ${req.headers.accept}` )
+    debug( 'speckle:comms')( `Header are ${JSON.stringify(req.headers)}` )
     next()
   })
 

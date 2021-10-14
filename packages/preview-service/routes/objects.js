@@ -19,8 +19,6 @@ router.get( '/:streamId/:objectId', async function( req, res, next ) {
   }
 
   let simpleText = req.headers.accept === 'text/plain'
-  console.log( 'simpleText', simpleText )
-  console.log( 'req.headers.accept', req.headers.accept )
 
   res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain' : 'application/json' } )
 
