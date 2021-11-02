@@ -88,12 +88,11 @@ module.exports = {
       let scopes = await TokenScopes( ).select( 'scopeName' ).where( { tokenId: tokenId } )
       let { role } = await ServerRoles( ).select( 'role' ).where( { userId: token.owner } ).first( )
       let { email, name } = await Users().select('email', 'name').where( { id: token.owner }).first()
-      let { name: serverName } = await ServerConfig().select('name').first()
       identify({
         email,
         name
       });
-      return { valid: true, userId: token.owner, role: role, scopes: scopes.map( s => s.scopeName ), email, serverName }
+      return { valid: true, userId: token.owner, role: role, scopes: scopes.map( s => s.scopeName ), email }
     } else
       return { valid: false }
   },
