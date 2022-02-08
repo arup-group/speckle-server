@@ -45,7 +45,7 @@ jobs:
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'speckle-v2-preview-prod-web'
+        app-name: 'speckle-v2-preview-prod'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_2a1a58e1036f491d8a648be3524b9a5c }}
         images: 'arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_73a639fd04ba47a3903c9115378e0f81 }}/arupspecklev2prodacr/preview-service:${{ github.sha }}'
