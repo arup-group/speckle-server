@@ -17,4 +17,4 @@ RUN npm ci
 
 COPY packages/webhook-service/src .
 
-CMD ["node", "main.js"]
+CMD ["node", "www"]
