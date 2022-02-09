@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: P500 Backend
+name: Build and deploy container app to Azure Web App - speckle-v2-preview-prod-web
 
 on:
   push:
@@ -23,22 +23,21 @@ jobs:
       uses: docker/login-action@v1
       with:
         registry: https://arupspecklev2prodacr.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_ff44661e05e94e0aa89a43eaf41808c7 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_07bfd3cf925041cb9246f1fe66fb8d17 }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_73a639fd04ba47a3903c9115378e0f81 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_33f84199e6f0494ab6284558b0a73a55 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v2
       with:
         push: true
-        tags: arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_ff44661e05e94e0aa89a43eaf41808c7 }}/backend:${{ github.sha }}
-        file: ./packages/server/Dockerfile
-        build-args: SPECKLE_SERVER_VERSION=v${{ github.sha }}
+        tags: arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_73a639fd04ba47a3903c9115378e0f81 }}/arupspecklev2prodacr/preview-service:${{ github.sha }}
+        file: ./packages/preview-service/Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'production'
+      name: 'p500-preview-service'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
@@ -46,7 +45,7 @@ jobs:
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'speckle-v2-backend-prod-web'
+        app-name: 'speckle-v2-preview-prod-web'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_f2962ef2bf0146968e6b35c963f8aa43 }}
-        images: 'arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_ff44661e05e94e0aa89a43eaf41808c7 }}/backend:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_2a1a58e1036f491d8a648be3524b9a5c }}
+        images: 'arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_73a639fd04ba47a3903c9115378e0f81 }}/arupspecklev2prodacr/preview-service:${{ github.sha }}'
