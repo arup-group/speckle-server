@@ -117,4 +117,4 @@ async function main() {
   tick()
 }
 
-main()
+module.exports = { main }
