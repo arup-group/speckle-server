@@ -95,13 +95,11 @@ module.exports = {
     // Add user info (except email and pwd)
     if ( eventPayload.userId ) {
       eventPayload.user = await Users( ).where( { id: eventPayload.userId } ).select( '*' ).first( )
-      if ( eventPayload.user ) {
-        delete eventPayload.user.passwordDigest
-        delete eventPayload.user.email
-      }
+      if ( eventPayload.user ) delete eventPayload.user.passwordDigest
+      // Capture the user email in posthog to look up ADS data
+      capture(event, eventPayload)
+      if ( eventPayload.user ) delete eventPayload.user.email
     }
-
-    capture(event, eventPayload)
 
     let { rows } = await knex.raw( `
       SELECT * FROM webhooks_config WHERE "streamId" = ?
