@@ -16,10 +16,15 @@ module.exports = {
     })
   },
   capture(event, eventPayload) {
+    const cloneEventPayload = {
+      user: { ...eventPayload.user },
+      stream: { ...eventPayload.stream },
+      server: { ...eventPayload.server }
+    }
     client.capture({
-      distinctId: eventPayload.user.id,
+      distinctId: cloneEventPayload.user.id,
       event: event,
-      properties: eventPayload
+      properties: cloneEventPayload
     })
   }
 }
