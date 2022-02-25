@@ -1,6 +1,5 @@
 'use strict'
 const zlib = require( 'zlib' )
-const Busboy = require( 'busboy' )
 const debug = require( 'debug' )
 const appRoot = require( 'app-root-path' )
 const cors = require( 'cors' )
@@ -26,7 +25,7 @@ module.exports = ( app ) => {
 
     let simpleText = req.headers.accept === 'text/plain'
 
-    res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain' : 'application/json' } )
+    res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain; charset=UTF-8' : 'application/json' } )
 
     let dbStream = await getObjectsStream( { streamId: req.params.streamId, objectIds: childrenList } )
     let speckleObjStream = new SpeckleObjectsStream( simpleText )

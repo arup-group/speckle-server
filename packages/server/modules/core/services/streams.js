@@ -24,7 +24,7 @@ module.exports = {
     }
 
     // Create the stream & set up permissions
-    let [ streamId ] = await Streams( ).returning( 'id' ).insert( stream )
+    let [ { id: streamId } ] = await Streams( ).returning( 'id' ).insert( stream )
     await Acl( ).insert( { userId: ownerId, resourceId: streamId, role: 'stream:owner' } )
 
     // Create a default main branch
@@ -53,11 +53,11 @@ module.exports = {
   },
 
   async updateStream( { streamId, name, description, isPublic } ) {
-    let [ res ] = await Streams( )
+    let [ { id } ] = await Streams( )
       .returning( 'id' )
       .where( { id: streamId } )
       .update( { name, description, isPublic, updatedAt: knex.fn.now() } )
-    return res
+    return id
   },
 
   async grantPermissionsStream( { streamId, userId, role } ) {

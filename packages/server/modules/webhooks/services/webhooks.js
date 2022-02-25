@@ -24,7 +24,7 @@ module.exports = {
 
     let triggersObj = Object.assign( {}, ...triggers.map( ( x ) => ( { [ x ]: true } ) ) )
 
-    let [ id ] = await WebhooksConfig( ).returning( 'id' ).insert( {
+    let [ { id } ] = await WebhooksConfig( ).returning( 'id' ).insert( {
       id: crs( { length: 10 } ),
       streamId,
       url,
@@ -56,7 +56,7 @@ module.exports = {
       fieldsToUpdate.triggers = triggersObj
     }
 
-    let [ res ] = await WebhooksConfig( )
+    let [ { id: res } ] = await WebhooksConfig( )
       .returning( 'id' )
       .where( { id } )
       .update( fieldsToUpdate )
