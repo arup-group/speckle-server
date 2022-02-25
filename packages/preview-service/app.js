@@ -18,8 +18,9 @@ prometheusClient.collectDefaultMetrics()
 var app = express()
 
 app.use( logger( 'dev' ) )
-app.use( express.json() )
-app.use( express.urlencoded( { extended: false } ) )
+
+app.use( express.json( { limit: '100mb' } ) )
+app.use( express.urlencoded( { limit: '100mb', extended: false } ) )
 app.use( cookieParser() )
 app.use( express.static( path.join( __dirname, 'public' ) ) )
 
@@ -34,7 +35,7 @@ app.get( '/metrics', async ( req, res ) => {
     res.set( 'Content-Type', prometheusClient.register.contentType )
     res.end( await prometheusClient.register.metrics() )
   } catch ( ex ) {
-    res.status( 500 ).end( ex )
+    res.status( 500 ).end( ex.message )
   }
 } )
 

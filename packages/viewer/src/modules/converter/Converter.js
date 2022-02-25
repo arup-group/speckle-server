@@ -113,7 +113,7 @@ export default class Coverter {
           await Promise.all( childrenConversionPromisses )
           this.activePromises -= childrenConversionPromisses.length
         }
-        
+
         return
       }
     }
@@ -278,7 +278,11 @@ export default class Coverter {
   async BrepToBufferGeometry( obj, scale = true ) {
     try {
       if ( !obj ) return
-      let { bufferGeometry } = await this.MeshToBufferGeometry( await this.resolveReference( obj.displayValue || obj.displayMesh ), scale )
+
+      let displayValue = obj.displayValue || obj.displayMesh
+      if( Array.isArray( displayValue ) ) displayValue = displayValue[0] //Just take the first display value for now (not ideal)
+
+      let { bufferGeometry } = await this.MeshToBufferGeometry( await this.resolveReference( displayValue ), scale )
 
       // deletes known unneeded fields
       // delete obj.displayMesh
@@ -318,18 +322,21 @@ export default class Coverter {
         let n = faces[ k ]
         if ( n <= 3 ) n += 3 // 0 -> 3, 1 -> 4
 
-        if ( n === 3 ) { // TRIANGLE FACE
+        if ( n === 3 ) { // Triangle face
           indices.push( faces[ k + 1 ], faces[ k + 2 ], faces[ k + 3 ] )
-        } else { //Quad or N-GON FACE
+        } else { // Quad or N-gon face
           const triangulation = MeshTriangulationHelper.triangulateFace( k, faces, vertices )
-          for( let t = 0; t < triangulation.length; t += 3 ) {
-            indices.push( triangulation[ t ], triangulation[ t + 1 ], triangulation[ t + 2 ] )
-          }
+          indices.push( ...triangulation )
         }
 
         k += n + 1
       }
-      buffer.setIndex( indices )
+
+      if ( vertices.length >= 65535 || indices.length >= 65535 ) {
+        buffer.setIndex( new THREE.Uint32BufferAttribute( indices, 1 ) )
+      } else {
+        buffer.setIndex( new THREE.Uint16BufferAttribute ( indices, 1 ) )
+      }
 
       buffer.setAttribute(
         'position',
@@ -445,8 +452,10 @@ export default class Coverter {
   async CurveToBufferGeometry( object, scale = true ) {
     let obj = {}
     Object.assign( obj, object )
-    obj.displayValue.units = obj.displayValue.units || obj.units
-    const poly = await this.PolylineToBufferGeometry( obj.displayValue, scale )
+    let displayValue = await this.resolveReference( obj.displayValue )
+    displayValue.units = displayValue.units || obj.units
+
+    const poly = await this.PolylineToBufferGeometry( displayValue, scale )
 
     return new ObjectWrapper( poly.bufferGeometry, obj, 'line' )
   }

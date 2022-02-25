@@ -1,6 +1,5 @@
 'use strict'
 const zlib = require( 'zlib' )
-const Busboy = require( 'busboy' )
 const debug = require( 'debug' )
 const appRoot = require( 'app-root-path' )
 const cors = require( 'cors' )
@@ -26,12 +25,12 @@ module.exports = ( app ) => {
     let obj = await getObject( { streamId: req.params.streamId, objectId: req.params.objectId } )
 
     if ( !obj ) {
-      return res.status( 404 ).send( `Failed to find object ${req.params.objectId}.` )
+      return res.status( 404 ).send( 'Failed to find object.' )
     }
 
     let simpleText = req.headers.accept === 'text/plain'
 
-    res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain' : 'application/json' } )
+    res.writeHead( 200, { 'Content-Encoding': 'gzip', 'Content-Type': simpleText ? 'text/plain; charset=UTF-8' : 'application/json' } )
 
     let dbStream = await getObjectChildrenStream( { streamId: req.params.streamId, objectId: req.params.objectId } )
     let speckleObjStream = new SpeckleObjectsStream( simpleText )
@@ -65,7 +64,7 @@ module.exports = ( app ) => {
     let obj = await getObject( { streamId: req.params.streamId, objectId: req.params.objectId } )
 
     if ( !obj ) {
-      return res.status( 404 ).send( `Failed to find object ${req.params.objectId}.` )
+      return res.status( 404 ).send( 'Failed to find object.' )
     }
 
     debug( 'speckle:info' )( `[User ${req.context.userId || '-'}] Downloaded single object ${req.params.objectId} from stream ${req.params.streamId}` )

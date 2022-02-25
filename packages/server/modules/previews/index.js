@@ -77,6 +77,8 @@ exports.init = ( app, options ) => {
       res.sendFile( previewBufferOrFile.file )
     } else {
       res.contentType( 'image/png' )
+      // If the preview is a buffer, it comes from the DB and can be cached on clients
+      res.set( 'Cache-Control', 'private, max-age=604800' )
       res.send( previewBufferOrFile.buffer )  
     }
   }
@@ -163,7 +165,7 @@ exports.init = ( app, options ) => {
       return res.sendFile( `${appRoot}/modules/previews/assets/preview_${httpErrorCode}.png` )
     }
 
-    let commit = await getCommitById( { id: req.params.commitId } )
+    let commit = await getCommitById( { streamId: req.params.streamId, id: req.params.commitId } )
     if ( !commit ) {
       return res.sendFile( `${appRoot}/modules/previews/assets/no_preview.png` )
     }

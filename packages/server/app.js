@@ -102,7 +102,7 @@ exports.init = async ( ) => {
       res.set( 'Content-Type', prometheusClient.register.contentType )
       res.end( await prometheusClient.register.metrics() )
     } catch ( ex ) {
-      res.status( 500 ).end( ex )
+      res.status( 500 ).end( ex.message )
     }
   } )
 
@@ -124,7 +124,7 @@ exports.startHttp = async ( app, customPortOverride ) => {
 
 
   let frontendHost = process.env.FRONTEND_HOST || 'localhost'
-  let frontendPort = process.env.FRONTEND_PORT || 8080
+  let frontendPort = process.env.FRONTEND_PORT || 8081
 
   // Handles frontend proxying:
   // Dev mode -> proxy form the local webpack server
