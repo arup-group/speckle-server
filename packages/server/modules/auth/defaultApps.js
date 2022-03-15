@@ -140,3 +140,25 @@ let SpeckleFuseApp = {
   redirectUrl: 'https://arup-fuse-ie-speckle-app.azurewebsites.net/login',
   scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
 }
+
+let SpeckleSDPApp = {
+  id: 'sdp',
+  secret: 'sdp',
+  name: 'SDP Connector',
+  description: 'SDP auth with Speckle production',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://sdp.arup.com/manage-account',
+  scopes: 'all'
+}
+
+let SpeckleSDPLocalApp = {
+  id: 'sdp-local',
+  secret: 'sdp-local',
+  name: 'SDP Connector (local)',
+  description: 'SDP (local) auth with Speckle production',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'http://localhost:3000/manage-account',
+  scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
+}
