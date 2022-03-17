@@ -3,7 +3,8 @@
 const appRoot = require( 'app-root-path' )
 const knex = require( `${appRoot}/db/knex` )
 const crs = require( 'crypto-random-string' )
-const { capture } = require(`${appRoot}/logging/posthogHelper`)
+const { capture } = require( `${appRoot}/logging/posthogHelper` )
+const { produceMsg } = require( `${appRoot}/logging/kafkaHelper` )
 
 const WebhooksConfig = ( ) => knex( 'webhooks_config' )
 const WebhooksEvents = ( ) => knex( 'webhooks_events' )
@@ -13,6 +14,8 @@ const { getServerInfo } = require( '../../core/services/generic' )
 const { getStream } = require( '../../core/services/streams' )
 
 let MAX_STREAM_WEBHOOKS = 100
+
+const useKafka = process.env.USE_KAFKA
 
 module.exports = {
 
@@ -82,11 +85,13 @@ module.exports = {
   },
 
   async dispatchStreamEvent( { streamId, event, eventPayload } ) {
+    if ( useKafka === 'true' ) produceMsg( event, eventPayload )
+    
     // Add server info
     eventPayload.server = await getServerInfo()
     eventPayload.server.canonicalUrl = process.env.CANONICAL_URL
-    delete eventPayload.server.id
-
+    delete eventPayload.server.id     
+    
     // Add stream info
     if ( eventPayload.streamId ) {
       eventPayload.stream = await getStream( { streamId: eventPayload.streamId, userId: eventPayload.userId } )
@@ -97,7 +102,7 @@ module.exports = {
       eventPayload.user = await Users( ).where( { id: eventPayload.userId } ).select( '*' ).first( )
       if ( eventPayload.user ) delete eventPayload.user.passwordDigest
       // Capture the user email in posthog to look up ADS data
-      capture(event, eventPayload)
+      capture( event, eventPayload )
       if ( eventPayload.user ) delete eventPayload.user.email
     }
 
