@@ -19,7 +19,8 @@ module.exports = {
     const cloneEventPayload = {
       user: { ...eventPayload.user },
       stream: { ...eventPayload.stream },
-      server: { ...eventPayload.server }
+      server: { ...eventPayload.server },
+      event: { ...eventPayload.event }
     }
     client.capture( {
       distinctId: cloneEventPayload.user.id,
