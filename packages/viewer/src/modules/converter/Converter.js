@@ -475,11 +475,12 @@ export default class Coverter {
 
   async ArcToBufferGeometry( obj, scale = true ) {
     const radius = obj.radius
+    const drawClockwise = obj.angleRadians < 0  // arcs with negative sweep angles should be drawn clockwise
     const curve = new THREE.EllipseCurve(
       0, 0,                           // ax, aY
       radius, radius,                 // xRadius, yRadius
       obj.startAngle, obj.endAngle,   // aStartAngle, aEndAngle
-      false,                          // aClockwise
+      drawClockwise,                  // aClockwise
       0                               // aRotation
     )
     const points = curve.getPoints( 50 )
