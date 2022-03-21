@@ -213,7 +213,7 @@ export default {
         query Stream($id: String!) {
           branchQuery: stream(id: $id) {
             id
-            branches {
+            branches(limit: 50) {
               totalCount
               items {
                 name
