@@ -163,14 +163,3 @@ let SpeckleSDPApp = {
   redirectUrl: 'https://sdp.arup.com/manage-account',
   scopes: 'all'
 }
-
-let SpeckleSDPLocalApp = {
-  id: 'sdp-local',
-  secret: 'sdp-local',
-  name: 'SDP Connector (local)',
-  description: 'SDP (local) auth with Speckle production',
-  trustByDefault: true,
-  public: true,
-  redirectUrl: 'http://localhost:3000/manage-account',
-  scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
-}
