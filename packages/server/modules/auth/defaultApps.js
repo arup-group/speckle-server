@@ -16,6 +16,7 @@ module.exports = async () => {
   await registerOrUpdateApp( { ...SpeckleWebApp } )
   await registerOrUpdateApp( { ...SpeckleApiExplorer } )
   await registerOrUpdateApp( { ...SpeckleDesktopApp } )
+  await registerOrUpdateApp( { ...SpeckleConnectorApp } )
   await registerOrUpdateApp( { ...SpeckleExcel } )
   await registerOrUpdateApp( { ...SpeckleCarbonCalculator } )
   await registerOrUpdateApp( { ...SpeckleProjectSetupApp } )
@@ -97,6 +98,17 @@ let SpeckleDesktopApp = {
   scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
 }
 
+let SpeckleConnectorApp = {
+  id: 'sca',
+  secret: 'sca',
+  name: 'Speckle Connector',
+  description: 'A Speckle Desktop Connectors.',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'http://localhost:29363',
+  scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
+}
+
 let SpeckleExcel = {
   id: 'spklexcel',
   secret: 'spklexcel',
@@ -139,4 +151,15 @@ let SpeckleFuseApp = {
   public: true,
   redirectUrl: 'https://arup-fuse-ie-speckle-app.azurewebsites.net/login',
   scopes: [ 'streams:read', 'streams:write', 'profile:read', 'profile:email', 'users:read' ]
+}
+
+let SpeckleSDPApp = {
+  id: 'sdp',
+  secret: 'sdp',
+  name: 'SDP Connector',
+  description: 'SDP auth with Speckle production',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://sdp.arup.com/manage-account',
+  scopes: 'all'
 }
