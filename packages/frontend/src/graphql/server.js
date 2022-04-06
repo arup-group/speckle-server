@@ -14,7 +14,7 @@ export const MAIN_SERVER_INFO_FIELDS = gql`
     defaultGlobals
   }
 `
-+
+
 export const SERVER_INFO_ROLES_FIELDS = gql`
   fragment ServerInfoRolesFields on ServerInfo {
     roles {
