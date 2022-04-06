@@ -21,6 +21,7 @@ module.exports = async () => {
   await registerOrUpdateApp( { ...SpeckleCarbonCalculator } )
   await registerOrUpdateApp( { ...SpeckleProjectSetupApp } )
   await registerOrUpdateApp( { ...SpeckleFuseApp } )
+  await registerOrUpdateApp( { ...SpeckleSDPApp } )
 }
 
 async function registerOrUpdateApp( app ) {
