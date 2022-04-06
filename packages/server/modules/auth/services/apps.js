@@ -208,10 +208,10 @@ module.exports = {
 
     const rtk = await RefreshTokens( ).insert( refreshToken )
     
-    let username = await Users().where({ id: code.userId }).select('email').first()
+    let userInfo = await Users().where({ id: code.userId }).select('email').first()
 
     return {
-      username: username,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
@@ -260,11 +260,11 @@ module.exports = {
 
     const rtk = await RefreshTokens( ).insert( freshRefreshToken )
 
-    let username = await Users().where({ id: refreshTokenDb.userId }).select('email').first()
+    let userInfo = await Users().where({ id: refreshTokenDb.userId }).select('email').first()
     
     // Finally return
     return {
-      username: username,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
