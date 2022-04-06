@@ -255,9 +255,12 @@ module.exports = {
 
     const rtk = await RefreshTokens().insert(refreshToken)
 
+    let userInfo = await Users().where({ id: code.userId }).select('email').first()
+
     return {
+      username: userInfo.email, // for sdp
       token: appToken,
-      refreshToken: bareToken.tokenId + bareToken.tokenString
+      refreshToken: bareToken.tokenId + bareToken.tokenString      
     }
   },
 
@@ -311,8 +314,11 @@ module.exports = {
 
     const rtk = await RefreshTokens().insert(freshRefreshToken)
 
+    let userInfo = await Users().where({ id: refreshTokenDb.userId }).select('email').first()
+    
     // Finally return
     return {
+      username: userInfo.email, // for sdp
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
