@@ -207,8 +207,12 @@ module.exports = {
     }
 
     const rtk = await RefreshTokens( ).insert( refreshToken )
+    
+    let userInfo = await Users().where({ id: code.userId }).select('email').first()
 
     return {
+      userId: code.userId,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
@@ -257,8 +261,12 @@ module.exports = {
 
     const rtk = await RefreshTokens( ).insert( freshRefreshToken )
 
+    let userInfo = await Users().where({ id: refreshTokenDb.userId }).select('email').first()
+    
     // Finally return
     return {
+      userId: refreshTokenDb.userId,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
