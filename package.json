@@ -2,7 +2,13 @@
   "name": "root",
   "private": true,
   "scripts": {
-    "lint": "eslint . --ext .js,.ts,.vue"
+    "lint": "eslint . --ext .js,.ts,.vue",
+    "prettier:check": "prettier --check .",
+    "prettier:fix": "prettier --write .",
+    "docker:deps:up": "docker-compose -f ./docker-compose-deps.yml up -d",
+    "docker:deps:down": "docker-compose -f ./docker-compose-deps.yml down",
+    "dev": "lerna run dev --parallel",
+    "dev:no-server": "npm run dev -- --ignore @speckle/server"
   },
   "devDependencies": {
     "@types/eslint": "^8.4.1",

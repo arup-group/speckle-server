@@ -4,13 +4,17 @@
     rounded="lg"
     :style="`${serverInfo.inviteOnly ? 'border: 2px solid #047EFB' : ''}`"
   >
-    <div v-show="serverInfo.inviteOnly" class="caption text-center" style="background: #047efb">
+    <div
+      v-show="serverInfo.inviteOnly"
+      class="caption text-center"
+      style="background: #047efb"
+    >
       <v-icon small>mdi-shield-alert-outline</v-icon>
       This Speckle server is invite only.
     </div>
     <v-alert v-if="serverInfo.inviteOnly && !inviteId" type="info">
-      This server is invite only. If you have received an invitation email, please follow the
-      instructions in it.
+      This server is invite only. If you have received an invitation email, please
+      follow the instructions in it.
     </v-alert>
     <div v-else>
       <v-card-title class="justify-center pt-5 pb-2 hidden-md-and-up">
@@ -20,18 +24,33 @@
         <span class="hidden-md-and-up mr-2 primary--text">Speckle:</span>
         Interoperability in seconds
       </v-card-title>
-      <strategies :strategies="strategies" :app-id="appId" :challenge="challenge" :suuid="suuid" />
+      <strategies
+        :strategies="strategies"
+        :app-id="appId"
+        :challenge="challenge"
+        :suuid="suuid"
+      />
       <v-card-title class="justify-center pb-5 pt-0 body-1 text--secondary">
         <v-divider class="mx-4"></v-divider>
         Create an account
         <v-divider class="mx-4"></v-divider>
       </v-card-title>
-      <v-alert v-model="registrationError" type="error" :icon="null" text multi-line dismissible>
+      <v-alert
+        v-model="registrationError"
+        type="error"
+        :icon="null"
+        text
+        multi-line
+        dismissible
+      >
         <v-row align="center">
           <v-col class="grow">
             {{ errorMessage }}
           </v-col>
-          <v-col v-if="errorMessage.toLowerCase().includes('email taken')" class="shrink">
+          <v-col
+            v-if="errorMessage.toLowerCase().includes('email taken')"
+            class="shrink"
+          >
             <v-btn color="primary" plain :to="loginRoute">Login</v-btn>
           </v-col>
         </v-row>
@@ -105,7 +124,7 @@
             </v-col>
             <v-col cols="12" class="py-2 pl-9" style="margin-top: -18px">
               <v-row
-                v-show="passwordStrength !== 1 && this.form.password"
+                v-show="passwordStrength !== 1 && form.password"
                 no-gutters
                 align="center"
               >
@@ -119,9 +138,9 @@
                     height="5"
                     class="mt-1 mb-0"
                     :color="`${
-                      passwordStrength >= 75 && this.form.password === this.form.passwordConf
+                      passwordStrength >= 75 && form.password === form.passwordConf
                         ? 'green'
-                        : passwordStrength >= 50 && this.form.password === this.form.passwordConf
+                        : passwordStrength >= 50 && form.password === form.passwordConf
                         ? 'orange'
                         : 'red'
                     }`"
@@ -129,20 +148,22 @@
                 </v-col>
                 <v-col cols="12" class="caption text-center mt-3">
                   {{
-                    this.pwdSuggestions
-                      ? this.pwdSuggestions
-                      : this.form.password && this.form.password === this.form.passwordConf
+                    pwdSuggestions
+                      ? pwdSuggestions
+                      : form.password && form.password === form.passwordConf
                       ? 'Looks good.'
                       : null
                   }}
-                  <span v-if="this.form.password !== this.form.passwordConf">
+                  <span v-if="form.password !== form.passwordConf">
                     <b>Passwords do not match.</b>
                   </span>
                 </v-col>
               </v-row>
             </v-col>
             <v-col cols="12">
-              <v-btn block large color="primary" @click="registerUser">Create Account</v-btn>
+              <v-btn block large color="primary" @click="registerUser">
+                Create Account
+              </v-btn>
               <p class="text-center"></p>
             </v-col>
           </v-row>
@@ -150,7 +171,9 @@
       </v-card-text>
     </div>
     <v-card-title
-      :class="`justify-center caption ${serverInfo.inviteOnly && !inviteId ? 'pt-0' : ''}`"
+      :class="`justify-center caption ${
+        serverInfo.inviteOnly && !inviteId ? 'pt-0' : ''
+      }`"
     >
       <div class="mx-4 align-self-center">Already have an account?</div>
       <div class="mx-4 align-self-center">
@@ -161,7 +184,7 @@
 </template>
 <script>
 import gql from 'graphql-tag'
-import debounce from 'lodash.debounce'
+import debounce from 'lodash/debounce'
 import crs from 'crypto-random-string'
 
 import Strategies from '@/main/components/auth/Strategies'
@@ -279,7 +302,8 @@ export default {
       try {
         let valid = this.$refs.form.validate()
         if (!valid) return
-        if (this.form.password !== this.form.passwordConf) throw new Error('Passwords do not match')
+        if (this.form.password !== this.form.passwordConf)
+          throw new Error('Passwords do not match')
         if (this.passwordStrength < 3) throw new Error('Password too weak')
 
         let user = {

@@ -9,10 +9,20 @@
         &nbsp;
         <b>{{ user.name }}</b>
         <span v-if="isSelf">!</span>
-        <v-icon v-if="user.verified" v-tooltip="'Verfied email'" small class="ml-3 primary--text">
+        <v-icon
+          v-if="user.verified"
+          v-tooltip="'Verfied email'"
+          small
+          class="ml-3 primary--text"
+        >
           mdi-shield-check
         </v-icon>
-        <v-icon v-else v-tooltip="'Email not verified'" small class="mr-2 warning--text">
+        <v-icon
+          v-else
+          v-tooltip="'Email not verified'"
+          small
+          class="mr-2 warning--text"
+        >
           mdi-shield-alert
         </v-icon>
       </template>
@@ -38,7 +48,19 @@
               <b>Bio:</b>
               {{ user.bio ? user.bio : 'No bio provided.' }}
             </p>
-
+            <p>
+              <v-tooltip top z-index="101">
+                <template #activator="{ on, attrs }">
+                  <span v-bind="attrs" v-on="on">
+                    {{ user.totalOwnedStreamsFavorites || 0 }}
+                    <v-icon color="red darken-3">mdi-heart</v-icon>
+                  </span>
+                </template>
+                <span>
+                  Total amount of favorites for all streams owned by this user
+                </span>
+              </v-tooltip>
+            </p>
             <span v-if="isSelf" class="caption">
               id:
               <code>{{ user.id }}</code>

@@ -2,7 +2,12 @@
   <v-card>
     <v-card-title class="primary white--text">Create a New App</v-card-title>
 
-    <v-form v-show="!appCreateResult" ref="form" v-model="valid" @submit.prevent="createApp">
+    <v-form
+      v-show="!appCreateResult"
+      ref="form"
+      v-model="valid"
+      @submit.prevent="createApp"
+    >
       <v-card-text>
         <v-text-field
           v-model="name"
@@ -65,7 +70,9 @@
         <p>
           <b>Note:</b>
           To authenticate users inside your app, direct them to
-          <code style="word-break: break-all">{{ rootUrl }}/authn/verify/{appId}/{challenge}</code>
+          <code style="word-break: break-all">
+            {{ rootUrl }}/authn/verify/{appId}/{challenge}
+          </code>
           , where
           <code>challenge</code>
           is an OAuth2 plain code challenge.
@@ -77,6 +84,7 @@
 </template>
 <script>
 import gql from 'graphql-tag'
+import { FullServerInfoQuery } from '@/graphql/server'
 
 export default {
   props: {
@@ -88,21 +96,12 @@ export default {
   apollo: {
     scopes: {
       prefetch: true,
-      query: gql`
-        query {
-          serverInfo {
-            scopes {
-              name
-              description
-            }
-          }
-        }
-      `,
+      query: FullServerInfoQuery,
       update: (data) => data.serverInfo.scopes
     },
     app: {
       query: gql`
-        query($id: String!) {
+        query ($id: String!) {
           app(id: $id) {
             id
             name
@@ -181,7 +180,7 @@ export default {
       try {
         let res = await this.$apollo.mutate({
           mutation: gql`
-            mutation($app: AppCreateInput!) {
+            mutation ($app: AppCreateInput!) {
               appCreate(app: $app)
             }
           `,

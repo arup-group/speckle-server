@@ -57,7 +57,7 @@ const routes = [
     meta: {
       title: 'Home | Speckle'
     },
-    component: () => import('@/main/layouts/Main.vue'),
+    component: () => import('@/main/layouts/TheMain.vue'),
     children: [
       {
         path: '',
@@ -81,14 +81,22 @@ const routes = [
         meta: {
           title: 'Streams | Speckle'
         },
-        component: () => import('@/main/pages/Streams.vue')
+        component: () => import('@/main/pages/TheStreams.vue')
+      },
+      {
+        path: 'streams/favorite',
+        name: 'favorite-streams',
+        meta: {
+          title: 'Favorite Streams | Speckle'
+        },
+        component: () => import('@/main/pages/TheFavoriteStreams.vue')
       },
       {
         path: 'streams/:streamId',
         meta: {
           title: 'Stream | Speckle'
         },
-        component: () => import('@/main/pages/stream/Stream.vue'),
+        component: () => import('@/main/pages/stream/TheStream.vue'),
         children: [
           {
             path: '',
@@ -113,10 +121,21 @@ const routes = [
             beforeEnter: (to, from, next) => {
               if (to.params.branchName.toLowerCase() !== to.params.branchName)
                 return next(
-                  `/streams/${to.params.streamId}/branches/${to.params.branchName.toLowerCase()}`
+                  `/streams/${
+                    to.params.streamId
+                  }/branches/${to.params.branchName.toLowerCase()}`
                 )
               else next()
             }
+          },
+          {
+            path: 'comments/',
+            name: 'comments',
+            meta: {
+              title: 'Stream Comments | Speckle',
+              resizableNavbar: false
+            },
+            component: () => import('@/main/pages/stream/Comments.vue')
           },
           {
             path: 'commits/:resourceId*',
@@ -301,7 +320,9 @@ router.beforeEach((to, from, next) => {
 
   if (
     !uuid &&
-    !to.matched.some(({ name }) => name === 'stream' || name === 'commit' || name === 'branch') && //allow public streams to be viewed
+    !to.matched.some(
+      ({ name }) => name === 'stream' || name === 'commit' || name === 'branch'
+    ) && //allow public streams to be viewed
     to.name !== 'Embeded Viewer' &&
     to.name !== 'Login' &&
     to.name !== 'Register' &&

@@ -2,18 +2,11 @@
   <div>
     <v-row v-if="stream && stream.commits.totalCount !== 0" no-gutters>
       <v-col cols="12">
-        <v-card :to="`/streams/${$route.params.streamId}/commits/${stream.commits.items[0].id}`">
-          <preview-image
-            :height="420"
-            :url="`/preview/${$route.params.streamId}/commits/${stream.commits.items[0].id}`"
-          ></preview-image>
-          <list-item-commit
-            :commit="stream.commits.items[0]"
-            :stream-id="$route.params.streamId"
-            transparent
-            class="elevation-0"
-          ></list-item-commit>
-        </v-card>
+        <commit-preview-card
+          :commit="stream.commits.items[0]"
+          :preview-height="320"
+          :show-stream-and-branch="true"
+        />
         <v-list class="pa-0 ma-0"></v-list>
       </v-col>
       <v-col cols="12" style="height: 20px"></v-col>
@@ -39,7 +32,10 @@
               md="4"
               xl="12"
             >
-              <v-card :to="`/streams/${$route.params.streamId}/branches/${branch.name}`">
+              <v-card
+                class="rounded-lg"
+                :to="`/streams/${$route.params.streamId}/branches/${branch.name}`"
+              >
                 <preview-image
                   :height="120"
                   :url="`/preview/${$route.params.streamId}/commits/${branch.commits.items[0].id}`"
@@ -67,7 +63,9 @@
             <v-toolbar-title>Stream Feed</v-toolbar-title>
             <v-spacer />
           </v-toolbar>
-          <v-card-title class="caption" style="margin-top: -30px">Recent activity log</v-card-title>
+          <v-card-title class="caption" style="margin-top: -30px">
+            Recent activity log
+          </v-card-title>
         </v-card>
         <div class="mr-0">
           <stream-activity></stream-activity>
@@ -78,7 +76,8 @@
     <no-data-placeholder v-if="stream && stream.commits.totalCount === 0">
       <h2>This stream has not received any data.</h2>
       <p class="caption">
-        Streams are repositories where you can store, version and retrieve various design data.
+        Streams are repositories where you can store, version and retrieve various
+        design data.
       </p>
     </no-data-placeholder>
   </div>
@@ -87,12 +86,13 @@
 import gql from 'graphql-tag'
 
 export default {
-  name: 'Details',
+  name: 'StreamHome',
   components: {
     NoDataPlaceholder: () => import('@/main/components/common/NoDataPlaceholder'),
     ListItemCommit: () => import('@/main/components/stream/ListItemCommit'),
     PreviewImage: () => import('@/main/components/common/PreviewImage'),
-    StreamActivity: () => import('@/main/components/stream/Activity')
+    StreamActivity: () => import('@/main/components/stream/Activity'),
+    CommitPreviewCard: () => import('@/main/components/common/CommitPreviewCard')
   },
   data() {
     return {
@@ -141,6 +141,7 @@ export default {
                 referencedObject
                 createdAt
                 branchName
+                commentCount
               }
             }
           }
@@ -164,7 +165,9 @@ export default {
         .filter((br) => br.name !== 'globals' && br.commits.totalCount !== 0)
         .slice()
         .sort(
-          (a, b) => new Date(b.commits.items[0].createdAt) - new Date(a.commits.items[0].createdAt)
+          (a, b) =>
+            new Date(b.commits.items[0].createdAt) -
+            new Date(a.commits.items[0].createdAt)
         )
       return branches.slice(0, 3)
     },

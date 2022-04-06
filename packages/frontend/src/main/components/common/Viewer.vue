@@ -1,5 +1,5 @@
 <template lang="html">
-  <div style="height: 100%; position: relative" class="transparent">
+  <div style="height: 100vh; position: relative" class="transparent">
     <div
       id="rendererparent"
       ref="rendererparent"
@@ -9,7 +9,7 @@
 </template>
 <script>
 import { Viewer } from '@speckle/viewer'
-import throttle from 'lodash.throttle'
+import throttle from 'lodash/throttle'
 
 export default {
   data() {
@@ -33,7 +33,7 @@ export default {
     // - juggle the container div out of this component's dom when the component is managed out by vue
     // - juggle the container div back in of this component's dom when it's back.
 
-    this.$mixpanel.track('Viewer Action', { type: 'action', name: 'load'  })
+    this.$mixpanel.track('Viewer Action', { type: 'action', name: 'load' })
     let renderDomElement = document.getElementById('renderer')
     if (!renderDomElement) {
       renderDomElement = document.createElement('div')
@@ -89,14 +89,14 @@ export default {
   position: relative;
   display: inline-block;
   width: 100%;
-  height: 100%;
+  height: 100vh;
 }
 
 #renderer {
   position: absolute;
   top: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   z-index: 1;
 }
 

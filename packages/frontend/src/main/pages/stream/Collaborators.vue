@@ -22,8 +22,8 @@
     <v-row justify="center">
       <v-col v-if="stream.role !== 'stream:owner'" cols="12">
         <v-alert type="warning">
-          Your permission level ({{ stream.role }}) is not high enough to edit this stream's
-          collaborators.
+          Your permission level ({{ stream.role }}) is not high enough to edit this
+          stream's collaborators.
         </v-alert>
       </v-col>
 
@@ -53,12 +53,18 @@
                   one-line
                   class="px-0 mx-0 transparent"
                 >
-                  <v-list-item v-if="filteredSearchResults.length === 0" class="px-0 mx-0">
+                  <v-list-item
+                    v-if="filteredSearchResults.length === 0"
+                    class="px-0 mx-0"
+                  >
                     <v-list-item-content>
                       <v-list-item-title>No users found.</v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
-                  <v-list-item v-if="filteredSearchResults.length === 0" class="px-0 mx-0">
+                  <v-list-item
+                    v-if="filteredSearchResults.length === 0"
+                    class="px-0 mx-0"
+                  >
                     <v-list-item-action>
                       <v-btn color="primary" @click="showStreamInviteDialog">
                         Invite {{ search }}
@@ -116,7 +122,11 @@
                 {{ role.description }}
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:reviewer'">
-                <div v-for="user in reviewers" :key="user.id" class="d-flex align-center mb-2">
+                <div
+                  v-for="user in reviewers"
+                  :key="user.id"
+                  class="d-flex align-center mb-2"
+                >
                   <user-role
                     :user="user"
                     :roles="roles"
@@ -127,7 +137,11 @@
                 </div>
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:contributor'">
-                <div v-for="user in contributors" :key="user.id" class="d-flex align-center mb-2">
+                <div
+                  v-for="user in contributors"
+                  :key="user.id"
+                  class="d-flex align-center mb-2"
+                >
                   <user-role
                     :user="user"
                     :roles="roles"
@@ -138,7 +152,11 @@
                 </div>
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:owner'">
-                <div v-for="user in owners" :key="user.id" class="d-flex align-center mb-2">
+                <div
+                  v-for="user in owners"
+                  :key="user.id"
+                  class="d-flex align-center mb-2"
+                >
                   <user-role
                     :user="user"
                     :roles="roles"
@@ -156,7 +174,9 @@
             <v-card
               rounded="lg"
               style="height: 100%"
-              :class="`${!$vuetify.theme.dark ? 'grey lighten-5' : ''} d-flex flex-column`"
+              :class="`${
+                !$vuetify.theme.dark ? 'grey lighten-5' : ''
+              } d-flex flex-column`"
             >
               <v-toolbar style="flex: none" flat>
                 <v-toolbar-title class="text-capitalize">
@@ -213,9 +233,9 @@
 </template>
 <script>
 import gql from 'graphql-tag'
-import serverQuery from '@/graphql/server.gql'
 import streamCollaboratorsQuery from '@/graphql/streamCollaborators.gql'
 import userSearchQuery from '@/graphql/userSearch.gql'
+import { FullServerInfoQuery } from '@/graphql/server'
 
 export default {
   components: {
@@ -253,11 +273,16 @@ export default {
       skip() {
         return !this.search || this.search.length < 3
       },
-      debounce: 300
+      debounce: 300,
+      // if the same query is input after adding a contributor, it doesn't show the proper results with caching
+      // the cause was the error on the filtered search results prop breaking
+      // but it still can be reasonable to disable this query caching for any user permission changes
+      // happening while the cache is still active
+      fetchPolicy: 'no-cache'
     },
     serverInfo: {
       prefetch: true,
-      query: serverQuery
+      query: FullServerInfoQuery
     }
   },
   computed: {
@@ -303,7 +328,7 @@ export default {
     async removeUser(user) {
       this.loading = true
       this.$matomo && this.$matomo.trackPageView('stream/remove-collaborator')
-      this.$mixpanel.track('Permission Action', { type: 'action', name: 'remove'  })
+      this.$mixpanel.track('Permission Action', { type: 'action', name: 'remove' })
       try {
         await this.$apollo.mutate({
           mutation: gql`
@@ -341,7 +366,11 @@ export default {
     async addCollab(user) {
       this.loading = true
       this.search = null
-      this.userSearch.items = null
+      // the line below is meant to disable the apollo cache? if so, its not doing that
+      // rather it breaks the filteredSearchResults computed property
+      // which in turn fails silently, without any errors, just not having values
+      // TODO: check with Dim
+      // this.userSearch.items = null
       user.role = 'stream:contributor'
       await this.grantPermissionUser(user)
       this.stream.collaborators.unshift(user)
@@ -349,7 +378,7 @@ export default {
       this.$apollo.queries.stream.refetch()
     },
     async grantPermissionUser(user) {
-      this.$mixpanel.track('Permission Action', { type: 'action', name: 'add'  })
+      this.$mixpanel.track('Permission Action', { type: 'action', name: 'add' })
       this.$matomo && this.$matomo.trackPageView('stream/add-collaborator')
       try {
         await this.$apollo.mutate({

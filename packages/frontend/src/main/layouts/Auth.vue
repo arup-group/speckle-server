@@ -2,7 +2,14 @@
   <v-app :class="`${$vuetify.theme.dark ? 'background-dark' : 'background-light'}`">
     <v-container fill-height fluid>
       <v-row align="center" justify="center">
-        <v-col v-if="showBlurb" cols="12" md="6" lg="6" xl="4" class="hidden-sm-and-down">
+        <v-col
+          v-if="showBlurb"
+          cols="12"
+          md="6"
+          lg="6"
+          xl="4"
+          class="hidden-sm-and-down"
+        >
           <blurb :server-info="serverInfo" />
         </v-col>
         <v-col cols="11" sm="8" md="6" lg="4" xl="3">
@@ -18,8 +25,8 @@
   </v-app>
 </template>
 <script>
-import gql from 'graphql-tag'
 import Blurb from '@/main/components/auth/Blurb'
+import { MainServerInfoQuery } from '@/graphql/server'
 
 export default {
   components: { Blurb },
@@ -33,18 +40,7 @@ export default {
   },
   apollo: {
     serverInfo: {
-      query: gql`
-        query {
-          serverInfo {
-            name
-            company
-            description
-            adminContact
-            termsOfService
-            inviteOnly
-          }
-        }
-      `
+      query: MainServerInfoQuery
     }
   },
   mounted() {

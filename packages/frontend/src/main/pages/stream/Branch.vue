@@ -9,31 +9,11 @@
       <v-col v-if="stream && stream.branch" cols="12">
         <v-row v-if="stream.branch.commits.items.length > 0">
           <v-col cols="12">
-            <v-card>
-              <router-link :to="`/streams/${streamId}/commits/${latestCommit.id}`">
-                <preview-image
-                  :height="320"
-                  :url="`/preview/${$route.params.streamId}/commits/${latestCommit.id}`"
-                ></preview-image>
-              </router-link>
-              <div style="position: absolute; top: 10px; right: 20px">
-                <commit-received-receipts
-                  :stream-id="streamId"
-                  :commit-id="latestCommit.id"
-                  shadow
-                />
-              </div>
-              <div style="position: absolute; top: 10px; left: 12px">
-                <source-app-avatar :application-name="latestCommit.sourceApplication" />
-              </div>
-
-              <list-item-commit
-                transparent
-                :show-source-app="false"
-                :commit="latestCommit"
-                :stream-id="streamId"
-              ></list-item-commit>
-            </v-card>
+            <commit-preview-card
+              :commit="latestCommit"
+              :preview-height="320"
+              :show-stream-and-branch="false"
+            />
           </v-col>
           <v-col cols="12">
             <v-toolbar flat class="transparent">
@@ -59,26 +39,7 @@
             md="4"
             xl="3"
           >
-            <v-card>
-              <router-link :to="`/streams/${streamId}/commits/${commit.id}`">
-                <preview-image
-                  :height="180"
-                  :url="`/preview/${streamId}/commits/${commit.id}`"
-                ></preview-image>
-              </router-link>
-              <div style="position: absolute; top: 10px; right: 20px">
-                <commit-received-receipts :stream-id="streamId" :commit-id="commit.id" shadow />
-              </div>
-              <div style="position: absolute; top: 10px; left: 12px">
-                <source-app-avatar :application-name="commit.sourceApplication" />
-              </div>
-              <list-item-commit
-                transparent
-                :show-source-app="false"
-                :commit="commit"
-                :stream-id="streamId"
-              ></list-item-commit>
-            </v-card>
+            <commit-preview-card :commit="commit" :show-stream-and-branch="false" />
           </v-col>
         </v-row>
         <v-row v-if="listMode">
@@ -102,10 +63,14 @@
         @infinite="infiniteHandler"
       >
         <div slot="no-more">
-          <v-col>You've reached the end - this branch has no more commits.</v-col>
+          <v-col class="caption py-3 text-center">
+            You've reached the end - this branch has no more commits.
+          </v-col>
         </div>
         <div slot="no-results">
-          <v-col>You've reached the end - this branch has no more commits.</v-col>
+          <v-col class="caption py-3 text-center">
+            You've reached the end - this branch has no more commits.
+          </v-col>
         </div>
       </infinite-loading>
 
@@ -119,7 +84,9 @@
       </v-dialog>
 
       <no-data-placeholder
-        v-if="!$apollo.loading && stream.branch && stream.branch.commits.totalCount === 0"
+        v-if="
+          !$apollo.loading && stream.branch && stream.branch.commits.totalCount === 0
+        "
       >
         <h2 class="space-grotesk">Branch "{{ stream.branch.name }}" has no commits.</h2>
       </no-data-placeholder>
@@ -145,9 +112,11 @@ export default {
     ListItemCommit: () => import('@/main/components/stream/ListItemCommit'),
     BranchEditDialog: () => import('@/main/dialogs/BranchEditDialog'),
     PreviewImage: () => import('@/main/components/common/PreviewImage'),
-    CommitReceivedReceipts: () => import('@/main/components/common/CommitReceivedReceipts'),
+    CommitReceivedReceipts: () =>
+      import('@/main/components/common/CommitReceivedReceipts'),
     SourceAppAvatar: () => import('@/main/components/common/SourceAppAvatar'),
-    BranchToolbar: () => import('@/main/toolbars/BranchToolbar')
+    BranchToolbar: () => import('@/main/toolbars/BranchToolbar'),
+    CommitPreviewCard: () => import('@/main/components/common/CommitPreviewCard')
   },
   data() {
     return {
@@ -169,7 +138,7 @@ export default {
     $subscribe: {
       commitCreated: {
         query: gql`
-          subscription($streamId: String!) {
+          subscription ($streamId: String!) {
             commitCreated(streamId: $streamId)
           }
         `,
@@ -189,7 +158,7 @@ export default {
       },
       commitDeleted: {
         query: gql`
-          subscription($streamId: String!) {
+          subscription ($streamId: String!) {
             commitDeleted(streamId: $streamId)
           }
         `,
@@ -227,12 +196,18 @@ export default {
       else return null
     },
     latestCommit() {
-      if (this.stream.branch.commits.items && this.stream.branch.commits.items.length > 0)
+      if (
+        this.stream.branch.commits.items &&
+        this.stream.branch.commits.items.length > 0
+      )
         return this.stream.branch.commits.items[0]
       else return null
     },
     allPreviousCommits() {
-      if (this.stream.branch.commits.items && this.stream.branch.commits.items.length > 0)
+      if (
+        this.stream.branch.commits.items &&
+        this.stream.branch.commits.items.length > 0
+      )
         return this.stream.branch.commits.items.slice(1)
       else return null
     }
@@ -255,7 +230,8 @@ export default {
 
           let allItems = [...previousResult.stream.branch.commits.items]
           for (const commit of newItems) {
-            if (allItems.findIndex((c) => c.id === commit.id) === -1) allItems.push(commit)
+            if (allItems.findIndex((c) => c.id === commit.id) === -1)
+              allItems.push(commit)
           }
 
           return {
