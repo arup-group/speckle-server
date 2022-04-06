@@ -211,6 +211,7 @@ module.exports = {
     let userInfo = await Users().where({ id: code.userId }).select('email').first()
 
     return {
+      userId: code.userId,
       username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
@@ -264,6 +265,7 @@ module.exports = {
     
     // Finally return
     return {
+      userId: refreshTokenDb.userId,
       username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
