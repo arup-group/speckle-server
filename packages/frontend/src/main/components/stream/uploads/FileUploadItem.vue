@@ -43,7 +43,16 @@
 import gql from 'graphql-tag'
 
 export default {
-  props: ['file'],
+  props: {
+    file: {
+      type: File,
+      default: () => null
+    },
+    branches: {
+      type: Array,
+      default: () => []
+    }
+  },
   data: () => ({
     percentCompleted: -1,
     error: null
@@ -77,14 +86,14 @@ export default {
   watch: {},
   methods: {
     upload() {
-      let data = new FormData()
+      const data = new FormData()
       this.error = null
       data.append('file', this.file)
 
-      let request = new XMLHttpRequest()
+      const request = new XMLHttpRequest()
       request.open(
         'POST',
-        `/api/file/ifc/${this.$route.params.streamId}/${
+        `/api/file/autodetect/${this.$route.params.streamId}/${
           this.selectedBranch ? this.selectedBranch : 'main'
         }`
       )
@@ -97,7 +106,7 @@ export default {
         'progress',
         function (e) {
           this.percentCompleted = (e.loaded / e.total) * 100
-          if (this.percentCompleted >= 100) { 
+          if (this.percentCompleted >= 100) {
             this.$emit('done', this.file.name)
           }
         }.bind(this)

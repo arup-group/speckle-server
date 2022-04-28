@@ -43,7 +43,7 @@
               class="d-flex"
             >
               <v-textarea
-                v-if="$loggedIn()"
+                v-if="$loggedIn() && canComment"
                 v-model="commentText"
                 solo
                 hide-details
@@ -56,7 +56,7 @@
                 @keydown.enter.exact.prevent="addComment()"
               ></v-textarea>
               <v-btn
-                v-if="$loggedIn()"
+                v-if="$loggedIn() && canComment"
                 v-tooltip="'Send comment (press enter)'"
                 icon
                 dark
@@ -67,6 +67,12 @@
               >
                 <v-icon dark small>mdi-send</v-icon>
               </v-btn>
+              <div
+                v-if="!canComment && $loggedIn()"
+                class="caption background px-4 py-2 rounded-xl elevation-2"
+              >
+                You do not have sufficient permissions to add a comment to this stream.
+              </div>
               <v-btn
                 v-if="!$loggedIn()"
                 block
@@ -88,7 +94,13 @@
           @input="toggleExpand()"
         >
           <div
-            v-if="$loggedIn()"
+            v-if="!canComment && $loggedIn()"
+            class="caption background px-4 py-2 rounded-xl elevation-2"
+          >
+            You do not have sufficient permissions to add a comment to this stream.
+          </div>
+          <div
+            v-if="$loggedIn() && canComment"
             class="d-flex justify-center"
             style="position: relative; left: 24px"
           >
@@ -149,17 +161,52 @@
   </div>
 </template>
 <script>
+// TODO: Need to fix the viewer package build process to be able to properly reference THREE.js
+/* global THREE */
 import gql from 'graphql-tag'
-import debounce from 'lodash.debounce'
+import debounce from 'lodash/debounce'
 
 import { getCamArray } from './viewerFrontendHelpers'
 export default {
+  apollo: {
+    user: {
+      query: gql`
+        query {
+          user {
+            name
+            id
+          }
+        }
+      `,
+      skip() {
+        return !this.$loggedIn()
+      }
+    },
+    stream: {
+      query: gql`
+        query ($streamId: String!) {
+          stream(id: $streamId) {
+            id
+            role
+          }
+        }
+      `,
+      variables() {
+        return { streamId: this.$route.params.streamId }
+      }
+    }
+  },
   data() {
     return {
       location: null,
       expand: false,
       visible: true,
       commentText: null
+    }
+  },
+  computed: {
+    canComment() {
+      return !!this.stream?.role
     }
   },
   mounted() {
@@ -188,8 +235,8 @@ export default {
 
       this.$mixpanel.track('Comment Action', { type: 'action', name: 'create' })
 
-      let camTarget = window.__viewer.cameraHandler.activeCam.controls.getTarget()
-      let commentInput = {
+      const camTarget = window.__viewer.cameraHandler.activeCam.controls.getTarget()
+      const commentInput = {
         streamId: this.$route.params.streamId,
         resources: [
           {
@@ -265,7 +312,7 @@ export default {
       if (!this.$refs.commentButton) return
       this.visible = true
 
-      let projectedLocation = new THREE.Vector3(
+      const projectedLocation = new THREE.Vector3(
         info.location.x,
         info.location.y,
         info.location.z
@@ -276,7 +323,7 @@ export default {
         info.location.z
       )
 
-      let cam = window.__viewer.cameraHandler.camera
+      const cam = window.__viewer.cameraHandler.camera
       cam.updateProjectionMatrix()
       projectedLocation.project(cam)
       let collapsedSize = this.$refs.commentButton.clientWidth
@@ -297,9 +344,9 @@ export default {
       // TODO: Clamping, etc.
       if (!this.location) return
       if (!this.$refs.commentButton) return
-      let cam = window.__viewer.cameraHandler.camera
+      const cam = window.__viewer.cameraHandler.camera
       cam.updateProjectionMatrix()
-      let projectedLocation = this.location.clone()
+      const projectedLocation = this.location.clone()
       projectedLocation.project(cam)
       let collapsedSize = this.$refs.commentButton.clientWidth
       collapsedSize = 36

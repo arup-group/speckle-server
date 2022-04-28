@@ -1,44 +1,114 @@
 version: 2.1
 
-# TODO:
-# add build workflow for frontend
-# rename server test workflow
-# add linting jobs
-# run jobs/workflows on correct package changes (not all...)
+orbs:
+  node: circleci/node@5.0.1
 
 workflows:
-  test:
+  version: 2
+
+  test-build:
     jobs:
-      - test_server
-  deploy-latest:
-    jobs:
-      - build:
-          context: main-builds
-          filters:
-            branches:
-              only: main
-  deploy-prod:
-    jobs:
-      - build:
-          context: main-builds
+      - test-server:
           filters:
             tags:
-              only: /^[0-9]+\.[0-9]+\.[0-9]+$/
+              # run tests for all tags
+              only: /.*/
+      - get-version:
+          filters: &filters-build
+            tags:
+              only: &filters-tag /^[0-9]+\.[0-9]+\.[0-9]+$/
+            branches:
+              only:
+                - main
+      - docker-build-and-publish-server:
+          filters: *filters-build
+          context: &docker-hub-context
+            - docker-hub
+          requires:
+            - test-server
+            - get-version
+
+      - docker-build-and-publish-frontend:
+          context: *docker-hub-context
+          filters: *filters-build
+          requires:
+            - get-version
+
+      - docker-build-and-publish-webhooks:
+          context: *docker-hub-context
+          filters: *filters-build
+          requires:
+            - get-version
+            - test-server
+
+      - docker-build-and-publish-file-imports:
+          context: *docker-hub-context
+          filters: *filters-build
+          requires:
+            - get-version
+            - test-server
+
+      - docker-build-and-publish-previews:
+          context: *docker-hub-context
+          filters: *filters-build
+          requires:
+            - get-version
+            - test-server
+
+      - docker-build-and-publish-test-container:
+          context: *docker-hub-context
+          filters: *filters-build
+          requires:
+            - get-version
+            - test-server
+
+      - publish-helm-chart:
+          filters: *filters-build
+          requires:
+            - test-server
+            - get-version
+            - docker-build-and-publish-server
+            - docker-build-and-publish-frontend
+            - docker-build-and-publish-webhooks
+            - docker-build-and-publish-file-imports
+            - docker-build-and-publish-previews
+            - docker-build-and-publish-test-container
+
+      - publish-npm:
+          filters:
+            tags:
+              only: *filters-tag
             branches:
               ignore: /.*/
-  ci-test:
-    jobs:
-      - build:
-          context: main-builds
-          filters:
-            branches:
-              only: gergo/noCD
+          context:
+            - npm-registry
+          requires:
+            - get-version
 
 jobs:
-  test_server:
+  get-version:
     docker:
-      - image: 'cimg/node:16.13'
-      - image: 'circleci/redis:6'
+      - image: cimg/python:3.9
+    working_directory: &work-dir /tmp/ci
+    steps:
+      - checkout
+      - run: pwd
+      - run: mkdir -p workspace
+      - run:
+          name: set version
+          command: |
+            echo "export IMAGE_VERSION_TAG=$(.circleci/get_version.sh)" >> workspace/env-vars
+      - run: cat workspace/env-vars >> $BASH_ENV
+      - run: echo $IMAGE_VERSION_TAG
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - env-vars
+
+  test-server:
+    docker:
+      - image: cimg/node:lts
+      - image: cimg/redis:6.2.6
       - image: 'cimg/postgres:12.8'
         environment:
           POSTGRES_DB: speckle2_test
@@ -52,16 +122,16 @@ jobs:
       SESSION_SECRET: 'keyboard cat'
       STRATEGY_LOCAL: 'true'
       CANONICAL_URL: 'http://localhost:3000'
-    # Note: some of these commands need to be run in the server package folder.
     steps:
       - checkout
-      - run:
-          command: 'npm install'
-          working_directory: 'packages/server'
+      - node/install-packages:
+          app-dir: ~/project/packages/server
       - run: 'dockerize -wait tcp://localhost:5432 -timeout 1m'
+
       - run:
-          command: 'npm run test:report'
+          command: npm run test:report
           working_directory: 'packages/server'
+
       - run:
           command: 'bash <(curl -s https://codecov.io/bash)'
           working_directory: 'packages/server'
@@ -70,37 +140,91 @@ jobs:
           path: packages/server/reports
 
       - store_artifacts:
-          path: packages/server/coverage
+          path: packages/server/coverage/lcov-report
+          destination: package/server/coverage
 
-      - store_artifacts:
-          path: packages/server/reports/test-results.xml
-
-  build:
-    docker:
-      - image: circleci/python:3.7
+  docker-build-and-publish: &docker-job
+    docker: &docker-image
+      - image: cimg/python:3.9-node
+    working_directory: *work-dir
     steps:
       - checkout
+      - attach_workspace:
+          at: /tmp/ci/workspace
+      - run: cat workspace/env-vars >> $BASH_ENV
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Build Frontend
-          command: env SPECKLE_SERVER_PACKAGE=frontend ./.circleci/build.sh
-      - run:
-          name: Build Server
-          command: env SPECKLE_SERVER_PACKAGE=server ./.circleci/build.sh
-      - run:
-          name: Build Object Preview Service
-          command: env SPECKLE_SERVER_PACKAGE=preview-service ./.circleci/build.sh
-      - run:
-          name: Build Webhook Service
-          command: env SPECKLE_SERVER_PACKAGE=webhook-service ./.circleci/build.sh
-      - run:
-          name: Build FileImport Service
-          command: env SPECKLE_SERVER_PACKAGE=fileimport-service ./.circleci/build.sh
-      - run:
-          name: Build Test Container
-          command: env FOLDER=utils SPECKLE_SERVER_PACKAGE=test-deployment ./.circleci/build.sh
+          name: Build and Publish
+          command: ./.circleci/build.sh
 
+  docker-build-and-publish-server:
+    <<: *docker-job
+    environment:
+      SPECKLE_SERVER_PACKAGE: server
+
+  docker-build-and-publish-frontend:
+    <<: *docker-job
+    environment:
+      SPECKLE_SERVER_PACKAGE: frontend
+
+  docker-build-and-publish-previews:
+    <<: *docker-job
+    environment:
+      SPECKLE_SERVER_PACKAGE: preview-service
+
+  docker-build-and-publish-webhooks:
+    <<: *docker-job
+    environment:
+      SPECKLE_SERVER_PACKAGE: webhook-service
+
+  docker-build-and-publish-file-imports:
+    <<: *docker-job
+    environment:
+      SPECKLE_SERVER_PACKAGE: fileimport-service
+
+  docker-build-and-publish-test-container:
+    <<: *docker-job
+    environment:
+      FOLDER: utils
+      SPECKLE_SERVER_PACKAGE: test-deployment
+
+  publish-npm:
+    docker: *docker-image
+    working_directory: *work-dir
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ci/workspace
+      - run: cat workspace/env-vars >> $BASH_ENV
+      - run:
+          name: restore packages
+          command: |
+            npm i
+            npx lerna bootstrap
+      # this has to be after lerna bootstrap
+      # otherwise the auth workflow of lerna is borked...
+      - run:
+          name: auth to npm as Speckle
+          command: |
+            echo "@speckle:registry=https://registry.npmjs.org" >> .npmrc
+            echo "registry=http://registry.npmjs.org/" >> .npmrc
+            echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> .npmrc
+      - run:
+          name: try login to npm
+          command: npm whoami
+      - run:
+          name: publish to npm
+          command: npx lerna publish $IMAGE_VERSION_TAG -y --no-git-tag-version --no-push
+
+  publish-helm-chart:
+    docker: *docker-image
+    working_directory: *work-dir
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/ci/workspace
+      - run: cat workspace/env-vars >> $BASH_ENV
       - add_ssh_keys:
           fingerprints:
             - '18:74:c4:b9:dc:66:b2:66:1d:81:56:0d:0a:87:9b:b1'

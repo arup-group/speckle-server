@@ -9,7 +9,7 @@ export const MAIN_SERVER_INFO_FIELDS = gql`
     canonicalUrl
     termsOfService
     inviteOnly
-    version  
+    version
     createDefaultGlobals
     defaultGlobals
   }

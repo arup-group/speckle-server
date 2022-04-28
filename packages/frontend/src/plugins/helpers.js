@@ -1,24 +1,33 @@
 import Vue from 'vue'
-import crypto from 'crypto'
+import md5 from '@/helpers/md5'
+
+let hasLocalStorage = typeof Storage !== 'undefined'
+
+try {
+  localStorage.setItem('foo', 'bar')
+  localStorage.getItem('foo')
+  localStorage.removeItem('foo')
+} catch {
+  hasLocalStorage = false
+}
 
 Vue.prototype.$userId = function () {
-  return localStorage.getItem('uuid')
+  if (hasLocalStorage) return localStorage.getItem('uuid')
+  else return null
 }
 
 Vue.prototype.$mixpanelId = function () {
-  return localStorage.getItem('distinct_id')
+  if (hasLocalStorage) return localStorage.getItem('distinct_id')
+  else return null
 }
 
 Vue.prototype.$mixpanelServerId = function () {
-  return crypto
-    .createHash('md5')
-    .update(window.location.hostname.toLowerCase())
-    .digest('hex')
-    .toUpperCase()
+  return md5(window.location.hostname.toLowerCase()).toUpperCase()
 }
 
 Vue.prototype.$loggedIn = function () {
-  return localStorage.getItem('uuid') !== null
+  if (hasLocalStorage) return localStorage.getItem('uuid') !== null
+  else return null
 }
 
 Vue.prototype.$isMobile = function () {
@@ -30,7 +39,11 @@ Vue.prototype.$resourceType = function (resourceId) {
 }
 
 Vue.prototype.$loginAndSetRedirect = function () {
-  let currUrl = window.location.href
-  localStorage.setItem('shouldRedirectTo', currUrl.replace(window.location.origin, ''))
+  const currUrl = window.location.href
+  if (hasLocalStorage)
+    localStorage.setItem(
+      'shouldRedirectTo',
+      currUrl.replace(window.location.origin, '')
+    )
   this.$router.push('/authn/login')
 }

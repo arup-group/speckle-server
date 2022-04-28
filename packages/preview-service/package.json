@@ -1,6 +1,7 @@
 {
   "name": "@speckle/preview-service",
-  "version": "2.0.0",
+  "private": true,
+  "version": "2.4.2",
   "description": "Generate PNG previews of Speckle objects by using a headless viewer",
   "main": "index.js",
   "homepage": "https://speckle.systems",
@@ -9,14 +10,17 @@
     "url": "https://github.com/specklesystems/speckle-server.git",
     "directory": "packages/preview-service"
   },
+  "engines": {
+    "node": ">=14.0.0 <17.0.0"
+  },
   "scripts": {
     "dev": "DEBUG='preview-service:*' nodemon --trace-deprecation ./bin/www",
     "build-fe": "webpack --env dev --config webpack.config.render_page.js && webpack --env build --config webpack.config.render_page.js",
     "lint": "eslint . --ext .js,.ts"
   },
   "dependencies": {
-    "@speckle/objectloader": "file:../objectloader",
-    "@speckle/viewer": "file:../viewer",
+    "@speckle/objectloader": "2.4.2",
+    "@speckle/viewer": "2.4.2",
     "cookie-parser": "~1.4.4",
     "crypto": "^1.0.1",
     "debug": "~2.6.9",
@@ -37,13 +41,13 @@
     "@babel/core": "^7.17.5",
     "babel-loader": "^8.2.2",
     "clean-webpack-plugin": "^4.0.0-alpha.0",
-    "html-webpack-plugin": "^5.3.1",
-    "nodemon": "^2.0.7",
-    "webpack": "^5.69.1",
-    "webpack-cli": "^4.6.0",
-    "webpack-dev-server": "^4.6.0",
     "eslint": "^8.11.0",
     "eslint-config-prettier": "^8.5.0",
-    "prettier": "^2.5.1"
+    "html-webpack-plugin": "^5.3.1",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.5.1",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.6.0",
+    "webpack-dev-server": "^4.6.0"
   }
 }

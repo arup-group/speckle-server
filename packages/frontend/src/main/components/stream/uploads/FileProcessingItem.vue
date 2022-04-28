@@ -117,6 +117,24 @@ export default {
   mounted() {
     this.$apollo.queries.file.startPolling(1000)
   },
-  methods: {}
+  methods: {
+    async downloadOriginalFile() {
+      const res = await fetch(`/api/file/${this.fileId}`, {
+        headers: {
+          Authorization: localStorage.getItem('AuthToken')
+        }
+      })
+      const blob = await res.blob()
+      const file = window.URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      document.body.appendChild(a)
+      a.style = 'display: none'
+      a.href = file
+      a.download = this.file.fileName
+      a.click()
+      window.URL.revokeObjectURL(file)
+    }
+  }
 }
 </script>

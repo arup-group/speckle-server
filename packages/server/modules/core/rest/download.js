@@ -4,7 +4,6 @@ const debug = require('debug')
 const appRoot = require('app-root-path')
 const cors = require('cors')
 
-const { matomoMiddleware } = require(`${appRoot}/logging/matomoHelper`)
 const { contextMiddleware } = require(`${appRoot}/modules/shared`)
 const { validatePermissionsReadStream } = require('./authUtils')
 
@@ -19,9 +18,8 @@ module.exports = (app) => {
     '/objects/:streamId/:objectId',
     cors(),
     contextMiddleware,
-    matomoMiddleware,
     async (req, res) => {
-      let hasStreamAccess = await validatePermissionsReadStream(
+      const hasStreamAccess = await validatePermissionsReadStream(
         req.params.streamId,
         req
       )
@@ -30,7 +28,7 @@ module.exports = (app) => {
       }
 
       // Populate first object (the "commit")
-      let obj = await getObject({
+      const obj = await getObject({
         streamId: req.params.streamId,
         objectId: req.params.objectId
       })
@@ -39,19 +37,19 @@ module.exports = (app) => {
         return res.status(404).send('Failed to find object.')
       }
 
-      let simpleText = req.headers.accept === 'text/plain'
+      const simpleText = req.headers.accept === 'text/plain'
 
       res.writeHead(200, {
         'Content-Encoding': 'gzip',
         'Content-Type': simpleText ? 'text/plain; charset=UTF-8' : 'application/json'
       })
 
-      let dbStream = await getObjectChildrenStream({
+      const dbStream = await getObjectChildrenStream({
         streamId: req.params.streamId,
         objectId: req.params.objectId
       })
-      let speckleObjStream = new SpeckleObjectsStream(simpleText)
-      let gzipStream = zlib.createGzip()
+      const speckleObjStream = new SpeckleObjectsStream(simpleText)
+      const gzipStream = zlib.createGzip()
 
       speckleObjStream.write(obj)
 
@@ -87,9 +85,8 @@ module.exports = (app) => {
     '/objects/:streamId/:objectId/single',
     cors(),
     contextMiddleware,
-    matomoMiddleware,
     async (req, res) => {
-      let hasStreamAccess = await validatePermissionsReadStream(
+      const hasStreamAccess = await validatePermissionsReadStream(
         req.params.streamId,
         req
       )
@@ -97,7 +94,7 @@ module.exports = (app) => {
         return res.status(hasStreamAccess.status).end()
       }
 
-      let obj = await getObject({
+      const obj = await getObject({
         streamId: req.params.streamId,
         objectId: req.params.objectId
       })

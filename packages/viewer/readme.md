@@ -10,29 +10,30 @@ We're working to stabilize the 2.0 API, and until then there will be breaking ch
 
 Comprehensive developer and user documentation can be found in our:
 
-#### 📚 [Speckle Docs website](https://speckle.guide/dev/)
+📚 [Speckle Docs website](https://speckle.guide/dev/)
 
 ## Getting started
 
-Note, these are WIP instructions. More details coming soon!
+Working with viewer (for more, check `./src/example.js`):
 
-For development purposes, to start a webpack live reload server run:
+```js
+import { Viewer } from '@speckle/viewer'
 
+const v = new Viewer({
+  container: document.getElementById('renderer'),
+  showStats: true
+})
 ```
-npm run serve
-```
 
-You can now access the example at [http://localhost:9000/example.html](http://localhost:9000/example.html).
+### Development
 
-To build the library, you should run:
+For testing purposes you can see viewer in action by running `npm run example`, which will run an example server at 'http://127.0.0.1:3002'.
 
-```
-npm run build
-```
+To build the library run `npm run build`, to build a dev (unminified w/ sourcemaps) build run `npm run build:dev` and to run a dev build in watch mode run `npm run dev`.
 
 ## API
 
-Syntax and examples for supported API methods. The examples assume a Viewer instance named `v`.
+Syntax and examples for supported API methods. The examples assume a `Viewer` instance named `v`.
 
 ### Load/Unload an object
 
@@ -71,7 +72,7 @@ The 3 optional parameters are:
 - `colorBy`: A dictionary that makes all objects colored based on a property value. Two types of coloring are supported:
 
   - Gradient (from a numeric property): `{ 'type': 'gradient', 'property': propertyName, 'minValue': propertyMinValue, 'maxValue': propertyMaxValue, 'gradientColors': [color1, color2], default: colorForObjectsWithMissingProperty }`
-  - Category (for coloring each unique value differently): `{ 'type': 'category', 'property': propertyName, 'values': { value1: color1, value2: color2, ... }, 'default': colorForAnyOtherValue }`. The `values` and the `default` parameters are optional: Random colors are generated if they are ommited.
+  - Category (for coloring each unique value differently): `{ 'type': 'category', 'property': propertyName, 'values': { value1: color1, value2: color2, ... }, 'default': colorForAnyOtherValue }`. The `values` and the `default` parameters are optional: Random colors are generated if they are omitted.
 
 - `ghostOthers`: A boolean (default `false`). If set to `true`, then the objects that are filtered out are actually shown with very low opacity, so that the remaining objects have a better context.
 

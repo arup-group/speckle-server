@@ -1,8 +1,11 @@
 import Vue from 'vue'
+
 // Event hub
 Vue.prototype.$eventHub = new Vue()
 
 import App from '@/main/App.vue'
+import store from '@/main/store'
+import { LocalStorageKeys } from '@/helpers/mainConstants'
 
 import { createProvider } from '@/vue-apollo'
 import {
@@ -13,7 +16,9 @@ import {
 import router from '@/main/router/index'
 import vuetify from '@/plugins/vuetify'
 
-Vue.config.productionTip = false
+// process.env.NODE_ENV is injected by Webpack
+// eslint-disable-next-line no-undef
+Vue.config.productionTip = process.env.NODE_ENV === 'development'
 
 import PortalVue from 'portal-vue'
 Vue.use(PortalVue)
@@ -40,7 +45,7 @@ import VueMatomo from 'vue-matomo'
 Vue.use(VueMatomo, {
   host: 'https://arupdt.matomo.cloud',
   siteId: 1,
-  router: router,
+  router,
   userId: localStorage.getItem('suuid')
 })
 
@@ -50,22 +55,31 @@ Vue.use(VueMixpanel, {
   config: {
     // eslint-disable-next-line camelcase
     api_host: 'https://analytics.speckle.systems',
+    // eslint-disable-next-line camelcase
     opt_out_tracking_by_default: true
   }
 })
 
-// import UniqueId from 'vue-unique-id'
-// Vue.use(UniqueId)
+// Async HistogramSlider load
+Vue.component('HistogramSlider', async () => {
+  await import(
+    /* webpackChunkName: "vue-histogram-slider" */ 'vue-histogram-slider/dist/histogram-slider.css'
+  )
+  const component = await import(
+    /* webpackChunkName: "vue-histogram-slider" */ 'vue-histogram-slider'
+  )
+  return component
+})
 
-import HistogramSlider from 'vue-histogram-slider'
-import 'vue-histogram-slider/dist/histogram-slider.css'
+// Async ApexChart load
+Vue.component('ApexChart', async () => {
+  const VueApexCharts = await import(
+    /* webpackChunkName: "vue-apexcharts" */ 'vue-apexcharts'
+  )
+  Vue.use(VueApexCharts)
 
-Vue.component(HistogramSlider.name, HistogramSlider)
-
-import VueApexCharts from 'vue-apexcharts'
-Vue.use(VueApexCharts)
-
-Vue.component('ApexChart', VueApexCharts)
+  return VueApexCharts
+})
 
 import { formatNumber } from '@/plugins/formatNumber'
 // Filter to turn any number into a nice string like '10k', '5.5m'
@@ -109,9 +123,6 @@ if (AuthToken) {
       initVue()
     })
 }
-
-import store from '@/main/store'
-import { LocalStorageKeys } from '@/helpers/mainConstants'
 
 function initVue() {
   new Vue({

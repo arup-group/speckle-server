@@ -22,7 +22,7 @@
           </router-link>
         </v-toolbar-title>
       </v-toolbar>
-      <div class="mx-1">
+      <div class="mx-1 mb-2">
         <v-card-text class="caption d-flex pb-2 pt-0">
           <div>
             Created
@@ -35,7 +35,7 @@
       </div>
       <v-divider v-if="showStreamAndBranch" />
       <div v-if="showStreamAndBranch" class="d-flex align-center caption px-5 py-2">
-        <div class="text-truncate mr-2">
+        <div v-show="commit.streamName" class="text-truncate mr-2">
           <router-link
             class="text-decoration-none d-inline-flex align-center"
             :to="`/streams/${streamId}`"
@@ -60,12 +60,12 @@
       <div style="position: absolute; top: 10px; left: 12px">
         <v-chip
           v-if="commit.commentCount !== 0"
-          small
-          class="caption primary"
-          dark
           v-tooltip="
             `${commit.commentCount} comment${commit.commentCount === 1 ? '' : 's'}`
           "
+          small
+          class="caption primary"
+          dark
         >
           <v-icon x-small class="mr-1">mdi-comment-outline</v-icon>
           {{ commit.commentCount }}

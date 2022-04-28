@@ -41,14 +41,16 @@
       </div>
     </portal>
     <portal to="actions">
-      <stream-favorite-btn :stream="stream" :user="user" />
+      <span v-if="user" style="position: relative; right: -5px">
+        <stream-favorite-btn :stream="stream" :user="user" />
+      </span>
       <v-btn
         v-if="stream"
         v-tooltip="'Share this stream'"
         elevation="0"
         text
         rounded
-        class="mr-1"
+        class="mr-1 px-0"
         @click="shareStream = true"
       >
         <v-icon v-if="!stream.isPublic" x-small class="mr-1 grey--text">
@@ -63,11 +65,7 @@
       max-width="600"
       :fullscreen="$vuetify.breakpoint.xsOnly"
     >
-      <share-stream-dialog
-        :stream="stream"
-        @close="shareStream = false"
-        @visibility-changexxxx="$apollo.queries.stream.refetch()"
-      />
+      <share-stream-dialog :stream="stream" @close="shareStream = false" />
     </v-dialog>
   </div>
 </template>
@@ -75,13 +73,13 @@
 export default {
   components: {
     CollaboratorsDisplay: () => import('@/main/components/stream/CollaboratorsDisplay'),
-    ShareStreamDialog: () => import('@/main/dialogs/ShareStream'),
+    ShareStreamDialog: () => import('@/main/dialogs/ShareStreamDialog.vue'),
     StreamFavoriteBtn: () =>
       import('@/main/components/stream/favorites/StreamFavoriteBtn.vue')
   },
   props: {
     stream: { type: Object, required: true },
-    user: { type: Object, required: true }
+    user: { type: Object, default: () => null }
   },
   data() {
     return { shareStream: false }

@@ -9,9 +9,11 @@ module.exports = {
     if (process.env.DISABLE_TRACKING !== 'true') {
       mat.track({
         url: 'http://speckle.server',
+        // eslint-disable-next-line camelcase
         action_name: 'startup',
         uid: id,
         cip: id,
+        // eslint-disable-next-line camelcase
         token_auth: '8402f0bdd767c74cce86f710fe830a2c'
       })
     }
@@ -20,9 +22,11 @@ module.exports = {
     if (process.env.DISABLE_TRACKING !== 'true') {
       mat.track({
         url: 'http://speckle.server/gql',
+        // eslint-disable-next-line camelcase
         action_name: actionName || 'gql api call',
         cip: id,
         uid: id,
+        // eslint-disable-next-line camelcase
         token_auth: '8402f0bdd767c74cce86f710fe830a2c'
       })
     }
@@ -31,12 +35,14 @@ module.exports = {
     if (process.env.DISABLE_TRACKING !== 'true') {
       mat.track({
         url: req.url,
+        // eslint-disable-next-line camelcase
         action_name: 'api call',
         cip: id,
         uid: id,
         cvar: JSON.stringify({
           1: ['HTTP method', req.method]
         }),
+        // eslint-disable-next-line camelcase
         token_auth: '8402f0bdd767c74cce86f710fe830a2c'
       })
     }

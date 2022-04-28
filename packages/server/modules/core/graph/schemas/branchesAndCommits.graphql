@@ -19,7 +19,7 @@ type Branch {
 }
 
 type Globals {
-  totalCount: Int! 
+  totalCount: Int!
   items: JSONObject
 }
 

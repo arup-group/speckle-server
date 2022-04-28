@@ -57,6 +57,7 @@
 <script>
 import gql from 'graphql-tag'
 import { MainServerInfoQuery } from '@/graphql/server'
+import pick from 'lodash/pick'
 
 export default {
   name: 'ServerInfoAdminCard',
@@ -96,15 +97,13 @@ export default {
         },
         createDefaultGlobals: {
           label: 'Add default globals on stream creation',
-          hint:
-            'Automatically add the specified set of globals to all streams created on this server',
+          hint: 'Automatically add the specified set of globals to all streams created on this server',
           type: 'boolean'
         }
       },
       defaultGlobals: {
         label: 'Default globals',
-        hint:
-          'A json string containing a set of default globals and their default values, to be added to all streams on this server on stream creation'
+        hint: 'A json string containing a set of default globals and their default values, to be added to all streams on this server on stream creation'
       },
       rules: {
         checkGlobals() {
@@ -135,10 +134,10 @@ export default {
   },
   computed: {
     defaultGlobalsString: {
-      set: function (value) {
+      set(value) {
         this.serverModifications.defaultGlobals = JSON.parse(value)
       },
-      get: function () {
+      get() {
         return JSON.stringify(this.serverModifications.defaultGlobals)
       }
     }
@@ -153,7 +152,7 @@ export default {
           }
         `,
         variables: {
-          info: this.serverModifications
+          info: pick(this.serverModifications, Object.keys(this.serverDetails))
         }
       })
       await this.$apollo.queries['serverInfo'].refetch()

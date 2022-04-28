@@ -1,5 +1,5 @@
-import gql from 'graphql-tag'
-
+// NOTE: these are used in a simple fetch request, they do not need the gql literal!
+// The embed app does not use any apollo gql dependencies.
 export const serverInfoQuery = `
   query ServerInfo {
     serverInfo {

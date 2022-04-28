@@ -32,11 +32,11 @@
           </v-app-bar-nav-icon>
         </div>
         <div v-else class="ml-4"></div>
-        <div class="d-flex align-center overflow-hidden" style="flex-grow: 1">
+        <div class="d-flex align-center overflow-hidden flex-shrink-1">
           <portal-target name="toolbar" class="text-truncate" />
         </div>
-        <div class="text-right">
-          <portal-target name="actions">
+        <div class="d-flex text-right flex-grow-1 justify-end">
+          <portal-target name="actions" class="d-flex align-center">
             <div style="margin-right: -10px">
               <search-bar />
             </div>
@@ -81,7 +81,10 @@ export default {
       query: MainServerInfoQuery
     },
     user: {
-      query: MainUserDataQuery
+      query: MainUserDataQuery,
+      skip() {
+        return !this.$loggedIn()
+      }
     },
     $subscribe: {
       userStreamAdded: {
@@ -129,8 +132,9 @@ export default {
   mounted() {
     this.setNavResizeEvents()
 
+    // eslint-disable-next-line camelcase
     this.$mixpanel.register({ server_id: this.$mixpanelServerId(), hostApp: 'web' })
-    let mixpanelId = this.$mixpanelId()
+    const mixpanelId = this.$mixpanelId()
     if (mixpanelId !== null) {
       this.$mixpanel.identify(mixpanelId)
       this.$mixpanel.people.set(
@@ -140,6 +144,14 @@ export default {
       this.$mixpanel.people.set('Identified', true)
     }
     this.$mixpanel.track('Visit Web App')
+
+    if (this.$route.query.emailverfiedstatus) {
+      setTimeout(() => {
+        this.$eventHub.$emit('notification', {
+          text: '✉️ Email successfully verfied!'
+        })
+      }, 1000) // todo: ask fabian if there's a better way, feels icky
+    }
   },
   methods: {
     switchTheme() {

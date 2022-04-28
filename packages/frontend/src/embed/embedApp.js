@@ -2,14 +2,17 @@ import Vue from 'vue'
 import App from './EmbedApp.vue'
 import vuetify from './embedVuetify'
 import router from './embedRouter'
-Vue.config.productionTip = false
 
 import VueMatomo from 'vue-matomo'
 Vue.use(VueMatomo, {
   host: 'https://arupdt.matomo.cloud',
   siteId: 1,
-  router: router
+  router
 })
+
+// process.env.NODE_ENV is injected by Webpack
+// eslint-disable-next-line no-undef
+Vue.config.productionTip = process.env.NODE_ENV === 'development'
 
 import VueMixpanel from 'vue-mixpanel'
 Vue.use(VueMixpanel, {
@@ -17,14 +20,20 @@ Vue.use(VueMixpanel, {
   config: {
     // eslint-disable-next-line camelcase
     api_host: 'https://analytics.speckle.systems',
+    // eslint-disable-next-line camelcase
     opt_out_tracking_by_default: true
   }
 })
 
 import '@/plugins/helpers'
+import store from '@/main/store'
+
+import PortalVue from 'portal-vue'
+Vue.use(PortalVue)
 
 new Vue({
   router,
   vuetify,
+  store,
   render: (h) => h(App)
 }).$mount('#app')

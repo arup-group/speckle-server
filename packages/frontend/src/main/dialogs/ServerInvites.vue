@@ -69,7 +69,7 @@ export default {
             return true
           },
           (v) => {
-            let pure = DOMPurify.sanitize(v)
+            const pure = DOMPurify.sanitize(v)
             if (pure !== v) return 'No crazy hacks please.'
             else return true
           }
@@ -88,8 +88,6 @@ export default {
     async sendInvite() {
       if (!this.$refs.form.validate()) return
 
-      this.$matomo && this.$matomo.trackPageView('invite/create')
-      this.$matomo && this.$matomo.trackEvent('invite', 'server')
       this.$mixpanel.track('Invite Send', { type: 'action', source: 'server' })
       try {
         await this.$apollo.mutate({

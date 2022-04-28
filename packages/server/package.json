@@ -1,6 +1,6 @@
 {
   "name": "@speckle/server",
-  "version": "2.2.0",
+  "version": "2.3.17-alpha.2889",
   "private": true,
   "description": "",
   "homepage": "https://github.com/specklesystems/server",
@@ -10,6 +10,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/specklesystems/Server.git"
+  },
+  "engines": {
+    "node": "^16.0.0"
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development DEBUG=speckle:* nodemon ./bin/www --watch . --watch ./bin/www  -e js,graphql,env",
@@ -49,7 +52,6 @@
     "kafkajs": "^1.16.0",
     "knex": "^1.0.3",
     "lodash": "^4.17.21",
-    "matomo-tracker": "^2.2.4",
     "module-alias": "^2.2.2",
     "morgan": "^1.10.0",
     "morgan-debug": "^2.0.0",

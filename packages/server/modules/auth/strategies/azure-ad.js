@@ -18,7 +18,7 @@ const {
 const { identify } = require(`${appRoot}/logging/posthogHelper`)
 
 module.exports = async (app, session, sessionStorage, finalizeAuth) => {
-  let strategy = new OIDCStrategy(
+  const strategy = new OIDCStrategy(
     {
       identityMetadata: process.env.AZURE_AD_IDENTITY_METADATA,
       clientID: process.env.AZURE_AD_CLIENT_ID,
@@ -60,21 +60,26 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
       const serverInfo = await getServerInfo()
 
       try {
-        let user = {
+        const user = {
           email: req.user._json.email,
           name: req.user._json.name || req.user.displayName
         }
 
         if (req.session.suuid) user.suuid = req.session.suuid
 
-        let existingUser
-        existingUser = await getUserByEmail({ email: user.email })
+        const existingUser = await getUserByEmail({ email: user.email })
+
+        if (existingUser && !existingUser.verified) {
+          throw new Error(
+            'Email already in use by a user with unverified email. Verify the email on the existing user to be able to log in with Azure'
+          )
+        }
 
         // if there is an existing user, go ahead and log them in (regardless of
         // whether the server is invite only or not).
         if (existingUser) {
-          let myUser = await findOrCreateUser({
-            user: user,
+          const myUser = await findOrCreateUser({
+            user,
             rawProfile: req.user._json
           })
           // ID is used later for verifying access token
@@ -85,8 +90,8 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
 
         // if the server is not invite only, go ahead and log the user in.
         if (!serverInfo.inviteOnly) {
-          let myUser = await findOrCreateUser({
-            user: user,
+          const myUser = await findOrCreateUser({
+            user,
             rawProfile: req.user._json
           })
           // ID is used later for verifying access token
@@ -108,7 +113,7 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
         if (!validInvite) throw new Error('Invalid invite.')
 
         // create the user
-        let myUser = await findOrCreateUser({ user: user, rawProfile: req.user._json })
+        const myUser = await findOrCreateUser({ user, rawProfile: req.user._json })
         // ID is used later for verifying access token
         req.user.id = myUser.id
         identify(myUser)

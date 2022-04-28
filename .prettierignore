@@ -1,11 +1,20 @@
 node_modules
 build
 dist
+dist2
 coverage
 .nyc_output
 packages/server/reports*
+packages/objectloader/examples/browser/objectloader.web.js
+packages/viewer/example/speckleviewer.web.js
 package-lock.json
 yarn.lock
 
+# Profiler output
+events.json
+
 # Prettier doesn't understand the syntax inside the Yaml files, because of the brackets
 utils/helm/speckle-server/templates
+
+# Optional eslint cache
+.eslintcache

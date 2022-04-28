@@ -8,7 +8,7 @@ const Info = () => knex('server_config')
 
 module.exports = {
   async getServerInfo() {
-    let serverInfo = await Info().select('*').first()
+    const serverInfo = await Info().select('*').first()
     serverInfo.version = process.env.SPECKLE_SERVER_VERSION || 'dev'
     return serverInfo
   },
@@ -39,7 +39,7 @@ module.exports = {
     createDefaultGlobals,
     defaultGlobals
   }) {
-    let serverInfo = await Info().select('*').first()
+    const serverInfo = await Info().select('*').first()
     if (!serverInfo)
       return await Info().insert({
         name,
@@ -61,7 +61,7 @@ module.exports = {
         termsOfService,
         inviteOnly,
         createDefaultGlobals,
-        defaultGlobals,        
+        defaultGlobals,
         completed: true
       })
   }

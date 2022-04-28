@@ -1,10 +1,6 @@
 {
   "folders": [
     {
-      "path": ".",
-      "name": "🏡 root"
-    },
-    {
       "path": "packages/server",
       "name": "🖥️ server"
     },
@@ -21,6 +17,10 @@
       "name": "🔎 viewer"
     },
     {
+      "path": "packages/viewer-sandbox",
+      "name": "🚦 viewer-sandbox"
+    },
+    {
       "path": "packages/fileimport-service",
       "name": "💾 fileimport-service"
     },
@@ -31,10 +31,14 @@
     {
       "path": "packages/objectloader",
       "name": "🌐 objectloader"
+    },
+    {
+      "path": ".",
+      "name": "🏡 root"
     }
   ],
   "settings": {
-    // Some settings below are duplicated in root/.vscode, incase the repo is opened without targetting the workspace file
+    // Some settings below are duplicated in root/.vscode, incase the repo is opened without targeting the workspace file
     // I don't think there's a way to force users to open the project as a workspace always
     "explorer.confirmDelete": false,
     "files.associations": {
@@ -43,7 +47,6 @@
     "editor.formatOnPaste": true,
     "editor.multiCursorModifier": "ctrlCmd",
     "editor.snippetSuggestions": "top",
-    "eslint.format.enable": true,
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": true

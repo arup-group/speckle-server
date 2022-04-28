@@ -88,7 +88,7 @@ export default {
             return true
           },
           (v) => {
-            let pure = DOMPurify.sanitize(v)
+            const pure = DOMPurify.sanitize(v)
             if (pure !== v) return 'No crazy hacks please.'
             else return true
           }
@@ -100,7 +100,7 @@ export default {
     showDialog() {
       this.clear()
       this.email = this.text
-      this.message = `Hey, I want to share a stream (${this.streamName}) with you!`
+      this.message = `Hey, I want to share a stream on Speckle with you!`
     }
   },
   methods: {
@@ -116,8 +116,6 @@ export default {
     async sendInvite() {
       if (!this.$refs.form.validate()) return
 
-      this.$matomo && this.$matomo.trackPageView('invite/stream/create')
-      this.$matomo && this.$matomo.trackEvent('invite', 'stream')
       this.$mixpanel.track('Invite Send', { type: 'action', source: 'stream' })
       try {
         await this.$apollo.mutate({
