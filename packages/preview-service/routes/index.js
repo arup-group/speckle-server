@@ -1,10 +1,10 @@
 'use strict'
 
-var express = require( 'express' )
-var router = express.Router()
+const express = require('express')
+const router = express.Router()
 
-router.get( '/', function( req, res, next ) {
-  res.send( 'Speckle Object Preview Service' )
-} )
+router.get('/', function (req, res) {
+  res.send('Speckle Object Preview Service')
+})
 
 module.exports = router

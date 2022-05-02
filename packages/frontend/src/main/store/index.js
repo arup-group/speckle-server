@@ -8,6 +8,7 @@ Vue.use(Vuex)
 // necessary (ie, component local state + events is not enough).
 const store = new Vuex.Store({
   state: {
+    viewerBusy: false,
     appliedFilter: null,
     isolateKey: null,
     isolateValues: [],
@@ -17,9 +18,22 @@ const store = new Vuex.Store({
     isolateCategoryKey: null,
     isolateCategoryValues: [],
     hideCategoryKey: null,
-    hideCategoryValues: []
+    hideCategoryValues: [],
+    selectedComment: null,
+    addingComment: false,
+    preventCommentCollapse: false
   },
   mutations: {
+    setViewerBusy(state, { viewerBusyState }) {
+      state.viewerBusy = viewerBusyState
+    },
+    setAddingCommentState(state, { addingCommentState }) {
+      state.addingComment = addingCommentState
+    },
+    setCommentSelection(state, { comment }) {
+      if (comment) window.__viewer.interactions.deselectObjects()
+      state.selectedComment = comment
+    },
     isolateObjects(state, { filterKey, filterValues }) {
       state.hideKey = null
       state.hideValues = []
@@ -41,7 +55,9 @@ const store = new Vuex.Store({
       if (state.isolateKey !== filterKey) state.isolateValues = []
 
       state.isolateKey = filterKey
-      state.isolateValues = state.isolateValues.filter((val) => filterValues.indexOf(val) === -1)
+      state.isolateValues = state.isolateValues.filter(
+        (val) => filterValues.indexOf(val) === -1
+      )
       if (state.isolateValues.length === 0) state.appliedFilter = null
       else
         state.appliedFilter = {
@@ -71,7 +87,9 @@ const store = new Vuex.Store({
       if (state.hideKey !== filterKey) state.hideValues = []
 
       state.hideKey = filterKey
-      state.hideValues = state.hideValues.filter((val) => filterValues.indexOf(val) === -1)
+      state.hideValues = state.hideValues.filter(
+        (val) => filterValues.indexOf(val) === -1
+      )
 
       if (state.hideValues.length === 0) state.appliedFilter = null
       else
@@ -80,7 +98,10 @@ const store = new Vuex.Store({
         }
       window.__viewer.applyFilter(state.appliedFilter)
     },
-    async isolateCategoryToggle(state, { filterKey, filterValue, allValues, colorBy = false }) {
+    async isolateCategoryToggle(
+      state,
+      { filterKey, filterValue, allValues, colorBy = false }
+    ) {
       this.commit('resetInternalHideIsolateObjectState')
       state.hideCategoryKey = null
       state.hideCategoryValues = []
@@ -88,7 +109,7 @@ const store = new Vuex.Store({
       if (filterKey !== state.isolateCategoryKey) state.isolateCategoryValues = []
       state.isolateCategoryKey = filterKey
 
-      let indx = state.isolateCategoryValues.indexOf(filterValue)
+      const indx = state.isolateCategoryValues.indexOf(filterValue)
       if (indx === -1) state.isolateCategoryValues.push(filterValue)
       else state.isolateCategoryValues.splice(indx, 1)
 
@@ -116,7 +137,7 @@ const store = new Vuex.Store({
       }
       if (state.isolateCategoryValues.length === allValues.length)
         delete state.appliedFilter.filterBy
-      let res = await window.__viewer.applyFilter(state.appliedFilter)
+      const res = await window.__viewer.applyFilter(state.appliedFilter)
       state.colorLegend = res.colorLegend
     },
     async hideCategoryToggle(state, { filterKey, filterValue, colorBy = false }) {
@@ -126,7 +147,7 @@ const store = new Vuex.Store({
       if (filterKey !== state.hideCategoryKey) state.hideCategoryValues = []
       state.hideCategoryKey = filterKey
 
-      let indx = state.hideCategoryValues.indexOf(filterValue)
+      const indx = state.hideCategoryValues.indexOf(filterValue)
       if (indx === -1) state.hideCategoryValues.push(filterValue)
       else state.hideCategoryValues.splice(indx, 1)
 
@@ -147,7 +168,7 @@ const store = new Vuex.Store({
           colorBy: colorBy ? { type: 'category', property: filterKey } : null
         }
       }
-      let res = await window.__viewer.applyFilter(state.appliedFilter)
+      const res = await window.__viewer.applyFilter(state.appliedFilter)
       state.colorLegend = res.colorLegend
     },
     async toggleColorByCategory(state, { filterKey }) {
@@ -158,7 +179,7 @@ const store = new Vuex.Store({
           ...state.appliedFilter,
           colorBy: { type: 'category', property: filterKey }
         }
-      let res = await window.__viewer.applyFilter(state.appliedFilter)
+      const res = await window.__viewer.applyFilter(state.appliedFilter)
       state.colorLegend = res.colorLegend
     },
     setNumericFilter(
@@ -169,13 +190,19 @@ const store = new Vuex.Store({
       this.commit('resetInternalCategoryObjectState')
       state.appliedFilter = {
         ghostOthers: true,
-        colorBy: { type: 'gradient', property: filterKey, minValue, maxValue, gradientColors },
+        colorBy: {
+          type: 'gradient',
+          property: filterKey,
+          minValue,
+          maxValue,
+          gradientColors
+        },
         filterBy: { [filterKey]: { gte: minValue, lte: maxValue } }
       }
       window.__viewer.applyFilter(state.appliedFilter)
     },
     async setFilterDirect(state, { filter }) {
-      let filterBy = filter.filterBy
+      const filterBy = filter.filterBy
       if (filterBy && filterBy.__parents) {
         if (filterBy.__parents.includes) {
           this.commit('isolateObjects', {
@@ -200,9 +227,9 @@ const store = new Vuex.Store({
             maxValue: filter.filterBy[Object.keys(filter.filterBy)[0]].lte
           })
         } else {
-          let values = filterBy[Object.keys(filter.filterBy)[0]]
+          const values = filterBy[Object.keys(filter.filterBy)[0]]
           for (const val of values) {
-            let f = {
+            const f = {
               filterKey: Object.keys(filter.filterBy)[0],
               filterValue: val,
               allValues: [],
@@ -211,10 +238,10 @@ const store = new Vuex.Store({
             this.commit('isolateCategoryToggle', f)
           }
         }
-      } else {
-        let values = filterBy[Object.keys(filter.filterBy)[0]].not
+      } else if (filterBy) {
+        const values = filterBy[Object.keys(filter.filterBy)[0]].not
         for (const val of values) {
-          let f = {
+          const f = {
             filterKey: Object.keys(filter.filterBy)[0],
             filterValue: val,
             allValues: [],
@@ -222,6 +249,8 @@ const store = new Vuex.Store({
           }
           this.commit('hideCategoryToggle', f)
         }
+      } else if (filter.colorBy) {
+        this.commit('toggleColorByCategory', { filterKey: filter.colorBy.property })
       }
     },
     resetInternalHideIsolateObjectState(state) {
@@ -240,7 +269,11 @@ const store = new Vuex.Store({
       this.commit('resetInternalHideIsolateObjectState')
       this.commit('resetInternalCategoryObjectState')
       state.appliedFilter = null
+      state.preventCommentCollapse = true
       window.__viewer.applyFilter(state.appliedFilter)
+    },
+    setPreventCommentCollapse(state, { value }) {
+      state.preventCommentCollapse = value
     }
   }
 })

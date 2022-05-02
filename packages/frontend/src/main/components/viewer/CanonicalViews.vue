@@ -10,12 +10,16 @@
     nudge-left="10"
   >
     <template #activator="{ on, attrs }">
-      <v-btn :small="small" rounded class="mr-2" v-bind="attrs" v-on="on">
+      <v-btn :small="small" rounded icon class="mr-2" v-bind="attrs" v-on="on">
         <v-icon small>mdi-camera-outline</v-icon>
       </v-btn>
     </template>
     <v-list dense nav>
-      <v-list-item v-for="(item, index) in items" :key="index" @click="setView(item.title)">
+      <v-list-item
+        v-for="(item, index) in items"
+        :key="index"
+        @click="setView(item.title)"
+      >
         <v-list-item-title>
           <v-icon small>mdi-camera-control</v-icon>
           {{ item.title }}
@@ -26,7 +30,9 @@
 </template>
 <script>
 export default {
-  props: ['small'],
+  props: {
+    small: { type: Boolean, default: false }
+  },
   data() {
     return {
       items: [

@@ -5,8 +5,13 @@
 export default {
   components: {},
   mounted() {
-    let mixpanelId = this.$mixpanelId()
-    this.$mixpanel.register({ server_id: this.$mixpanelServerId(), hostApp: 'web-embed' })
+    const mixpanelId = this.$mixpanelId()
+    this.$mixpanel.register({
+      // Unfortunately we can't replace this to camelCase, because that will break metrics
+      // eslint-disable-next-line camelcase
+      server_id: this.$mixpanelServerId(),
+      hostApp: 'web-embed'
+    })
     if (mixpanelId !== null) {
       this.$mixpanel.identify(mixpanelId)
     }

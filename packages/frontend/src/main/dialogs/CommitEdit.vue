@@ -48,11 +48,13 @@
           </v-app-bar-nav-icon>
           <v-toolbar-title>Delete Commit</v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-btn icon @click="showDeleteDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+          <v-btn icon @click="showDeleteDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
         </v-toolbar>
         <v-card-text class="mt-4">
-          You cannot undo this action. This will permanently delete this commit. To confirm, type in
-          its its id (
+          You cannot undo this action. This will permanently delete this commit. To
+          confirm, type in its its id (
           <code>{{ commit.id }}</code>
           ) below:
           <v-text-field
@@ -80,7 +82,12 @@
 <script>
 import gql from 'graphql-tag'
 export default {
-  props: ['stream'],
+  props: {
+    stream: {
+      type: Object,
+      default: () => null
+    }
+  },
   data() {
     return {
       showDeleteDialog: false,
@@ -98,7 +105,6 @@ export default {
   mounted() {},
   methods: {
     async editCommit() {
-      this.$matomo && this.$matomo.trackPageView('commit/update')
       this.$mixpanel.track('Commit Action', { type: 'action', name: 'update' })
       this.loading = true
       try {
@@ -109,7 +115,11 @@ export default {
             }
           `,
           variables: {
-            myCommit: { streamId: this.stream.id, id: this.commit.id, message: this.commit.message }
+            myCommit: {
+              streamId: this.stream.id,
+              id: this.commit.id,
+              message: this.commit.message
+            }
           }
         })
       } catch (err) {
@@ -121,9 +131,8 @@ export default {
       this.$emit('close')
     },
     async deleteCommit() {
-      this.$matomo && this.$matomo.trackPageView('commit/delete')
       this.$mixpanel.track('Commit Action', { type: 'action', name: 'delete' })
-      let commitBranch = this.stream.commit.branchName
+      const commitBranch = this.stream.commit.branchName
       try {
         await this.$apollo.mutate({
           mutation: gql`
@@ -143,7 +152,9 @@ export default {
           text: err.message
         })
       }
-      this.$router.push(`/streams/` + this.$route.params.streamId + `/branches/` + commitBranch)
+      this.$router.push(
+        `/streams/` + this.$route.params.streamId + `/branches/` + commitBranch
+      )
       this.loading = false
       this.showDeleteDialog = false
     }

@@ -3,10 +3,10 @@
     class="overflow-hidden"
     :style="`width: ${
       $vuetify.breakpoint.xs ? '90%' : '300px'
-    }; height: 100%; position: absolute; padding-top: 72px`"
+    }; height: 100vh; position: absolute; padding-top: 72px`"
   >
     <!-- <v-card class="px-2"> -->
-    <perfect-scrollbar style="height: 100%" :options="{ suppressScrollX: true }">
+    <perfect-scrollbar style="height: 100vh" :options="{ suppressScrollX: true }">
       <div class="d-flex align-center" style="pointer-events: auto">
         <span class="caption">Selection Info</span>
         <v-spacer />
@@ -27,7 +27,9 @@
           icon
           @click.stop="isolateSelection()"
         >
-          <v-icon x-small :class="`${!isolated ? 'primary--text' : ''}`">mdi-filter</v-icon>
+          <v-icon x-small :class="`${!isolated ? 'primary--text' : ''}`">
+            mdi-filter
+          </v-icon>
         </v-btn>
         <v-btn
           v-show="$vuetify.breakpoint.xs"
@@ -40,11 +42,21 @@
         </v-btn>
       </div>
       <div v-for="prop in props" :key="prop.value.id" style="width: 99%">
-        <v-card class="transparent elevation-3 rounded-lg mb-3" style="pointer-events: auto">
-          <object-properties-row :prop="prop" :stream-id="streamId" :ref-id="prop.refId" />
+        <v-card
+          class="transparent elevation-3 rounded-lg mb-3"
+          style="pointer-events: auto"
+        >
+          <object-properties-row
+            :prop="prop"
+            :stream-id="streamId"
+            :ref-id="prop.refId"
+          />
         </v-card>
       </div>
-      <div v-show="props.length === 1 && !$vuetify.breakpoint.xs" class="caption grey--text">
+      <div
+        v-show="props.length === 1 && !$vuetify.breakpoint.xs"
+        class="caption grey--text"
+      >
         Hint: hold shift to select multiple objects.
       </div>
     </perfect-scrollbar>
@@ -87,7 +99,7 @@ export default {
       })
     },
     isolated() {
-      let ids = this.objects.map((o) => o.id)
+      const ids = this.objects.map((o) => o.id)
       ids.forEach((val) => {
         if (this.$store.state.isolateValues.indexOf(val) === -1) return false
       })
@@ -96,14 +108,23 @@ export default {
   },
   methods: {
     isolateSelection() {
-      let ids = this.objects.map((o) => o.id)
+      const ids = this.objects.map((o) => o.id)
       if (!this.isolated)
-        this.$store.commit('unisolateObjects', { filterKey: '__parents', filterValues: ids })
-      else this.$store.commit('isolateObjects', { filterKey: '__parents', filterValues: ids })
+        this.$store.commit('unisolateObjects', {
+          filterKey: '__parents',
+          filterValues: ids
+        })
+      else
+        this.$store.commit('isolateObjects', {
+          filterKey: '__parents',
+          filterValues: ids
+        })
     },
     getSelectionUrl() {
       if (this.objects.length < 2) return ''
-      let url = `/streams/${this.streamId}/objects/${this.objects[0].id}?overlay=${this.objects
+      const url = `/streams/${this.streamId}/objects/${
+        this.objects[0].id
+      }?overlay=${this.objects
         .slice(1)
         .map((o) => o.id)
         .join(',')}`

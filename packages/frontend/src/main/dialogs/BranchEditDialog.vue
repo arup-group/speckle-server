@@ -20,10 +20,14 @@
           required
         ></v-text-field>
         <p class="caption">
-          Tip: you can create nested branches by using "/" as a separator in their names. E.g.,
-          "mep/stage-1" or "arch/sketch-design".
+          Tip: you can create nested branches by using "/" as a separator in their
+          names. E.g., "mep/stage-1" or "arch/sketch-design".
         </p>
-        <v-textarea v-model="editableBranch.description" rows="2" label="Description"></v-textarea>
+        <v-textarea
+          v-model="editableBranch.description"
+          rows="2"
+          label="Description"
+        ></v-textarea>
       </v-card-text>
     </v-form>
     <v-card-actions>
@@ -43,7 +47,9 @@
           </v-app-bar-nav-icon>
           <v-toolbar-title>Delete Branch</v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-btn icon @click="showDeleteDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+          <v-btn icon @click="showDeleteDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
         </v-toolbar>
         <v-card-text class="mt-4">
           You cannot undo this action. The branch
@@ -76,9 +82,16 @@
 </template>
 <script>
 import gql from 'graphql-tag'
+import isNull from 'lodash/isNull'
+import isUndefined from 'lodash/isUndefined'
 
 export default {
-  props: ['stream'],
+  props: {
+    stream: {
+      type: Object,
+      default: () => null
+    }
+  },
   data() {
     return {
       dialog: false,
@@ -90,8 +103,12 @@ export default {
       nameRules: [
         (v) => !!v || 'Name is required.',
         (v) =>
-          !(v.startsWith('#') || v.endsWith('#') || v.startsWith('/') || v.endsWith('/')) ||
-          'Branch names cannot start or end with "#" or "/"',
+          !(
+            v.startsWith('#') ||
+            v.endsWith('#') ||
+            v.startsWith('/') ||
+            v.endsWith('/')
+          ) || 'Branch names cannot start or end with "#" or "/"',
         (v) =>
           (v && this.allBranchNames.findIndex((e) => e === v) === -1) ||
           'A branch with this name already exists',
@@ -129,7 +146,7 @@ export default {
           .map((b) => b.name)
       },
       skip() {
-        return this.stream.branch == null
+        return isNull(this.stream.branch) || isUndefined(this.stream.branch)
       }
     }
   },
@@ -137,10 +154,9 @@ export default {
     async deleteBranch() {
       this.loading = true
       this.error = null
-      this.$matomo && this.$matomo.trackPageView('branch/delete')
-      this.$mixpanel.track('Branch Action', { type: 'action', name: 'delete'  })
+      this.$mixpanel.track('Branch Action', { type: 'action', name: 'delete' })
       try {
-        let res = await this.$apollo.mutate({
+        const res = await this.$apollo.mutate({
           mutation: gql`
             mutation branchDelete($params: BranchDeleteInput!) {
               branchDelete(branch: $params)
@@ -172,9 +188,8 @@ export default {
           throw new Error('Branch already exists. Please choose a different name.')
 
         this.loading = true
-        this.$matomo && this.$matomo.trackPageView('branch/update')
-        this.$mixpanel.track('Branch Action', { type: 'action', name: 'update'  })
-        let res = await this.$apollo.mutate({
+        this.$mixpanel.track('Branch Action', { type: 'action', name: 'update' })
+        const res = await this.$apollo.mutate({
           mutation: gql`
             mutation branchUpdate($params: BranchUpdateInput!) {
               branchUpdate(branch: $params)
@@ -200,11 +215,18 @@ export default {
         text: 'Branch updated',
         action: {
           name: 'View',
-          to: `/streams/` + this.$route.params.streamId + `/branches/` + this.editableBranch.name
+          to:
+            `/streams/` +
+            this.$route.params.streamId +
+            `/branches/` +
+            this.editableBranch.name
         }
       })
       this.$router.push(
-        `/streams/` + this.$route.params.streamId + `/branches/` + this.editableBranch.name
+        `/streams/` +
+          this.$route.params.streamId +
+          `/branches/` +
+          this.editableBranch.name
       )
       this.$emit('close')
     }

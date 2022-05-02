@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable vue/no-v-html -->
   <v-timeline-item medium>
     <template #icon>
       <user-avatar v-if="user" :id="user.id" :avatar="user.avatar" :name="user.name" />
@@ -36,11 +37,16 @@
                     class="mr-3"
                     :user-id="activityItem.info.targetUser"
                     :color="
-                      lastActivity.actionType === 'stream_permissions_add' ? 'success' : 'error'
+                      lastActivity.actionType === 'stream_permissions_add'
+                        ? 'success'
+                        : 'error'
                     "
                   ></user-pill>
 
-                  <span v-if="$vuetify.breakpoint.smAndUp" class="mr-3 body-2 font-italic">
+                  <span
+                    v-if="$vuetify.breakpoint.smAndUp"
+                    class="mr-3 body-2 font-italic"
+                  >
                     {{
                       lastActivity.actionType === 'stream_permissions_add'
                         ? 'user added as'
@@ -85,7 +91,9 @@
                   <v-icon color="primary" small>mdi-folder</v-icon>
                   {{ stream.name }}
                 </router-link>
-                <span class="ml-3 body-2 font-italic">{{ lastActivityBrief.actionText }}</span>
+                <span class="ml-3 body-2 font-italic">
+                  {{ lastActivityBrief.actionText }}
+                </span>
 
                 <v-spacer />
 
@@ -108,11 +116,12 @@
             </v-container>
 
             <div class="mt-3">
-              <div
-                v-for="activityItem in activityGroup"
-                :key="activityItem.time"
-                v-html="updatedDescription(activityItem)"
-              ></div>
+              <list-item-activity-description
+                v-for="(item, idx) in activityGroup"
+                :key="item.time"
+                :activity-group="activityGroup"
+                :activity-item-index="idx"
+              />
             </div>
           </v-card-text>
           <v-card-actions class="pt-0">
@@ -168,16 +177,21 @@
         >
           <v-card-text class="pa-5 body-1">
             <v-chip :to="url" :color="lastActivityBrief.color">
-              <v-icon small class="mr-2 float-left" light>{{ lastActivityBrief.icon }}</v-icon>
+              <v-icon small class="mr-2 float-left" light>
+                {{ lastActivityBrief.icon }}
+              </v-icon>
               {{ branchName }}
             </v-chip>
-            <span class="ml-3 body-2 font-italic">{{ lastActivityBrief.actionText }}</span>
+            <span class="ml-3 body-2 font-italic">
+              {{ lastActivityBrief.actionText }}
+            </span>
             <div class="mt-3">
-              <div
-                v-for="activityItem in activityGroup"
-                :key="activityItem.time"
-                v-html="updatedDescription(activityItem)"
-              ></div>
+              <list-item-activity-description
+                v-for="(item, idx) in activityGroup"
+                :key="item.time"
+                :activity-group="activityGroup"
+                :activity-item-index="idx"
+              />
             </div>
           </v-card-text>
         </v-card>
@@ -215,7 +229,9 @@
                       </v-chip>
                       <span v-if="lastActivity.actionType === 'commit_create'">
                         <span class="mx-3 body-2 font-italic">from</span>
-                        <source-app-avatar :application-name="commit.sourceApplication" />
+                        <source-app-avatar
+                          :application-name="commit.sourceApplication"
+                        />
                       </span>
                       <span v-if="lastActivity.actionType === 'commit_receive'">
                         <span class="mx-3 body-2 font-italic">in</span>
@@ -243,13 +259,6 @@
                   >
                     SEE ALL {{ activityGroup.length }} COMMITS
                   </router-link>
-                  <!-- <div class="mt-3 body-1">
-                        <div
-                          v-for="activityItem in activityGroup"
-                          :key="activityItem.time"
-                          v-html="updatedDescription(activityItem)"
-                        ></div>
-                      </div> -->
                 </v-card-text>
               </v-col>
 
@@ -281,10 +290,22 @@ import UserPill from '@/main/components/activity/UserPill'
 import SourceAppAvatar from '@/main/components/common/SourceAppAvatar'
 import PreviewImage from '@/main/components/common/PreviewImage'
 import gql from 'graphql-tag'
+import ListItemActivityDescription from '@/main/components/activity/ListItemActivityDescription.vue'
 
 export default {
-  components: { UserAvatar, SourceAppAvatar, PreviewImage, UserPill },
-  props: ['activityGroup'],
+  components: {
+    UserAvatar,
+    SourceAppAvatar,
+    PreviewImage,
+    UserPill,
+    ListItemActivityDescription
+  },
+  props: {
+    activityGroup: {
+      type: Array,
+      default: () => []
+    }
+  },
   apollo: {
     you: {
       query: gql`
@@ -438,13 +459,17 @@ export default {
         case 'stream_permissions_add':
           return {
             captionText: `added ${
-              this.activityGroup.length === 1 ? 'a user' : this.activityGroup.length + ' users'
+              this.activityGroup.length === 1
+                ? 'a user'
+                : this.activityGroup.length + ' users'
             } to`
           }
         case 'stream_permissions_remove':
           return {
             captionText: `removed ${
-              this.activityGroup.length === 1 ? 'a user' : this.activityGroup.length + ' users'
+              this.activityGroup.length === 1
+                ? 'a user'
+                : this.activityGroup.length + ' users'
             } from`
           }
         case 'branch_create':
@@ -520,70 +545,6 @@ export default {
             name: this.lastActivity.actionType
           }
       }
-    }
-  },
-  methods: {
-    updatedDescription(activity) {
-      //CREATED
-      if (activity.actionType === 'stream_create') {
-        return activity.info?.stream?.description
-          ? this.truncate(this.lastActivity.info.stream.description, 50)
-          : ''
-      } else if (activity.actionType === 'branch_create') {
-        return this.activity?.info?.branch?.description
-          ? this.truncate(this.lastActivity.info.branch.description, 50)
-          : ''
-      }
-
-      //UPDATED
-      let changes = ''
-      if (activity.info.new) {
-        for (const [key] of Object.entries(activity.info.new)) {
-          if (
-            activity.info.old[key] !== undefined &&
-            activity.info.new[key] !== activity.info.old[key]
-          ) {
-            if (key === 'name')
-              changes +=
-                '<p>✏️ Renamed from <i><del>' +
-                activity.info.old[key] +
-                '</del></i> to <i>' +
-                activity.info.new[key] +
-                '</i></p>'
-            if (key === 'description') {
-              let oldDesc = activity.info.old[key] ? activity.info.old[key] : 'empty'
-              changes +=
-                '<p>📋 Description changed from <i><del>' +
-                this.truncate(oldDesc) +
-                '</del></i> to <i>' +
-                this.truncate(activity.info.new[key]) +
-                '</ib></p>'
-            }
-            if (key === 'message') {
-              let oldDesc = activity.info.old[key] ? activity.info.old[key] : 'empty'
-              changes +=
-                '<p>📋 Message changed from <i><del>' +
-                this.truncate(oldDesc) +
-                '</del></i> to <i>' +
-                this.truncate(activity.info.new[key]) +
-                '</ib></p>'
-            }
-            if (key === 'isPublic' && activity.info.new[key])
-              changes += '<p>👀 Stream is now <i>public</i></p>'
-            if (key === 'isPublic' && !activity.info.new[key])
-              changes += '<p>👀 Stream is now <i>private</i></p>'
-          }
-        }
-      }
-
-      return changes
-    },
-    truncate(input, length = 25) {
-      if (!input) return ''
-      if (input.length > length) {
-        return input.substring(0, length) + '...'
-      }
-      return input
     }
   }
 }

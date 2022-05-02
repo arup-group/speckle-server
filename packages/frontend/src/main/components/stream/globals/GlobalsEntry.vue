@@ -24,7 +24,11 @@
                 dense
                 rounded
               />
-              <v-text-field v-model="entry.value" class="entry-value mr-5" hint="property value" />
+              <v-text-field
+                v-model="entry.value"
+                class="entry-value mr-5"
+                hint="property value"
+              />
               <v-btn
                 v-if="true"
                 v-tooltip="'Transform this field into a nested object'"
@@ -54,10 +58,16 @@
                 v-if="!editTitle"
                 @mouseenter="mouseOver = true"
                 @mouseleave="mouseOver = false"
-                @click="editTitle=true"
+                @click="editTitle = true"
               >
                 {{ entry.key }}
-                <v-btn v-show="mouseOver" icon small color="primary" @click="editTitle = true">
+                <v-btn
+                  v-show="mouseOver"
+                  icon
+                  small
+                  color="primary"
+                  @click="editTitle = true"
+                >
                   <v-icon small>mdi-pencil</v-icon>
                 </v-btn>
               </v-toolbar-title>
@@ -68,9 +78,9 @@
                   :rules="rules.keys(index, entries)"
                   :error-messages="entry.valid === true ? null : entry.valid"
                   append-icon="mdi-check"
-                  @click:append="editTitle=false"
-                  @keyup.enter="editTitle=false"
-                  style="width: 300px; margin-top:14px;"
+                  style="width: 300px; margin-top: 14px"
+                  @click:append="editTitle = false"
+                  @keyup.enter="editTitle = false"
                 ></v-text-field>
               </v-toolbar-title>
               <v-spacer></v-spacer>
@@ -131,7 +141,7 @@
 </template>
 <script>
 import draggable from 'vuedraggable'
-import crs from 'crypto-random-string'
+import { randomString } from '@/helpers/randomHelpers'
 
 export default {
   name: 'GlobalsEntry',
@@ -168,20 +178,22 @@ export default {
         keys(index, entries) {
           return [
             (v) => {
-              let result = !!v || 'Properties need to have a name!'
+              const result = !!v || 'Properties need to have a name!'
               entries[index].valid = result
               return result
             },
             (v) => {
-              let filtered = entries.filter((_, i) => i != index)
-              let result =
-                filtered.findIndex((e) => e.key === v) === -1 || 'Each property name must be unique'
+              const filtered = entries.filter((_, i) => i !== index)
+              const result =
+                filtered.findIndex((e) => e.key === v) === -1 ||
+                'Each property name must be unique'
               if (entries[index].valid === true) entries[index].valid = result
               return result
             },
             (v) => {
               const re = /[./]/
-              let result = !re.test(v) || 'The name cannot contain invalid characters: "." or "/"'
+              const result =
+                !re.test(v) || 'The name cannot contain invalid characters: "." or "/"'
               if (entries[index].valid === true) entries[index].valid = result
               return result
             }
@@ -202,7 +214,7 @@ export default {
   },
   methods: {
     emitAddProp() {
-      var bimNouns = [
+      const bimNouns = [
         'parameter',
         'BIM',
         'triple O',
@@ -213,7 +225,7 @@ export default {
         'layer',
         'interop'
       ]
-      var bimAdjs = [
+      const bimAdjs = [
         'parametric',
         'chonky',
         '3D',
@@ -223,46 +235,46 @@ export default {
         'discrete',
         'dank'
       ]
-      var bimExclamations = ['wow', 'much', 'yes', 'towards a new']
-      var randomPhrase =
+      const bimExclamations = ['wow', 'much', 'yes', 'towards a new']
+      const randomPhrase =
         bimExclamations[Math.floor(Math.random() * bimExclamations.length)] +
         ' ' +
         bimAdjs[Math.floor(Math.random() * bimAdjs.length)] +
         ' ' +
         bimNouns[Math.floor(Math.random() * bimNouns.length)]
-      let field = {
-        key: `placeholder ${crs({ length: 6 })}`,
+      const field = {
+        key: `placeholder ${randomString(6)}`,
         type: 'field',
         value: randomPhrase,
         valid: true,
-        id: crs({ length: 10 })
+        id: randomString(10)
       }
-      this.$emit('add-prop', { field: field, path: this.path })
+      this.$emit('add-prop', { field, path: this.path })
     },
     emitRemoveAt(index) {
-      this.$emit('remove-prop', { path: this.path, index: index })
+      this.$emit('remove-prop', { path: this.path, index })
     },
     emitFieldToObject(entry, index) {
-      let obj = {
+      const obj = {
         key: entry.key,
         type: 'object',
         id: entry.id,
         valid: entry.valid,
         globals: [
           {
-            key: `placeholder ${crs({ length: 6 })}`,
+            key: `placeholder ${randomString(6)}`,
             type: 'field',
             value: entry.value,
-            id: crs({ length: 10 }),
+            id: randomString(10),
             valid: true
           }
         ]
       }
-      this.$emit('field-to-object', { obj: obj, path: this.path, index: index })
+      this.$emit('field-to-object', { obj, path: this.path, index })
     },
     emitObjectToField(entry, index) {
-      let fields = entry.globals
-      this.$emit('object-to-field', { fields: fields, path: this.path, index: index })
+      const fields = entry.globals
+      this.$emit('object-to-field', { fields, path: this.path, index })
     }
   }
 }

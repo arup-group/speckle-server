@@ -81,7 +81,7 @@ export default {
   apollo: {
     appScopes: {
       query: gql`
-        query($id: String!) {
+        query ($id: String!) {
           app(id: $id) {
             id
             name
@@ -111,7 +111,7 @@ export default {
   },
   watch: {
     appScopes(val) {
-      let scopeList = []
+      const scopeList = []
       val.forEach((obj) => {
         scopeList.push(obj.name)
       })
@@ -120,8 +120,7 @@ export default {
   },
   methods: {
     async deleteApp() {
-      this.$mixpanel.track('App Action', { type: 'action', name: 'delete'  })
-      this.$matomo && this.$matomo.trackPageView('user/app/revoke')
+      this.$mixpanel.track('App Action', { type: 'action', name: 'delete' })
       try {
         await this.$apollo.mutate({
           mutation: gql`

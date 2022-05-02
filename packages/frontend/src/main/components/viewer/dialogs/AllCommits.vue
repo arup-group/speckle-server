@@ -14,7 +14,11 @@
             :url="`/preview/${streamId}/commits/${commit.id}`"
           ></preview-image>
           <div style="position: absolute; top: 10px; right: 20px">
-            <commit-received-receipts :stream-id="streamId" :commit-id="commit.id" shadow />
+            <commit-received-receipts
+              :stream-id="streamId"
+              :commit-id="commit.id"
+              shadow
+            />
           </div>
           <div style="position: absolute; top: 10px; left: 12px">
             <source-app-avatar :application-name="commit.sourceApplication" />
@@ -48,14 +52,20 @@ export default {
     InfiniteLoading: () => import('vue-infinite-loading'),
     ListItemCommit: () => import('@/main/components/stream/ListItemCommit'),
     PreviewImage: () => import('@/main/components/common/PreviewImage'),
-    CommitReceivedReceipts: () => import('@/main/components/common/CommitReceivedReceipts'),
+    CommitReceivedReceipts: () =>
+      import('@/main/components/common/CommitReceivedReceipts'),
     SourceAppAvatar: () => import('@/main/components/common/SourceAppAvatar')
   },
-  props: ['streamId'],
+  props: {
+    streamId: {
+      type: String,
+      default: () => null
+    }
+  },
   apollo: {
     stream: {
       query: gql`
-        query($streamId: String!, $cursor: String) {
+        query ($streamId: String!, $cursor: String) {
           stream(id: $streamId) {
             id
             commits(cursor: $cursor, limit: 2) {
@@ -99,9 +109,10 @@ export default {
           if (newItems.length === 0) $state.complete()
           else $state.loaded()
 
-          let allItems = [...previousResult.stream.commits.items]
+          const allItems = [...previousResult.stream.commits.items]
           for (const commit of newItems) {
-            if (allItems.findIndex((c) => c.id === commit.id) === -1) allItems.push(commit)
+            if (allItems.findIndex((c) => c.id === commit.id) === -1)
+              allItems.push(commit)
           }
 
           return {

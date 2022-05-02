@@ -1,6 +1,7 @@
 {
   "name": "@speckle/webhook-service",
-  "version": "2.0.0",
+  "private": true,
+  "version": "2.3.17-alpha.2889",
   "description": "Component to handle calling external webhooks",
   "main": "index.js",
   "repository": {
@@ -11,6 +12,9 @@
     "url": "https://github.com/specklesystems/speckle-server/issues"
   },
   "homepage": "https://github.com/specklesystems/speckle-server#readme",
+  "engines": {
+    "node": "^16.0.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "cross-env ALLOW_LOCAL_NETWORK=true node src/main.js",

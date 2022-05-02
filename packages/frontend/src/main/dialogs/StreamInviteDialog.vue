@@ -11,7 +11,12 @@
           <v-btn icon @click="showDialog = false"><v-icon>mdi-close</v-icon></v-btn>
         </v-toolbar>
 
-        <v-alert v-model="showError" dismissible type="error" :class="`${success ? 'mb-0' : ''}`">
+        <v-alert
+          v-model="showError"
+          dismissible
+          type="error"
+          :class="`${success ? 'mb-0' : ''}`"
+        >
           {{ error }}
         </v-alert>
         <v-alert v-model="success" dismissible type="success">
@@ -19,8 +24,8 @@
         </v-alert>
         <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="sendInvite">
           <v-card-text class="pb-0 mb-0">
-            We will send an invite to the email below - once they accept, they will also gain access
-            to this stream!
+            We will send an invite to the email below - once they accept, they will also
+            gain access to this stream!
           </v-card-text>
           <v-card-text class="pt-0 mt-0">
             <v-text-field
@@ -83,7 +88,7 @@ export default {
             return true
           },
           (v) => {
-            let pure = DOMPurify.sanitize(v)
+            const pure = DOMPurify.sanitize(v)
             if (pure !== v) return 'No crazy hacks please.'
             else return true
           }
@@ -95,7 +100,7 @@ export default {
     showDialog() {
       this.clear()
       this.email = this.text
-      this.message = `Hey, I want to share a stream (${this.streamName}) with you!`
+      this.message = `Hey, I want to share a stream on Speckle with you!`
     }
   },
   methods: {
@@ -111,13 +116,11 @@ export default {
     async sendInvite() {
       if (!this.$refs.form.validate()) return
 
-      this.$matomo && this.$matomo.trackPageView('invite/stream/create')
-      this.$matomo && this.$matomo.trackEvent('invite', 'stream')
-      this.$mixpanel.track('Invite Send', { type: 'action', source: 'stream'  })
+      this.$mixpanel.track('Invite Send', { type: 'action', source: 'stream' })
       try {
         await this.$apollo.mutate({
           mutation: gql`
-            mutation($input: StreamInviteCreateInput!) {
+            mutation ($input: StreamInviteCreateInput!) {
               streamInviteCreate(input: $input)
             }
           `,

@@ -1,7 +1,12 @@
 <template>
   <v-card class="pa-4">
     <v-card-title>Create a New Personal Access Token</v-card-title>
-    <v-form v-show="!fullTokenResult" ref="form" v-model="valid" @submit.prevent="createToken">
+    <v-form
+      v-show="!fullTokenResult"
+      ref="form"
+      v-model="valid"
+      @submit.prevent="createToken"
+    >
       <v-card-text>
         <v-text-field
           v-model="name"
@@ -44,8 +49,8 @@
       </div>
       <v-alert type="info">
         <b>Note:</b>
-        This is the first and last time you will be able to see the full token. Please copy paste it
-        somewhere safe now.
+        This is the first and last time you will be able to see the full token. Please
+        copy paste it somewhere safe now.
       </v-alert>
       <v-btn block color="primary" @click="clearAndClose">Close</v-btn>
     </v-card-text>
@@ -53,6 +58,7 @@
 </template>
 <script>
 import gql from 'graphql-tag'
+import { FullServerInfoQuery } from '@/graphql/server'
 
 export default {
   props: {
@@ -63,16 +69,7 @@ export default {
   },
   apollo: {
     scopes: {
-      query: gql`
-        query {
-          serverInfo {
-            scopes {
-              name
-              description
-            }
-          }
-        }
-      `,
+      query: FullServerInfoQuery,
       update: (data) => data.serverInfo.scopes
     }
   },
@@ -95,8 +92,8 @@ export default {
   computed: {
     parsedScopes() {
       if (!this.scopes) return []
-      let arr = []
-      for (let s of this.scopes) {
+      const arr = []
+      for (const s of this.scopes) {
         arr.push({ text: s.name, value: s.name })
         arr.push({ header: s.description })
         arr.push({ divider: true })
@@ -114,12 +111,11 @@ export default {
     async createToken() {
       if (!this.$refs.form.validate()) return
 
-      this.$matomo && this.$matomo.trackPageView('user/token/create')
-      this.$mixpanel.track('Token Action', { type: 'action', name: 'create'  })
+      this.$mixpanel.track('Token Action', { type: 'action', name: 'create' })
       try {
-        let res = await this.$apollo.mutate({
+        const res = await this.$apollo.mutate({
           mutation: gql`
-            mutation($token: ApiTokenCreateInput!) {
+            mutation ($token: ApiTokenCreateInput!) {
               apiTokenCreate(token: $token)
             }
           `,

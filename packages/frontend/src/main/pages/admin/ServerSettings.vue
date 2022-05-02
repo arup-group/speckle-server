@@ -7,7 +7,11 @@
     <div class="my-5"></div>
     <section-card>
       <v-card-text>
-        <div v-for="(value, name) in serverDetails" :key="name" class="d-flex align-center mb-2">
+        <div
+          v-for="(value, name) in serverDetails"
+          :key="name"
+          class="d-flex align-center mb-2"
+        >
           <div class="flex-grow-1">
             <div v-if="value.type == 'boolean'">
               <p class="mt-2">{{ value.label }}</p>
@@ -52,6 +56,8 @@
 
 <script>
 import gql from 'graphql-tag'
+import { MainServerInfoQuery } from '@/graphql/server'
+import pick from 'lodash/pick'
 
 export default {
   name: 'ServerInfoAdminCard',
@@ -91,15 +97,13 @@ export default {
         },
         createDefaultGlobals: {
           label: 'Add default globals on stream creation',
-          hint:
-            'Automatically add the specified set of globals to all streams created on this server',
+          hint: 'Automatically add the specified set of globals to all streams created on this server',
           type: 'boolean'
         }
       },
       defaultGlobals: {
         label: 'Default globals',
-        hint:
-          'A json string containing a set of default globals and their default values, to be added to all streams on this server on stream creation'
+        hint: 'A json string containing a set of default globals and their default values, to be added to all streams on this server on stream creation'
       },
       rules: {
         checkGlobals() {
@@ -120,20 +124,7 @@ export default {
   },
   apollo: {
     serverInfo: {
-      query: gql`
-        query {
-          serverInfo {
-            name
-            company
-            description
-            adminContact
-            termsOfService
-            inviteOnly
-            createDefaultGlobals
-            defaultGlobals
-          }
-        }
-      `,
+      query: MainServerInfoQuery,
       update(data) {
         delete data.serverInfo.__typename
         this.serverModifications = Object.assign({}, data.serverInfo)
@@ -143,10 +134,10 @@ export default {
   },
   computed: {
     defaultGlobalsString: {
-      set: function (value) {
+      set(value) {
         this.serverModifications.defaultGlobals = JSON.parse(value)
       },
-      get: function () {
+      get() {
         return JSON.stringify(this.serverModifications.defaultGlobals)
       }
     }
@@ -156,12 +147,12 @@ export default {
       this.loading = true
       await this.$apollo.mutate({
         mutation: gql`
-          mutation($info: ServerInfoUpdateInput!) {
+          mutation ($info: ServerInfoUpdateInput!) {
             serverInfoUpdate(info: $info)
           }
         `,
         variables: {
-          info: this.serverModifications
+          info: pick(this.serverModifications, Object.keys(this.serverDetails))
         }
       })
       await this.$apollo.queries['serverInfo'].refetch()

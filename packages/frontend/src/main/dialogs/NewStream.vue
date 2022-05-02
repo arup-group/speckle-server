@@ -8,7 +8,13 @@
       <v-spacer></v-spacer>
       <v-btn icon @click="$emit('close')"><v-icon>mdi-close</v-icon></v-btn>
     </v-toolbar>
-    <v-form ref="form" v-model="valid" lazy-validation class="px-2" @submit.prevent="createStream">
+    <v-form
+      ref="form"
+      v-model="valid"
+      lazy-validation
+      class="px-2"
+      @submit.prevent="createStream"
+    >
       <v-card-text>
         <v-text-field
           v-model="name"
@@ -17,7 +23,12 @@
           autofocus
           label="Stream Name (optional)"
         />
-        <v-textarea v-model="description" rows="1" row-height="15" label="Description (optional)" />
+        <v-textarea
+          v-model="description"
+          rows="1"
+          row-height="15"
+          label="Description (optional)"
+        />
         <v-switch
           v-model="isPublic"
           v-tooltip="
@@ -46,7 +57,11 @@
               <v-list-item-subtitle>Try a different search query.</v-list-item-subtitle>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item v-for="item in userSearch.items" :key="item.id" @click="addCollab(item)">
+          <v-list-item
+            v-for="item in userSearch.items"
+            :key="item.id"
+            @click="addCollab(item)"
+          >
             <v-list-item-avatar>
               <user-avatar
                 :id="item.id"
@@ -166,7 +181,7 @@ export default {
   methods: {
     addCollab(user) {
       if (user.id === localStorage.getItem('uuid')) return
-      let indx = this.collabs.findIndex((u) => u.id === user.id)
+      const indx = this.collabs.findIndex((u) => u.id === user.id)
       if (indx !== -1) return
       user.role = 'stream:contributor'
       this.collabs.push(user)
@@ -174,17 +189,16 @@ export default {
       this.userSearch.items = null
     },
     removeCollab(user) {
-      let indx = this.collabs.findIndex((u) => u.id === user.id)
+      const indx = this.collabs.findIndex((u) => u.id === user.id)
       this.collabs.splice(indx, 1)
     },
     async createStream() {
       if (!this.$refs.form.validate()) return
 
       this.isLoading = true
-      this.$matomo && this.$matomo.trackPageView('stream/create')
       this.$mixpanel.track('Stream Action', { type: 'action', name: 'create' })
       try {
-        let res = await this.$apollo.mutate({
+        const res = await this.$apollo.mutate({
           mutation: gql`
             mutation streamCreate($myStream: StreamCreateInput!) {
               streamCreate(stream: $myStream)
@@ -200,7 +214,7 @@ export default {
         })
 
         if (this.collabs.length !== 0) {
-          for (let user of this.collabs) {
+          for (const user of this.collabs) {
             await this.$apollo.mutate({
               mutation: gql`
                 mutation grantPermission($params: StreamGrantPermissionInput!) {
@@ -218,7 +232,8 @@ export default {
           }
         }
         this.$emit('created')
-        if (this.redirect) this.$router.push({ path: `/streams/${res.data.streamCreate}` })
+        if (this.redirect)
+          this.$router.push({ path: `/streams/${res.data.streamCreate}` })
       } catch (e) {
         this.$eventHub.$emit('notification', {
           text: e.message

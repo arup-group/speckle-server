@@ -7,7 +7,7 @@
           Great! All invites were sent.
         </v-alert>
         <v-alert v-show="errors.length !== 0" prominent dismissible type="error">
-          <p>Invite send failed for adresses:</p>
+          <p>Invite send failed for addresses:</p>
           <ul>
             <li v-for="error in errors" :key="error.email">
               {{ error.email }}: {{ error.reason }}
@@ -62,7 +62,7 @@
               </v-chip>
             </template>
           </v-combobox>
-          <p v-if="!selectedStream">Optionaly invite users to stream.</p>
+          <p v-if="!selectedStream">Optionally invite users to stream.</p>
           <stream-search-bar
             v-if="!selectedStream"
             :gotostreamonclick="false"
@@ -70,11 +70,14 @@
             @select="setStream"
           />
           <v-alert v-else text dense type="info" dismissible @input="dismiss">
-            They will be invited to be collaborators on the "{{ selectedStream.name }}" stream.
+            They will be invited to be collaborators on the "{{ selectedStream.name }}"
+            stream.
           </v-alert>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn block :disabled="!submitable" color="primary" type="submit">Invite</v-btn>
+            <v-btn block :disabled="!submitable" color="primary" type="submit">
+              Invite
+            </v-btn>
           </v-card-actions>
         </v-form>
       </v-card-text>
@@ -89,6 +92,7 @@
 import gql from 'graphql-tag'
 import DOMPurify from 'dompurify'
 import { isEmailValid } from '@/plugins/authHelpers'
+import { MainServerInfoQuery } from '@/graphql/server'
 
 export default {
   name: 'AdminInvites',
@@ -116,7 +120,7 @@ export default {
             return true
           },
           (v) => {
-            let pure = DOMPurify.sanitize(v)
+            const pure = DOMPurify.sanitize(v)
             if (pure !== v) return 'No crazy hacks please.'
             else return true
           }
@@ -142,14 +146,7 @@ export default {
       prefetch: true
     },
     serverInfo: {
-      query: gql`
-        query {
-          serverInfo {
-            name
-            canonicalUrl
-          }
-        }
-      `
+      query: MainServerInfoQuery
     }
   },
   methods: {
@@ -169,9 +166,9 @@ export default {
     validateAndCreateChips() {
       this.inputErrors = []
       if (!this.emails || this.emails === '') return
-      let splitEmails = this.emails.split(/[ ,]+/)
-      for (let email of splitEmails) {
-        let valid = isEmailValid(email) && this.chips.indexOf(email) === -1
+      const splitEmails = this.emails.split(/[ ,]+/)
+      for (const email of splitEmails) {
+        const valid = isEmailValid(email) && this.chips.indexOf(email) === -1
         if (valid) {
           this.chips.push(email)
         } else {
@@ -181,7 +178,7 @@ export default {
       this.emails = ''
     },
     createInviteMessage() {
-      let message =
+      const message =
         `You have been invited to a Speckle server: ${this.serverInfo.name} ` +
         `by ${this.user.name}. Visit ${this.serverInfo.canonicalUrl} to register.`
       return this.invitation || message
@@ -190,10 +187,14 @@ export default {
       this.submitting = true
       this.errors = []
       this.sentToEmails = []
-      for (let chip of this.chips) {
+      for (const chip of this.chips) {
         if (!chip || chip.length === 0) continue
         try {
-          await this.sendInvite(chip, this.createInviteMessage(), this.selectedStream?.id)
+          await this.sendInvite(
+            chip,
+            this.createInviteMessage(),
+            this.selectedStream?.id
+          )
           this.sentToEmails.push(chip)
         } catch (err) {
           this.errors.push({ email: chip, reason: err.graphQLErrors[0].message })
@@ -208,13 +209,15 @@ export default {
       }
     },
     async sendInvite(email, message, streamId) {
-      let input = {
-        email: email,
-        message: message
+      const input = {
+        email,
+        message
       }
 
-      let query = gql`
-        mutation($input: ${streamId ? 'StreamInviteCreateInput!' : 'ServerInviteCreateInput!'}) {
+      const query = gql`
+        mutation($input: ${
+          streamId ? 'StreamInviteCreateInput!' : 'ServerInviteCreateInput!'
+        }) {
           ${streamId ? 'streamInviteCreate' : 'serverInviteCreate'}(input: $input)
         }
       `
@@ -225,11 +228,10 @@ export default {
       await this.$apollo.mutate({
         mutation: query,
         variables: {
-          input: input
+          input
         }
       })
 
-      this.$matomo && this.$matomo.trackEvent('invite', 'server')
       this.$mixpanel.track('Invite Send', {
         type: 'action',
         source: streamId ? 'stream' : 'server'

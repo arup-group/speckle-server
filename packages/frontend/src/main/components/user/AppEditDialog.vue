@@ -1,7 +1,12 @@
 <template>
   <v-card>
     <v-card-title class="primary white--text">Edit App</v-card-title>
-    <v-form v-show="!appUpdateResult" ref="form" v-model="valid" @submit.prevent="editApp">
+    <v-form
+      v-show="!appUpdateResult"
+      ref="form"
+      v-model="valid"
+      @submit.prevent="editApp"
+    >
       <v-card-text>
         <v-text-field
           v-model="name"
@@ -53,8 +58,8 @@
         ></v-textarea>
         <v-alert type="info" class="mt-5">
           <b>Note:</b>
-          After editing an app, all users will need to authorise it again (existing tokens will be
-          invalidated).
+          After editing an app, all users will need to authorise it again (existing
+          tokens will be invalidated).
         </v-alert>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -69,7 +74,9 @@
         <p>
           <b>Note:</b>
           To authenticate users inside your app, direct them to
-          <code style="word-break: break-all">{{ rootUrl }}/authn/verify/{appId}/{challenge}</code>
+          <code style="word-break: break-all">
+            {{ rootUrl }}/authn/verify/{appId}/{challenge}
+          </code>
           , where
           <code>challenge</code>
           is an OAuth2 plain code challenge.
@@ -81,6 +88,7 @@
 </template>
 <script>
 import gql from 'graphql-tag'
+import { FullServerInfoQuery } from '@/graphql/server'
 
 export default {
   props: {
@@ -120,21 +128,12 @@ export default {
   apollo: {
     scopes: {
       prefetch: true,
-      query: gql`
-        query {
-          serverInfo {
-            scopes {
-              name
-              description
-            }
-          }
-        }
-      `,
+      query: FullServerInfoQuery,
       update: (data) => data.serverInfo.scopes
     },
     app: {
       query: gql`
-        query($id: String!) {
+        query ($id: String!) {
           app(id: $id) {
             id
             name
@@ -170,7 +169,7 @@ export default {
         (v) => {
           try {
             // eslint-disable-next-line no-unused-vars
-            let x = new URL(v)
+            const x = new URL(v)
             return true
           } catch {
             return 'Url must be valid'
@@ -188,8 +187,8 @@ export default {
     },
     parsedScopes() {
       if (!this.scopes) return []
-      let arr = []
-      for (let s of this.scopes) {
+      const arr = []
+      for (const s of this.scopes) {
         arr.push({ text: s.name, value: s.name })
         arr.push({ header: s.description })
         arr.push({ divider: true })
@@ -199,7 +198,7 @@ export default {
   },
   watch: {
     appDialog(val) {
-      if (val == 0) this.clearAndClose() //if dialog was closed, on opening always show the initial editing form
+      if (val === 0) this.clearAndClose() //if dialog was closed, on opening always show the initial editing form
     }
   },
   methods: {
@@ -222,11 +221,10 @@ export default {
     async editApp() {
       if (!this.$refs.form.validate()) return
       this.$mixpanel.track('App Action', { type: 'action', name: 'update' })
-      this.$matomo && this.$matomo.trackPageView('user/app/update')
       try {
-        let res = await this.$apollo.mutate({
+        const res = await this.$apollo.mutate({
           mutation: gql`
-            mutation($app: AppUpdateInput!) {
+            mutation ($app: AppUpdateInput!) {
               appUpdate(app: $app)
             }
           `,

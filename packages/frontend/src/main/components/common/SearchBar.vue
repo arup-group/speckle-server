@@ -32,7 +32,8 @@
             <v-list-item-content>
               <v-list-item-title>
                 <div class="text-subtitle-1 text-truncate">
-                  Nothing found. Please search again (your query has to be longer than 3 charact)
+                  Nothing found. Please search again (your query has to be longer than 3
+                  charact)
                 </div>
               </v-list-item-title>
             </v-list-item-content>
@@ -121,7 +122,7 @@ export default {
   },
   watch: {
     selectedSearchResult(val) {
-      let myStream = this.streams.items.find((s) => s.id === val.id)
+      const myStream = this.streams.items.find((s) => s.id === val.id)
       this.$emit('select', myStream)
 
       this.streams.items = []

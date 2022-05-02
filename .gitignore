@@ -2,6 +2,7 @@
 packages/server/.env
 packages/frontend/dist
 packages/viewer/dist
+packages/objectloader/dist
 *.env
 *.env.test
 *.crt
@@ -12,6 +13,7 @@ test-queries
 
 **/.DS_Store
 .nvmrc
+.npmrc
 
 packages/viewer/example/*.js
 packages/viewer/example/*.js.map
@@ -22,3 +24,9 @@ packages/server/reports*
 
 **/venv/**
 **/start/
+
+# Profiler output
+events.json
+
+# Optional eslint cache
+.eslintcache

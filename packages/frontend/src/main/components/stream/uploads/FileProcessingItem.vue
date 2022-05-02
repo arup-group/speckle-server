@@ -1,7 +1,12 @@
 <template>
   <v-card class="my-4 pa-1 elevation-0" :loading="$apollo.loading">
     <div v-if="!$apollo.loading && file" class="d-flex align-center">
-      <v-btn v-tooltip="`Download the original file`" icon small @click="downloadOriginalFile()">
+      <v-btn
+        v-tooltip="`Download the original file`"
+        icon
+        small
+        @click="downloadOriginalFile()"
+      >
         <v-icon small>mdi-download</v-icon>
       </v-btn>
 
@@ -12,13 +17,21 @@
       <template v-if="file.convertedStatus === 0">
         <v-btn text small disabled>
           <span class="mr-2">Queued</span>
-          <v-progress-circular indeterminate :size="20" :width="2"></v-progress-circular>
+          <v-progress-circular
+            indeterminate
+            :size="20"
+            :width="2"
+          ></v-progress-circular>
         </v-btn>
       </template>
       <template v-if="file.convertedStatus === 1">
         <v-btn text small>
           <span class="mr-2">Converting</span>
-          <v-progress-circular indeterminate :size="20" :width="2"></v-progress-circular>
+          <v-progress-circular
+            indeterminate
+            :size="20"
+            :width="2"
+          ></v-progress-circular>
         </v-btn>
       </template>
       <template v-if="file.convertedStatus === 2">
@@ -104,6 +117,24 @@ export default {
   mounted() {
     this.$apollo.queries.file.startPolling(1000)
   },
-  methods: {}
+  methods: {
+    async downloadOriginalFile() {
+      const res = await fetch(`/api/file/${this.fileId}`, {
+        headers: {
+          Authorization: localStorage.getItem('AuthToken')
+        }
+      })
+      const blob = await res.blob()
+      const file = window.URL.createObjectURL(blob)
+
+      const a = document.createElement('a')
+      document.body.appendChild(a)
+      a.style = 'display: none'
+      a.href = file
+      a.download = this.file.fileName
+      a.click()
+      window.URL.revokeObjectURL(file)
+    }
+  }
 }
 </script>

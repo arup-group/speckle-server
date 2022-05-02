@@ -8,7 +8,9 @@
           icon
           @click.stop="toggleColors()"
         >
-          <v-icon small :class="`${colorBy ? 'primary--text' : ''}`">mdi-palette</v-icon>
+          <v-icon small :class="`${colorBy ? 'primary--text' : ''}`">
+            mdi-palette
+          </v-icon>
         </v-btn>
       </v-list-item-action>
     </portal>
@@ -20,7 +22,9 @@
     >
       <v-col
         cols="1"
-        :class="`text-center text-truncate px-1 ${$vuetify.theme.dark ? 'grey--text' : ''}`"
+        :class="`text-center text-truncate px-1 ${
+          $vuetify.theme.dark ? 'grey--text' : ''
+        }`"
         style="line-height: 24px; font-size: 9px"
       >
         {{ type.count }}
@@ -35,13 +39,17 @@
       </v-col>
       <v-col
         cols="4"
-        :class="`caption text-truncate text-right px-1 ${$vuetify.theme.dark ? 'grey--text' : ''}`"
+        :class="`caption text-truncate text-right px-1 ${
+          $vuetify.theme.dark ? 'grey--text' : ''
+        }`"
         style="line-height: 24px"
       >
         <div
           v-if="colorBy"
           class="d-inline-block rounded mr-3 mt-1 elevation-3"
-          :style="`width: 8px; height: 8px; background:${$store.state.colorLegend[type.fullName]};`"
+          :style="`width: 8px; height: 8px; background:${
+            $store.state.colorLegend[type.fullName]
+          };`"
         ></div>
         <v-btn
           v-tooltip="'Toggle visibility'"
@@ -122,7 +130,7 @@ export default {
     mashColorLegend(colorLegend) {
       // just adds to our colors
       if (!colorLegend) return
-      let keys = Object.keys(colorLegend)
+      const keys = Object.keys(colorLegend)
       for (const key of keys) {
         if (!this.legend[key]) this.$set(this.legend, key, colorLegend[key])
       }
@@ -147,9 +155,9 @@ export default {
     },
     generateTypeMap(filter) {
       if (filter.data.type !== 'string') return []
-      let typeMap = []
-      for (let key of Object.keys(filter.data.uniqueValues)) {
-        let shortName = key.split('.').reverse()[0]
+      const typeMap = []
+      for (const key of Object.keys(filter.data.uniqueValues)) {
+        const shortName = key.split('.').reverse()[0]
         typeMap.push({
           name: shortName,
           fullName: key,

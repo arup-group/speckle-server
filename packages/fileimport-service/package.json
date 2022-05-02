@@ -1,6 +1,7 @@
 {
   "name": "@speckle/fileimport-service",
-  "version": "2.0.0",
+  "private": true,
+  "version": "2.3.17-alpha.2889",
   "description": "Parse and import files of various types into a stream",
   "author": "Dimitrie Stefanescu <didimitrie@gmail.com>",
   "homepage": "https://github.com/specklesystems/speckle-server#readme",
@@ -10,8 +11,11 @@
     "type": "git",
     "url": "git+https://github.com/specklesystems/speckle-server.git"
   },
+  "engines": {
+    "node": "^16.0.0"
+  },
   "scripts": {
-    "dev": "cross-env S3_BUCKET=speckle-server POSTGRES_URL=postgres://speckle:speckle@localhost/speckle NODE_ENV=development nodemon ./src/daemon.js",
+    "dev": "cross-env S3_BUCKET=speckle-server POSTGRES_URL=postgres://speckle:speckle@localhost/speckle NODE_ENV=development SPECKLE_SERVER_URL=localhost:3000 nodemon ./src/daemon.js",
     "lint": "eslint . --ext .js,.ts"
   },
   "bugs": {
@@ -24,13 +28,14 @@
     "knex": "^1.0.3",
     "node-fetch": "^2.6.5",
     "pg": "^8.7.1",
+    "valid-filename": "^3.1.0",
     "web-ifc": "^0.0.33"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
-    "nodemon": "^2.0.13",
     "eslint": "^8.11.0",
     "eslint-config-prettier": "^8.5.0",
+    "nodemon": "^2.0.13",
     "prettier": "^2.5.1"
   }
 }

@@ -1,6 +1,6 @@
 <template>
   <portal to="nav">
-    <div v-if="!loggedIn" class="px-4 my-2">
+    <div v-if="!$loggedIn()" class="px-4 my-2">
       <v-btn small block color="primary" to="/authn/login">Sign In</v-btn>
     </div>
     <v-list
@@ -20,11 +20,15 @@
           <v-list-item-title class="font-weight-bold">Streams</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <!-- <v-divider></v-divider> -->
-      <!-- <v-subheader>DESC</v-subheader> -->
       <div class="caption px-3 my-4">
-        <perfect-scrollbar style="max-height: 100px" :options="{ suppressScrollX: true }">
-          <span v-html="parsedDescription"></span>
+        <perfect-scrollbar
+          style="max-height: 100px"
+          :options="{ suppressScrollX: true }"
+        >
+          <span v-if="stream && stream.description">
+            {{ stream.description }}
+          </span>
+          <span v-else class="font-italic">No description provided</span>
         </perfect-scrollbar>
         <router-link
           v-if="stream.role === 'stream:owner'"
@@ -60,7 +64,9 @@
           @click="newBranchDialog = true"
         >
           <v-list-item-icon>
-            <v-icon small style="padding-top: 10px" class="primary--text">mdi-plus-box</v-icon>
+            <v-icon small style="padding-top: 10px" class="primary--text">
+              mdi-plus-box
+            </v-icon>
           </v-list-item-icon>
           <v-list-item-content>
             <v-list-item-title>New Branch</v-list-item-title>
@@ -140,9 +146,19 @@
           </template>
         </div>
 
-        <v-skeleton-loader v-else type="list-item-two-line"></v-skeleton-loader>
-        <v-divider class="mb-2"></v-divider>
+        <v-skeleton-loader v-else type="list-item-two-line" />
+        <v-divider class="mb-2" />
       </v-list-group>
+
+      <!-- Comments  -->
+      <v-list-item link exact :to="`/streams/${stream.id}/comments`">
+        <v-list-item-icon>
+          <v-icon small>mdi-comment-outline</v-icon>
+        </v-list-item-icon>
+        <v-list-item-content>
+          <v-list-item-title>Comments</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
 
       <!-- Other menu items go here -->
 
@@ -161,7 +177,7 @@
           <v-icon small>mdi-arrow-up</v-icon>
         </v-list-item-icon>
         <v-list-item-content>
-          <v-list-item-title>Import IFC</v-list-item-title>
+          <v-list-item-title>Import File</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
 
@@ -192,7 +208,11 @@
         </v-list-item-content>
       </v-list-item>
     </v-list>
-    <v-dialog v-model="newBranchDialog" max-width="500" :fullscreen="$vuetify.breakpoint.xsOnly">
+    <v-dialog
+      v-model="newBranchDialog"
+      max-width="500"
+      :fullscreen="$vuetify.breakpoint.xsOnly"
+    >
       <new-branch
         @close="newBranchDialog = false"
         @refetch-branches="$apollo.queries.branchQuery.refetch()"
@@ -206,7 +226,12 @@ export default {
   components: {
     NewBranch: () => import('@/main/dialogs/NewBranch')
   },
-  props: ['stream'],
+  props: {
+    stream: {
+      type: Object,
+      default: () => null
+    }
+  },
   apollo: {
     branchQuery: {
       query: gql`
@@ -250,11 +275,11 @@ export default {
   computed: {
     groupedBranches() {
       if (!this.branchQuery) return
-      let branches = this.branchQuery.branches.items
-      let items = []
-      for (let b of branches) {
+      const branches = this.branchQuery.branches.items
+      const items = []
+      for (const b of branches) {
         if (b.name === 'globals') continue
-        let parts = b.name.split('/')
+        const parts = b.name.split('/')
         if (parts.length === 1) {
           items.push({ ...b, displayName: b.name, type: 'item', children: [] })
         } else {
@@ -271,7 +296,7 @@ export default {
           if (this.$route.path.includes(b.name)) existing.expand = true
         }
       }
-      let sorted = items.sort((a, b) => {
+      const sorted = items.sort((a, b) => {
         const nameA = a.name.toLowerCase()
         const nameB = b.name.toLowerCase()
         if (nameA < nameB) return -1
@@ -290,22 +315,14 @@ export default {
       if (!this.branchQuery) return
       return [
         this.branchQuery.branches.items.find((b) => b.name === 'main'),
-        ...this.branchQuery.branches.items.filter((b) => b.name !== 'main' && b.name !== 'globals')
+        ...this.branchQuery.branches.items.filter(
+          (b) => b.name !== 'main' && b.name !== 'globals'
+        )
       ]
     },
     branchesTotalCount() {
       if (!this.branchQuery) return 0
       return this.branchQuery.branches.items.filter((b) => b.name !== 'globals').length
-    },
-    parsedDescription() {
-      if (!this.stream || !this.stream.description) return 'No description provided.'
-      return this.stream.description.replace(
-        /\[(.+?)\]\((https?:\/\/[a-zA-Z0-9/.(]+?)\)/g,
-        '<a href="$2" class="text-decoration-none" target="_blank">$1</a>'
-      )
-    },
-    loggedIn() {
-      return localStorage.getItem('uuid') !== null
     }
   },
   watch: {

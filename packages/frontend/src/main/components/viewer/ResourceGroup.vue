@@ -24,7 +24,7 @@
             "
           ></object-info-resource>
         </div>
-        <div class="px-2 mb-2">
+        <div v-show="$loggedIn()" class="px-2 mb-2">
           <v-btn
             v-tooltip="'Overlay another commit or object'"
             block
@@ -35,22 +35,13 @@
             add
           </v-btn>
         </div>
-        <!-- <resource
-          v-for="(resource, index) in resources"
-          :key="index"
-          :resource="resource"
-          :is-multiple="resources.length > 1"
-          :expand-initial="resources.length === 1 || true"
-          @remove="
-            (e) => {
-              $emit('remove', e)
-              removedResources.push(e)
-            }
-          "
-        /> -->
         <div v-show="removedResources.length !== 0" class="px-3 caption pb-5">
           Removed resources:
-          <span v-for="(res, index) in removedResources" :key="index" v-tooltip="'Click to re-add'">
+          <span
+            v-for="(res, index) in removedResources"
+            :key="index"
+            v-tooltip="'Click to re-add'"
+          >
             <a
               @click="
                 $emit('add-resource', res.id)
@@ -62,10 +53,16 @@
             >
               <span v-if="res.type === 'object'">Object</span>
               <!-- eslint-disable-next-line prettier/prettier -->
-              <span v-else><v-icon x-small>mdi-source-commit</v-icon>{{ res.id }}</span>
+              <span v-else>
+                <v-icon x-small>mdi-source-commit</v-icon>
+                {{ res.id }}
+              </span>
             </a>
             <!-- eslint-disable-next-line prettier/prettier -->
-            <span v-if="removedResources.length > 1 && index < removedResources.length - 1">,&nbsp;
+            <span
+              v-if="removedResources.length > 1 && index < removedResources.length - 1"
+            >
+              ,&nbsp;
             </span>
           </span>
         </div>

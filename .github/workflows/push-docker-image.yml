@@ -1,4 +1,3 @@
-
 name: AWS Deploy
 
 on:
@@ -32,10 +31,10 @@ jobs:
           mime-type: application/octet-stream
 
   deploy:
-    needs: [ buildDockerImage ]
+    needs: [buildDockerImage]
     name: Deploy to ${{ matrix.environment }} for ${{ matrix.package }}
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: ${{ matrix.environment }}
       url: ${{ matrix.url }}
     strategy:
@@ -70,7 +69,7 @@ jobs:
           - package: 'webhook-service'
             cxName: 'spec-cx-webhook'
             serviceName: 'specklev2-webhook-service'
-    
+
     steps:
       # Download the Docker image tar
       - name: Download Build Artifacts
@@ -88,7 +87,7 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-          
+
       - name: Download task definition
         run: |
           aws ecs describe-task-definition --task-definition specklev2-${{ matrix.package }}-${{ matrix.environment }} --query taskDefinition > task-definition.json
@@ -106,7 +105,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -114,8 +113,7 @@ jobs:
           task-definition: task-definition.json
           container-name: specklev2-${{ matrix.package }}-${{ matrix.environment }}
           image: ${{ steps.build-image.outputs.image }}
-          
-          
+
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:

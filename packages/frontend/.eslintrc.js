@@ -18,10 +18,16 @@ const config = {
   parserOptions: {
     sourceType: 'module'
   },
-  plugins: ['vue'],
-  rules: {
-    'no-console': 1
-  }
+  overrides: [
+    {
+      files: './*.{js, ts}',
+      env: {
+        node: true,
+        commonjs: true
+      }
+    }
+  ],
+  plugins: ['vue']
 }
 
 module.exports = config

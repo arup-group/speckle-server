@@ -14,7 +14,9 @@
       <div class="text-truncate flex-shrink-0 mx-1 d-inline-flex">
         /
         <div class="text-decoration-none space-grotesk">
-          <v-icon small class="mx-1 primary--text" style="font-size: 13px">mdi-cube-outline</v-icon>
+          <v-icon small class="mx-1 primary--text" style="font-size: 13px">
+            mdi-cube-outline
+          </v-icon>
           <b class="d-none d-sm-inline">Object</b>
           <code class="ml-2">{{ stream.object.id }}</code>
         </div>
@@ -42,15 +44,20 @@
 </template>
 <script>
 export default {
-  props: ['stream'],
+  props: {
+    stream: {
+      type: Object,
+      default: () => null
+    }
+  },
   data() {
     return { showInfo: false }
   },
   computed: {
     commitDate() {
       if (!this.stream.commit) return null
-      let date = new Date(this.stream.commit.createdAt)
-      let options = { year: 'numeric', month: 'long', day: 'numeric' }
+      const date = new Date(this.stream.commit.createdAt)
+      const options = { year: 'numeric', month: 'long', day: 'numeric' }
 
       return date.toLocaleString(undefined, options)
     }

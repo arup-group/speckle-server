@@ -31,6 +31,8 @@
             {{ stream.commits.totalCount }}
             <v-icon style="font-size: 11px" class="ml-1">mdi-source-branch</v-icon>
             {{ stream.branches.totalCount }}
+            <v-icon x-small class="">mdi-heart-multiple</v-icon>
+            {{ stream.favoritesCount }}
           </span>
         </div>
         <div class="d-none d-sm-inline-block">
@@ -39,26 +41,31 @@
       </div>
     </portal>
     <portal to="actions">
+      <span v-if="user" style="position: relative; right: -5px">
+        <stream-favorite-btn :stream="stream" :user="user" />
+      </span>
       <v-btn
         v-if="stream"
         v-tooltip="'Share this stream'"
         elevation="0"
         text
         rounded
+        class="mr-1 px-0"
         @click="shareStream = true"
-        class="mr-1"
       >
-        <v-icon v-if="!stream.isPublic" x-small class="mr-1 grey--text">mdi-lock</v-icon>
+        <v-icon v-if="!stream.isPublic" x-small class="mr-1 grey--text">
+          mdi-lock
+        </v-icon>
         <v-icon v-else x-small class="mr-1 grey--text">mdi-lock-open</v-icon>
         <v-icon small class="primary--text">mdi-share-variant</v-icon>
       </v-btn>
     </portal>
-    <v-dialog v-model="shareStream" max-width="600" :fullscreen="$vuetify.breakpoint.xsOnly">
-      <share-stream-dialog
-        :stream="stream"
-        @close="shareStream = false"
-        @visibility-changexxxx="$apollo.queries.stream.refetch()"
-      />
+    <v-dialog
+      v-model="shareStream"
+      max-width="600"
+      :fullscreen="$vuetify.breakpoint.xsOnly"
+    >
+      <share-stream-dialog :stream="stream" @close="shareStream = false" />
     </v-dialog>
   </div>
 </template>
@@ -66,9 +73,14 @@
 export default {
   components: {
     CollaboratorsDisplay: () => import('@/main/components/stream/CollaboratorsDisplay'),
-    ShareStreamDialog: () => import('@/main/dialogs/ShareStream')
+    ShareStreamDialog: () => import('@/main/dialogs/ShareStreamDialog.vue'),
+    StreamFavoriteBtn: () =>
+      import('@/main/components/stream/favorites/StreamFavoriteBtn.vue')
   },
-  props: ['stream'],
+  props: {
+    stream: { type: Object, required: true },
+    user: { type: Object, default: () => null }
+  },
   data() {
     return { shareStream: false }
   }

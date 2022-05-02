@@ -84,7 +84,8 @@
             <b>{{ manipulatedUser.name }}</b>
             's account from the server.
             <br />
-            Streams, where {{ manipulatedUser.name }} is the only owner, will also be deleted.
+            Streams, where {{ manipulatedUser.name }} is the only owner, will also be
+            deleted.
           </v-alert>
         </v-card-text>
         <v-card-actions>
@@ -99,7 +100,7 @@
 
 <script>
 import gql from 'graphql-tag'
-import debounce from 'lodash.debounce'
+import debounce from 'lodash/debounce'
 
 export default {
   name: 'UserAdmin',
@@ -158,8 +159,8 @@ export default {
       return Math.ceil(this.users.totalCount / this.limit)
     },
     availableRoles() {
-      let roleItems = []
-      for (let role in this.roleLookupTable) {
+      const roleItems = []
+      for (const role in this.roleLookupTable) {
         roleItems.push({ text: this.roleLookupTable[role], value: role })
       }
       return roleItems
@@ -173,7 +174,7 @@ export default {
     async deleteUser(user) {
       await this.$apollo.mutate({
         mutation: gql`
-          mutation($userEmail: String!) {
+          mutation ($userEmail: String!) {
             adminDeleteUser(userConfirmation: { email: $userEmail })
           }
         `,
@@ -215,7 +216,7 @@ export default {
     async updateUserRole(userId, newRole) {
       await this.$apollo.mutate({
         mutation: gql`
-          mutation($userId: String!, $newRole: String!) {
+          mutation ($userId: String!, $newRole: String!) {
             userRoleChange(userRoleInput: { id: $userId, role: $newRole })
           }
         `,

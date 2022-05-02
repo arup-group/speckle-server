@@ -14,24 +14,24 @@ jobs:
     runs-on: 'ubuntu-latest'
 
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-    - name: Log in to registry
-      uses: docker/login-action@v1
-      with:
-        registry: https://arupspecklev2prodacr.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_1a4296e21ed54d00ad50079f39c4ae7c }}
+      - name: Log in to registry
+        uses: docker/login-action@v1
+        with:
+          registry: https://arupspecklev2prodacr.azurecr.io/
+          username: ${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}
+          password: ${{ secrets.AzureAppService_ContainerPassword_1a4296e21ed54d00ad50079f39c4ae7c }}
 
-    - name: Build and push container image to registry
-      uses: docker/build-push-action@v2
-      with:
-        push: true
-        tags: arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}/arupspecklev2prodacr/webhook-service:${{ github.sha }}
-        file: ./packages/webhook-service/Dockerfile
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}/arupspecklev2prodacr/webhook-service:${{ github.sha }}
+          file: ./packages/webhook-service/Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
@@ -41,11 +41,11 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: 'speckle-v2-webhook-prod-web'
-        slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_54dd1b5256ec4f1d92dbbba7abe745ec }}
-        images: 'arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}/arupspecklev2prodacr/webhook-service:${{ github.sha }}'
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'speckle-v2-webhook-prod-web'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_54dd1b5256ec4f1d92dbbba7abe745ec }}
+          images: 'arupspecklev2prodacr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_592a6616f6cc45a5a547a318c5808ddf }}/arupspecklev2prodacr/webhook-service:${{ github.sha }}'

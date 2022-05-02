@@ -42,7 +42,10 @@
             {{ commit.branchName }}
           </v-chip>
         </span>
-        <source-app-avatar v-if="showSourceApp" :application-name="commit.sourceApplication" />
+        <source-app-avatar
+          v-if="showSourceApp"
+          :application-name="commit.sourceApplication"
+        />
       </div>
     </div>
   </div>
@@ -54,7 +57,8 @@ export default {
   components: {
     UserAvatar: () => import('@/main/components/common/UserAvatar'),
     SourceAppAvatar: () => import('@/main/components/common/SourceAppAvatar'),
-    CommitReceivedReceipts: () => import('@/main/components/common/CommitReceivedReceipts')
+    CommitReceivedReceipts: () =>
+      import('@/main/components/common/CommitReceivedReceipts')
   },
   props: {
     commit: {
@@ -138,8 +142,8 @@ export default {
     },
     commitDate() {
       if (!this.commit) return null
-      let date = new Date(this.commit.createdAt)
-      let options = { year: 'numeric', month: 'long', day: 'numeric' }
+      const date = new Date(this.commit.createdAt)
+      const options = { year: 'numeric', month: 'long', day: 'numeric' }
 
       return date.toLocaleString(undefined, options)
     },
@@ -150,8 +154,9 @@ export default {
       }/branches/${encodeURIComponent(this.commit.branchName)}`
     },
     receivedUsersUnique() {
-      if (!(this.activity && this.activity.items && this.activity.items.length > 0)) return []
-      let set = new Set()
+      if (!(this.activity && this.activity.items && this.activity.items.length > 0))
+        return []
+      const set = new Set()
       this.activity.items.forEach((item) => set.add(item.userId))
       return Array.from(set)
     }

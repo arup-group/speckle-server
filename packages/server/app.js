@@ -3,42 +3,98 @@
 
 require('./bootstrap')
 const http = require('http')
-const url = require('url')
 const express = require('express')
+// `express-async-errors` patches express to catch errors in async handlers. no variable needed
+require('express-async-errors')
 const compression = require('compression')
 const appRoot = require('app-root-path')
 const logger = require('morgan-debug')
 const bodyParser = require('body-parser')
-const path = require('path')
 const debug = require('debug')
 const { createTerminus } = require('@godaddy/terminus')
 
 const Sentry = require('@sentry/node')
-const Tracing = require('@sentry/tracing')
 const Logging = require(`${appRoot}/logging`)
-const { startup: MatStartup } = require(`${appRoot}/logging/matomoHelper`)
+const { errorLoggingMiddleware } = require(`${appRoot}/logging/errorLogging`)
 const prometheusClient = require('prom-client')
 
 const { ApolloServer, ForbiddenError } = require('apollo-server-express')
 
-const { contextApiTokenHelper } = require('./modules/shared')
+const { buildContext } = require('./modules/shared')
 const knex = require('./db/knex')
+const { buildErrorFormatter } = require('@/modules/core/graph/setup')
+const { isDevEnv, isTestEnv } = require('@/modules/core/helpers/envHelper')
 
 let graphqlServer
 
 /**
+ * Create Apollo Server instance
+ * @param {Partial<import('apollo-server-express').ApolloServerExpressConfig>} optionOverrides Optionally override ctor options
+ * @returns {import('apollo-server-express').ApolloServer}
+ */
+exports.buildApolloServer = (optionOverrides) => {
+  const debug = optionOverrides?.debug || isDevEnv() || isTestEnv()
+  const { graph } = require('./modules')
+
+  // (Re-)Initialise prometheus metrics
+  prometheusClient.register.clear()
+  prometheusClient.collectDefaultMetrics()
+
+  // Init metrics
+  const metricConnectCounter = new prometheusClient.Counter({
+    name: 'speckle_server_apollo_connect',
+    help: 'Number of connects'
+  })
+  const metricConnectedClients = new prometheusClient.Gauge({
+    name: 'speckle_server_apollo_clients',
+    help: 'Number of currently connected clients'
+  })
+
+  return new ApolloServer({
+    ...graph(),
+    context: buildContext,
+    subscriptions: {
+      onConnect: (connectionParams) => {
+        metricConnectCounter.inc()
+        metricConnectedClients.inc()
+        try {
+          if (
+            connectionParams.Authorization ||
+            connectionParams.authorization ||
+            connectionParams.headers.Authorization
+          ) {
+            const header =
+              connectionParams.Authorization ||
+              connectionParams.authorization ||
+              connectionParams.headers.Authorization
+            const token = header.split(' ')[1]
+            return { token }
+          }
+        } catch (e) {
+          throw new ForbiddenError('You need a token to subscribe')
+        }
+      },
+      onDisconnect: () => {
+        metricConnectedClients.dec()
+      }
+    },
+    plugins: [require('@/logging/apolloPlugin')],
+    tracing: debug,
+    introspection: true,
+    playground: true,
+    formatError: buildErrorFormatter(debug),
+    debug,
+    ...optionOverrides
+  })
+}
+
+/**
  * Initialises the express application together with the graphql server middleware.
- * @return {[type]} an express application and the graphql server
  */
 exports.init = async () => {
   const app = express()
 
   Logging(app)
-  MatStartup()
-
-  // Initialise prometheus metrics
-  prometheusClient.register.clear()
-  prometheusClient.collectDefaultMetrics()
 
   // Moves things along automatically on restart.
   // Should perhaps be done manually?
@@ -55,56 +111,14 @@ exports.init = async () => {
   app.use(bodyParser.json({ limit: '100mb' }))
   app.use(bodyParser.urlencoded({ limit: '100mb', extended: false }))
 
-  const { init, graph } = require('./modules')
+  const { init } = require('./modules')
 
   // Initialise default modules, including rest api handlers
   await init(app)
 
   // Initialise graphql server
-  const metricConnectCounter = new prometheusClient.Counter({
-    name: 'speckle_server_apollo_connect',
-    help: 'Number of connects'
-  })
-  const metricConnectedClients = new prometheusClient.Gauge({
-    name: 'speckle_server_apollo_clients',
-    help: 'Number of currently connected clients'
-  })
-  graphqlServer = new ApolloServer({
-    ...graph(),
-    context: contextApiTokenHelper,
-    subscriptions: {
-      onConnect: (connectionParams, webSocket, context) => {
-        metricConnectCounter.inc()
-        metricConnectedClients.inc()
-        try {
-          if (
-            connectionParams.Authorization ||
-            connectionParams.authorization ||
-            connectionParams.headers.Authorization
-          ) {
-            let header =
-              connectionParams.Authorization ||
-              connectionParams.authorization ||
-              connectionParams.headers.Authorization
-            let token = header.split(' ')[1]
-            return { token: token }
-          }
-        } catch (e) {
-          throw new ForbiddenError('You need a token to subscribe')
-        }
-      },
-      onDisconnect: (webSocket, context) => {
-        metricConnectedClients.dec()
-        // debug( `speckle:debug` )( 'ws on disconnect connect event' )
-      }
-    },
-    plugins: [require(`${appRoot}/logging/apolloPlugin`)],
-    tracing: process.env.NODE_ENV === 'development',
-    introspection: true,
-    playground: true
-  })
-
-  graphqlServer.applyMiddleware({ app: app })
+  graphqlServer = module.exports.buildApolloServer()
+  graphqlServer.applyMiddleware({ app })
 
   // Expose prometheus metrics
   app.get('/metrics', async (req, res) => {
@@ -119,6 +133,9 @@ exports.init = async () => {
   // Trust X-Forwarded-* headers (for https protocol detection)
   app.enable('trust proxy')
 
+  // Log errors
+  app.use(errorLoggingMiddleware)
+
   return { app, graphqlServer }
 }
 
@@ -131,8 +148,8 @@ exports.startHttp = async (app, customPortOverride) => {
   let bindAddress = process.env.BIND_ADDRESS || '127.0.0.1'
   let port = process.env.PORT || 3000
 
-  let frontendHost = process.env.FRONTEND_HOST || 'localhost'
-  let frontendPort = process.env.FRONTEND_PORT || 8081
+  const frontendHost = process.env.FRONTEND_HOST || 'localhost'
+  const frontendPort = process.env.FRONTEND_PORT || 8080
 
   // Handles frontend proxying:
   // Dev mode -> proxy form the local webpack server
@@ -155,14 +172,14 @@ exports.startHttp = async (app, customPortOverride) => {
     bindAddress = process.env.BIND_ADDRESS || '0.0.0.0'
   }
 
-  let server = http.createServer(app)
+  const server = http.createServer(app)
 
   if (customPortOverride || customPortOverride === 0) port = customPortOverride
   app.set('port', port)
 
   // Final apollo server setup
   graphqlServer.installSubscriptionHandlers(server)
-  graphqlServer.applyMiddleware({ app: app })
+  graphqlServer.applyMiddleware({ app })
 
   app.use(Sentry.Handlers.errorHandler())
 

@@ -15,8 +15,8 @@
             <v-row>
               <v-col cols="12" class="pb-0">
                 <p>
-                  To protect against accidental deletion, please enter the email address associated
-                  with this account:
+                  To protect against accidental deletion, please enter the email address
+                  associated with this account:
                 </p>
               </v-col>
             </v-row>
@@ -38,7 +38,9 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="cancel">Cancel</v-btn>
-          <v-btn color="error" :disabled="!valid" type="submit">Delete my account</v-btn>
+          <v-btn color="error" :disabled="!valid" type="submit">
+            Delete my account
+          </v-btn>
         </v-card-actions>
       </v-form>
     </v-card>
@@ -52,7 +54,7 @@ export default {
       email: null,
       dialog: false,
       isLoading: false,
-      emailRules: [(v) => v == this.correctEmail || 'Incorrect email'],
+      emailRules: [(v) => v === this.correctEmail || 'Incorrect email'],
       valid: true
     }
   },
@@ -84,7 +86,7 @@ export default {
       })
     },
     agree() {
-      let self = this
+      const self = this
       setTimeout(function () {
         if (self.$refs.form.validate()) {
           self.resolve({
