@@ -248,7 +248,8 @@ module.exports = {
     const userInfo = await Users().where({ id: code.userId }).select('email').first()
 
     return {
-      username: userInfo.email, // for sdp
+      userId: code.userId,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
@@ -311,7 +312,8 @@ module.exports = {
 
     // Finally return
     return {
-      username: userInfo.email, // for sdp
+      userId: refreshTokenDb.userId,
+      username: userInfo.email,
       token: appToken,
       refreshToken: bareToken.tokenId + bareToken.tokenString
     }
