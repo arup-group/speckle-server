@@ -19,7 +19,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build --build-arg SPECKLE_SERVER_VERSION=$IMAGE_TAG -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
+          docker build --build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
           docker save ${{ matrix.package }}:latest -o ${{ matrix.package }}.tar
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
