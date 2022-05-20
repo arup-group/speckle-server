@@ -163,7 +163,8 @@ const SpeckleConnectorApp = {
     ScopesConst.Streams.Write,
     ScopesConst.Profile.Read,
     ScopesConst.Profile.Email,
-    ScopesConst.Users.Read
+    ScopesConst.Users.Read,
+    ScopesConst.Users.Invite
   ]
 }
 
@@ -181,7 +182,8 @@ const SpeckleExcel = {
     ScopesConst.Streams.Write,
     ScopesConst.Profile.Read,
     ScopesConst.Profile.Email,
-    ScopesConst.Users.Read
+    ScopesConst.Users.Read,
+    ScopesConst.Users.Invite
   ]
 }
 
