@@ -1,10 +1,9 @@
 'use strict'
 
-const appRoot = require('app-root-path')
-const knex = require(`${appRoot}/db/knex`)
+const knex = require('@/db/knex')
 const crs = require('crypto-random-string')
-const { capture } = require(`${appRoot}/logging/posthogHelper`)
-const { produceMsg } = require(`${appRoot}/logging/kafkaHelper`)
+const { capture } = require('../../../logging/posthogHelper')
+const { produceMsg } = require('../../../logging/kafkaHelper')
 
 const WebhooksConfig = () => knex('webhooks_config')
 const WebhooksEvents = () => knex('webhooks_events')

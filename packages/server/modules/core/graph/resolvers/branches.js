@@ -1,12 +1,12 @@
 'use strict'
 
-const appRoot = require('app-root-path')
 const {
   ForbiddenError,
   UserInputError,
   ApolloError,
   withFilter
 } = require('apollo-server-express')
+const { appRoot } = require('@/bootstrap')
 const { authorizeResolver, pubsub } = require(`${appRoot}/modules/shared`)
 const _ = require('lodash')
 
