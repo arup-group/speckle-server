@@ -22,4 +22,4 @@ RUN yarn workspaces focus --production
 
 COPY packages/webhook-service/src .
 
-CMD ["yarn", "node", "main.js"]
+CMD ["yarn", "node", "www"]
