@@ -22,7 +22,7 @@ const store = new Vuex.Store({
     selectedComment: null,
     addingComment: false,
     preventCommentCollapse: false,
-    commentReactions: ['❤️', '✏️', '🔥', '📍', '😲'],
+    commentReactions: ['❤️', '👍', '👎', '✏️','❕', '❔', '✔️','❌'],
     emojis
   },
   mutations: {
