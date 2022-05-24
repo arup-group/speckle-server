@@ -1,7 +1,6 @@
 const debug = require('debug')
 const { Kafka, logLevel } = require('kafkajs')
-const appRoot = require('app-root-path')
-const knex = require(`${appRoot}/db/knex`)
+const knex = require('../db/knex')
 const ServerConfig = () => knex('server_config')
 
 const topic = process.env.KAFKA_TOPIC
