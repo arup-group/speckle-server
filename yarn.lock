@@ -217,7 +217,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:^7.1.0, @babel/core@npm:^7.11.0, @babel/core@npm:^7.12.3, @babel/core@npm:^7.17.5, @babel/core@npm:^7.17.9, @babel/core@npm:^7.7.2, @babel/core@npm:^7.7.5, @babel/core@npm:^7.8.0, @babel/core@npm:^7.9.0":
+"@babel/core@npm:^7.1.0, @babel/core@npm:^7.11.0, @babel/core@npm:^7.12.3, @babel/core@npm:^7.17.5, @babel/core@npm:^7.7.2, @babel/core@npm:^7.7.5, @babel/core@npm:^7.8.0, @babel/core@npm:^7.9.0":
   version: 7.17.10
   resolution: "@babel/core@npm:7.17.10"
   dependencies:
@@ -2907,7 +2907,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@speckle/objectloader@^2.4.2, @speckle/objectloader@workspace:^, @speckle/objectloader@workspace:packages/objectloader":
+"@speckle/objectloader@workspace:^, @speckle/objectloader@workspace:packages/objectloader":
   version: 0.0.0-use.local
   resolution: "@speckle/objectloader@workspace:packages/objectloader"
   dependencies:
@@ -2930,24 +2930,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@speckle/objectloader@npm:2.4.2":
-  version: 2.4.2
-  resolution: "@speckle/objectloader@npm:2.4.2"
-  dependencies:
-    "@babel/core": ^7.17.9
-    core-js: ^3.21.1
-    regenerator-runtime: ^0.13.7
-  checksum: a8dff45029ea2a59ad242831c49aaf33ff5b93ec546e29490a949f7e61bf51f4033d0d0430a78bf09950702ba9003f78b220a6dcc378830afcbfd3b0772c023e
-  languageName: node
-  linkType: hard
-
 "@speckle/preview-service@workspace:packages/preview-service":
   version: 0.0.0-use.local
   resolution: "@speckle/preview-service@workspace:packages/preview-service"
   dependencies:
     "@babel/core": ^7.17.5
-    "@speckle/objectloader": 2.4.2
-    "@speckle/viewer": 2.4.2
+    "@speckle/objectloader": "workspace:^"
+    "@speckle/viewer": "workspace:^"
     babel-loader: ^8.2.2
     clean-webpack-plugin: ^4.0.0-alpha.0
     cookie-parser: ~1.4.4
@@ -2959,6 +2948,7 @@ __metadata:
     file-type: ^16.3.0
     html-webpack-plugin: ^5.3.1
     http-errors: ~1.6.3
+    join-images: ^1.1.3
     knex: ^1.0.3
     morgan: ~1.9.1
     node-fetch: ^2.6.1
@@ -2968,6 +2958,7 @@ __metadata:
     prettier: ^2.5.1
     prom-client: ^14.0.1
     puppeteer: ^13.3.2
+    sharp: ^0.30.5
     webpack: ^5.69.1
     webpack-cli: ^4.6.0
     webpack-dev-server: ^4.6.0
@@ -3047,7 +3038,7 @@ __metadata:
     prom-client: ^14.0.1
     redis: ^3.1.1
     response-time: ^2.3.2
-    sanitize-html: ^2.4.0
+    sanitize-html: ^2.7.0
     sharp: ^0.29.3
     string-pixel-width: ^1.10.0
     subscriptions-transport-ws: 0.9.0
@@ -3075,22 +3066,6 @@ __metadata:
     vite: ^2.9.5
   languageName: unknown
   linkType: soft
-
-"@speckle/viewer@npm:2.4.2":
-  version: 2.4.2
-  resolution: "@speckle/viewer@npm:2.4.2"
-  dependencies:
-    "@speckle/objectloader": ^2.4.2
-    camera-controls: ^1.33.1
-    core-js: ^3.21.1
-    hold-event: ^0.1.0
-    lodash.debounce: ^4.0.8
-    rainbowvis.js: ^1.0.1
-    regenerator-runtime: ^0.13.7
-    three: ^0.136.0
-  checksum: 4f54f354c896f2ccc1aa69dbdc12a8480037de2ab406fff6571bf6291bbd575e0c6b5328417b9caf46fe82134daf7a923915b01f7935ef9d95c6ec76225232f6
-  languageName: node
-  linkType: hard
 
 "@speckle/viewer@workspace:^, @speckle/viewer@workspace:packages/viewer":
   version: 0.0.0-use.local
@@ -8000,7 +7975,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"color@npm:^4.0.1":
+"color@npm:^4.0.1, color@npm:^4.2.3":
   version: 4.2.3
   resolution: "color@npm:4.2.3"
   dependencies:
@@ -8467,14 +8442,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"core-js@npm:^2.4.0":
-  version: 2.6.12
-  resolution: "core-js@npm:2.6.12"
-  checksum: 44fa9934a85f8c78d61e0c8b7b22436330471ffe59ec5076fe7f324d6e8cf7f824b14b1c81ca73608b13bdb0fef035bd820989bf059767ad6fa13123bb8bd016
-  languageName: node
-  linkType: hard
-
-"core-js@npm:^3.0.1, core-js@npm:^3.21.1, core-js@npm:^3.6.5":
+"core-js@npm:3.22.4":
   version: 3.22.4
   resolution: "core-js@npm:3.22.4"
   checksum: 1d031597a61d11266343c7f9a788ad620bb8e1a15207c8ff41ee77183789f1d6592d7cbaf4931d74773be08739871c6ae1a59090a7e03f0bc5131d4443cc04d2
@@ -9610,7 +9578,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"detect-libc@npm:^2.0.0":
+"detect-libc@npm:^2.0.0, detect-libc@npm:^2.0.1":
   version: 2.0.1
   resolution: "detect-libc@npm:2.0.1"
   checksum: ccb05fcabbb555beb544d48080179c18523a343face9ee4e1a86605a8715b4169f94d663c21a03c310ac824592f2ba9a5270218819bb411ad7be578a527593d7
@@ -12528,15 +12496,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:^14.5.8":
-  version: 14.7.0
-  resolution: "graphql@npm:14.7.0"
-  dependencies:
-    iterall: ^1.2.2
-  checksum: e5f4e60799421a573904f390e1ec0aa76360f751688dbbe62e9c35baa0d3727c8d59a659bfc524f126dffe3518da87fd8ecaa78c94fd5c0fe4e035c670745242
-  languageName: node
-  linkType: hard
-
 "growl@npm:1.10.5":
   version: 1.10.5
   resolution: "growl@npm:1.10.5"
@@ -14418,7 +14377,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"iterall@npm:^1.1.1, iterall@npm:^1.1.3, iterall@npm:^1.2.1, iterall@npm:^1.2.2, iterall@npm:^1.3.0":
+"iterall@npm:^1.1.1, iterall@npm:^1.1.3, iterall@npm:^1.2.1, iterall@npm:^1.3.0":
   version: 1.3.0
   resolution: "iterall@npm:1.3.0"
   checksum: c78b99678f8c99be488cca7f33e4acca9b72c1326e050afbaf023f086e55619ee466af0464af94a0cb3f292e60cb5bac53a8fd86bd4249ecad26e09f17bb158b
@@ -14967,6 +14926,18 @@ __metadata:
   version: 0.16.0
   resolution: "jmespath@npm:0.16.0"
   checksum: 2d602493a1e4addfd1350ac8c9d54b1b03ed09e305fd863bab84a4ee1f52868cf939dd1a08c5cdea29ce9ba8f86875ebb458b6ed45dab3e1c3f2694503fb2fd9
+  languageName: node
+  linkType: hard
+
+"join-images@npm:^1.1.3":
+  version: 1.1.3
+  resolution: "join-images@npm:1.1.3"
+  dependencies:
+    is-plain-obj: ^3.0.0
+    tslib: ^2.3.1
+  peerDependencies:
+    sharp: ^0.30.4
+  checksum: c58bd371b07d15d39369d11549db2755a5f198d14af7cd0911a465d376019c16434f6ea693f0804a3ffe1e54e1f00b2802a9bb5cfac5decfcb8a473c74e307cb
   languageName: node
   linkType: hard
 
@@ -17328,6 +17299,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"node-addon-api@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "node-addon-api@npm:5.0.0"
+  dependencies:
+    node-gyp: latest
+  checksum: 7c5e2043ac37f6108784d94ed73a44ae6d3e68eb968de60680922fc6bc3d17fa69448c0feb4e0c9d3f4c74a0324822e566a8340a56916d9d6f23cb3e85620334
+  languageName: node
+  linkType: hard
+
 "node-environment-flags@npm:1.0.6":
   version: 1.0.6
   resolution: "node-environment-flags@npm:1.0.6"
@@ -19342,7 +19322,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prebuild-install@npm:^7.0.0":
+"prebuild-install@npm:^7.0.0, prebuild-install@npm:^7.1.0":
   version: 7.1.0
   resolution: "prebuild-install@npm:7.1.0"
   dependencies:
@@ -20661,7 +20641,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sanitize-html@npm:^2.4.0":
+"sanitize-html@npm:^2.7.0":
   version: 2.7.0
   resolution: "sanitize-html@npm:2.7.0"
   dependencies:
@@ -20863,7 +20843,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.1.2, semver@npm:^7.3.2, semver@npm:^7.3.4, semver@npm:^7.3.5":
+"semver@npm:^7.1.2, semver@npm:^7.3.2, semver@npm:^7.3.4, semver@npm:^7.3.5, semver@npm:^7.3.7":
   version: 7.3.7
   resolution: "semver@npm:7.3.7"
   dependencies:
@@ -21086,6 +21066,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sharp@npm:^0.30.5":
+  version: 0.30.5
+  resolution: "sharp@npm:0.30.5"
+  dependencies:
+    color: ^4.2.3
+    detect-libc: ^2.0.1
+    node-addon-api: ^5.0.0
+    node-gyp: latest
+    prebuild-install: ^7.1.0
+    semver: ^7.3.7
+    simple-get: ^4.0.1
+    tar-fs: ^2.1.1
+    tunnel-agent: ^0.6.0
+  checksum: e2b6238770ae1498815c14b2711de9398176a8e1ea1131ef583edc4a1c421f55fd9fe52ffc996ea4a259bdfed2f5d68a076a6ddc85499c229025efbe8ccf0b56
+  languageName: node
+  linkType: hard
+
 "shebang-command@npm:^1.2.0":
   version: 1.2.0
   resolution: "shebang-command@npm:1.2.0"
@@ -21163,7 +21160,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"simple-get@npm:^4.0.0":
+"simple-get@npm:^4.0.0, simple-get@npm:^4.0.1":
   version: 4.0.1
   resolution: "simple-get@npm:4.0.1"
   dependencies:
@@ -22936,24 +22933,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^1.10.0, tslib@npm:^1.8.1, tslib@npm:^1.9.0, tslib@npm:^1.9.3":
-  version: 1.14.1
-  resolution: "tslib@npm:1.14.1"
-  checksum: dbe628ef87f66691d5d2959b3e41b9ca0045c3ee3c7c7b906cc1e328b39f199bb1ad9e671c39025bd56122ac57dfbf7385a94843b1cc07c60a4db74795829acd
-  languageName: node
-  linkType: hard
-
-"tslib@npm:^2, tslib@npm:^2.0.0, tslib@npm:^2.0.1, tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.1":
+"tslib@npm:^2.3.1":
   version: 2.4.0
   resolution: "tslib@npm:2.4.0"
   checksum: 8c4aa6a3c5a754bf76aefc38026134180c053b7bd2f81338cb5e5ebf96fefa0f417bff221592bf801077f5bf990562f6264fecbc42cd3309b33872cb6fc3b113
-  languageName: node
-  linkType: hard
-
-"tslib@npm:~2.3.0":
-  version: 2.3.1
-  resolution: "tslib@npm:2.3.1"
-  checksum: de17a98d4614481f7fcb5cd53ffc1aaf8654313be0291e1bfaee4b4bb31a20494b7d218ff2e15017883e8ea9626599b3b0e0229c18383ba9dce89da2adf15cb9
   languageName: node
   linkType: hard
 
