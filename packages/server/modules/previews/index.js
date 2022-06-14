@@ -11,6 +11,7 @@ const {
 
 const { getStream } = require('../core/services/streams')
 const { getObject } = require('../core/services/objects')
+const { getServerInfo } = require('../core/services/generic')
 const {
   getCommitsByStreamId,
   getCommitsByBranchName,
@@ -146,11 +147,14 @@ exports.init = (app) => {
       }
 
       try {
-        await authorizeResolver(
-          req.context.userId,
-          req.params.streamId,
-          'stream:reviewer'
-        )
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess) 
+          await authorizeResolver(
+            req.context.userId,
+            req.params.streamId,
+            'stream:reviewer'
+          )
       } catch (err) {
         return { hasPermissions: false, httpErrorCode: 401 }
       }

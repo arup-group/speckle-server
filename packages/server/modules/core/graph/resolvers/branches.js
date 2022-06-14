@@ -202,7 +202,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_CREATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
+          if(!defaultReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }
@@ -213,7 +215,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_UPDATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
+          if(!defaultReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
           if (streamMatch && variables.branchId) {
@@ -229,7 +233,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_DELETED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
+          if(!defaultReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }

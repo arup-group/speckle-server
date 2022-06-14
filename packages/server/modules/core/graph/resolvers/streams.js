@@ -33,6 +33,10 @@ const {
 const { saveActivity } = require(`@/modules/activitystream/services`)
 const { respectsLimits } = require('@/modules/core/services/ratelimits')
 
+const {
+  getServerInfo
+} = require('../../services/generic')
+
 // subscription events
 const USER_STREAM_ADDED = 'USER_STREAM_ADDED'
 const USER_STREAM_REMOVED = 'USER_STREAM_REMOVED'
@@ -92,7 +96,11 @@ module.exports = {
       if (!stream.isPublic) {
         await validateServerRole(context, 'server:user')
         await validateScopes(context.scopes, 'streams:read')
-        await authorizeResolver(context.userId, args.id, 'stream:reviewer')
+        
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)
+          await authorizeResolver(context.userId, args.id, 'stream:reviewer')
       }
 
       return stream
@@ -369,7 +377,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_UPDATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if(!enableGlobalReviewerAccess)        
+            await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
           return payload.id === variables.streamId
         }
       )
@@ -379,7 +390,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_DELETED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if(!enableGlobalReviewerAccess)     
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )

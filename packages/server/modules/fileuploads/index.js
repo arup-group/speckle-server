@@ -18,6 +18,7 @@ const {
   getFileStream
 } = require('./services/fileuploads')
 const { getStream } = require('../core/services/streams')
+const { getServerInfo } = require('../core/services/generic')
 
 exports.init = async (app) => {
   if (process.env.DISABLE_FILE_UPLOADS) {
@@ -89,7 +90,10 @@ exports.init = async (app) => {
       }
 
       try {
-        await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)        
+          await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
       } catch (err) {
         return res.status(401).send("You don't have access to this private stream")
       }

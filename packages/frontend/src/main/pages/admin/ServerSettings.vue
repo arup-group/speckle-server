@@ -104,6 +104,10 @@ export default {
           label: 'Add default globals on stream creation',
           hint: 'Automatically add the specified set of globals to all streams created on this server',
           type: 'boolean'
+        },
+        enableGlobalReviewerAccess: {
+          label: 'Enable reviewer (read only) access to all streams on the server for any logged-in user',
+          type: 'boolean'
         }
       },
       defaultGlobals: {

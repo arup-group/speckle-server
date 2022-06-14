@@ -122,8 +122,12 @@
                 {{ role.description }}
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:reviewer'">
+                <div v-if="serverInfo.enableGlobalReviewerAccess">
+                  Reviewer access to all streams on this server has been granted to any logged-in user (controlled by the server admin in server settings).
+                </div>
                 <div
                   v-for="user in reviewers"
+                  v-else
                   :key="user.id"
                   class="d-flex align-center mb-2"
                 >

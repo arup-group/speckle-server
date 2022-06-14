@@ -173,7 +173,9 @@ module.exports = {
 
     async commentEdit(parent, args, context) {
       // NOTE: This is NOT in use anywhere
-      await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
+      const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
+      if(!defaultReviewerAccess)
+        await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
       await editComment({ userId: context.userId, input: args.input })
       return true
     },

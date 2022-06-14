@@ -24,6 +24,7 @@ const {
 
 const { getStream } = require('../../services/streams')
 const { getUser } = require('../../services/users')
+const { getServerInfo } = require('../../services/generic')
 
 const { respectsLimits } = require('../../services/ratelimits')
 
@@ -180,7 +181,10 @@ module.exports = {
       const stream = await getStream({ streamId: args.input.streamId })
 
       if (!stream.public) {
-        await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)
+          await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
       }
 
       await getCommitById({
@@ -244,7 +248,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_CREATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)   
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )
@@ -254,7 +261,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_UPDATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)         
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
           if (streamMatch && variables.commitId) {
@@ -270,7 +280,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_DELETED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if(!enableGlobalReviewerAccess)       
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }
