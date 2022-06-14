@@ -47,12 +47,13 @@ function getUserStreamsQueryBase({ userId, publicOnly, searchQuery }) {
 }
 
 module.exports = {
-  async createStream({ name, description, isPublic, ownerId }) {
+  async createStream({ name, description, isPublic, ownerId, jobNumber }) {
     const stream = {
       id: crs({ length: 10 }),
       name: name || generateStreamName(),
       description: description || '',
       isPublic: isPublic !== false,
+      jobNumber: jobNumber || '',
       updatedAt: knex.fn.now()
     }
 

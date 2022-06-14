@@ -39,6 +39,7 @@ type Stream {
   favoritedDate: DateTime
   # How many times this stream has been favorited
   favoritesCount: Int!
+  jobNumber: String
 }
 
 extend type User {
@@ -158,6 +159,7 @@ input StreamCreateInput {
   name: String
   description: String
   isPublic: Boolean
+  jobNumber: String
 }
 
 input StreamUpdateInput {
