@@ -99,7 +99,14 @@ module.exports = {
 
   getStream,
 
-  async updateStream({ streamId, name, description, isPublic, allowPublicComments }) {
+  async updateStream({
+    streamId,
+    name,
+    description,
+    isPublic,
+    allowPublicComments,
+    jobNumber
+  }) {
     const [{ id }] = await Streams.knex()
       .returning('id')
       .where({ id: streamId })
@@ -108,6 +115,7 @@ module.exports = {
         description,
         isPublic,
         allowPublicComments,
+        jobNumber,
         updatedAt: knex.fn.now()
       })
     return id

@@ -232,7 +232,8 @@ module.exports = {
         name: args.stream.name,
         description: args.stream.description,
         isPublic: args.stream.isPublic,
-        allowPublicComments: args.stream.allowPublicComments
+        allowPublicComments: args.stream.allowPublicComments,
+        jobNumber: args.stream.jobNumber
       }
 
       await updateStream(update)
@@ -250,7 +251,8 @@ module.exports = {
         streamUpdated: {
           id: args.stream.id,
           name: args.stream.name,
-          description: args.stream.description
+          description: args.stream.description,
+          jobNumber: args.stream.jobNumber
         },
         id: args.stream.id
       })
