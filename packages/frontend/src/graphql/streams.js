@@ -7,6 +7,7 @@ export const COMMON_STREAM_FIELDS = gql`
   fragment CommonStreamFields on Stream {
     id
     name
+    jobNumber
     description
     role
     isPublic

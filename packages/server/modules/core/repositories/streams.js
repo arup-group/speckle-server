@@ -10,6 +10,7 @@ const { Roles } = require('@/modules/core/helpers/mainConstants')
 const BASE_STREAM_COLUMNS = [
   Streams.col.id,
   Streams.col.name,
+  Streams.col.jobNumber,
   Streams.col.description,
   Streams.col.isPublic,
   Streams.col.createdAt,

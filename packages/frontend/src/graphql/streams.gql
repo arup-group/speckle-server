@@ -5,6 +5,7 @@ query Streams($cursor: String) {
     items {
       id
       name
+      jobNumber
       description
       role
       isPublic

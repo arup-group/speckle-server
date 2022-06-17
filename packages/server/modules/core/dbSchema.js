@@ -11,6 +11,7 @@ module.exports = {
     col: {
       id: 'streams.id',
       name: 'streams.name',
+      jobNumber: 'streams.jobNumber',
       description: 'streams.description',
       isPublic: 'streams.isPublic',
       clonedFrom: 'streams.clonedFrom',

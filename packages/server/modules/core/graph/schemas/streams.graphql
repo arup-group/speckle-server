@@ -168,6 +168,7 @@ input StreamUpdateInput {
   description: String
   isPublic: Boolean
   allowPublicComments: Boolean
+  jobNumber: String
 }
 
 input StreamGrantPermissionInput {
