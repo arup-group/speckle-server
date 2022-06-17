@@ -23,6 +23,7 @@ const { getUserById } = require('../../services/users')
 const { getCommitsByBranchName } = require('../../services/commits')
 const { getObject } = require('../../services/objects')
 const { saveActivity } = require(`${appRoot}/modules/activitystream/services`)
+const { getServerInfo } = require('../../services/generic')
 
 // subscription events
 const BRANCH_CREATED = 'BRANCH_CREATED'
@@ -202,10 +203,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_CREATED]),
         async (payload, variables, context) => {
-          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
-          if(!defaultReviewerAccess)
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
-
           return payload.streamId === variables.streamId
         }
       )
@@ -215,8 +216,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_UPDATED]),
         async (payload, variables, context) => {
-          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
-          if(!defaultReviewerAccess)
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
@@ -233,8 +235,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_DELETED]),
         async (payload, variables, context) => {
-          const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
-          if(!defaultReviewerAccess)
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId

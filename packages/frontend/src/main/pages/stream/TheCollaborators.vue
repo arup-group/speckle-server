@@ -21,9 +21,12 @@
     </portal>
     <v-row justify="center">
       <v-col v-if="stream.role !== 'stream:owner'" cols="12">
-        <v-alert type="warning">
+        <v-alert v-if="stream.role" type="warning">
           Your permission level ({{ stream.role }}) is not high enough to edit this
           stream's collaborators.
+        </v-alert>
+        <v-alert v-else type="warning">
+          Your permission level is not high enough to edit this stream's collaborators.
         </v-alert>
       </v-col>
 
@@ -123,7 +126,9 @@
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:reviewer'">
                 <div v-if="serverInfo.enableGlobalReviewerAccess">
-                  Reviewer access to all streams on this server has been granted to any logged-in user (controlled by the server admin in server settings).
+                  Reviewer access to all streams on this server has been granted to any
+                  server user (this is controlled by the server admin in the server
+                  settings).
                 </div>
                 <div
                   v-for="user in reviewers"

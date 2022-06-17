@@ -33,9 +33,7 @@ const {
 const { saveActivity } = require(`@/modules/activitystream/services`)
 const { respectsLimits } = require('@/modules/core/services/ratelimits')
 
-const {
-  getServerInfo
-} = require('../../services/generic')
+const { getServerInfo } = require('../../services/generic')
 
 // subscription events
 const USER_STREAM_ADDED = 'USER_STREAM_ADDED'
@@ -93,13 +91,16 @@ module.exports = {
       if (!stream.isPublic && context.auth === false)
         throw new ForbiddenError('You are not authorized.')
 
-      if (!stream.isPublic) {
+      const info = await getServerInfo()
+      const loggedInUsersOnly = info.loggedInUsersOnly
+      if (loggedInUsersOnly || !stream.isPublic)
         await validateServerRole(context, 'server:user')
+
+      if (!stream.isPublic) {
         await validateScopes(context.scopes, 'streams:read')
-        
-        const info = await getServerInfo()
+
         const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)
+        if (!enableGlobalReviewerAccess)
           await authorizeResolver(context.userId, args.id, 'stream:reviewer')
       }
 
@@ -378,8 +379,10 @@ module.exports = {
         () => pubsub.asyncIterator([STREAM_UPDATED]),
         async (payload, variables, context) => {
           const info = await getServerInfo()
+          const loggedInUsersOnly = info.loggedInUsersOnly
+          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
           const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if(!enableGlobalReviewerAccess)        
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
           return payload.id === variables.streamId
         }
@@ -391,8 +394,10 @@ module.exports = {
         () => pubsub.asyncIterator([STREAM_DELETED]),
         async (payload, variables, context) => {
           const info = await getServerInfo()
+          const loggedInUsersOnly = info.loggedInUsersOnly
+          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
           const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if(!enableGlobalReviewerAccess)     
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }

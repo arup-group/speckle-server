@@ -149,7 +149,7 @@ exports.init = (app) => {
       try {
         const info = await getServerInfo()
         const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess) 
+        if (!enableGlobalReviewerAccess)
           await authorizeResolver(
             req.context.userId,
             req.params.streamId,

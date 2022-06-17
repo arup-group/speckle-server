@@ -96,17 +96,24 @@ export default {
           hint: 'Url pointing to the terms of service page'
         },
         inviteOnly: {
-          label: 'Invite-Only mode',
+          label: 'Invite-only mode',
           hint: 'Only users with an invitation will be able to join',
+          type: 'boolean'
+        },
+        loggedInUsersOnly: {
+          label: 'Require log-in to access streams on this server',
+          hint: 'Only logged-in users will be able to access streams - applies to both public and private streams',
+          type: 'boolean'
+        },
+        enableGlobalReviewerAccess: {
+          label:
+            'Enable reviewer access to all streams on this server for any server user',
+          hint: 'Give all server users reviewer (read only) access to all streams (both public and private) on this server',
           type: 'boolean'
         },
         createDefaultGlobals: {
           label: 'Add default globals on stream creation',
           hint: 'Automatically add the specified set of globals to all streams created on this server',
-          type: 'boolean'
-        },
-        enableGlobalReviewerAccess: {
-          label: 'Enable reviewer (read only) access to all streams on the server for any logged-in user',
           type: 'boolean'
         }
       },

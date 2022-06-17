@@ -2,6 +2,7 @@ const { authorizeResolver, pubsub } = require('@/modules/shared')
 const { ForbiddenError, ApolloError, withFilter } = require('apollo-server-express')
 const { getStream } = require('@/modules/core/services/streams')
 const { saveActivity } = require('@/modules/activitystream/services')
+const { getServerInfo } = require('@/modules/core/services/generic')
 
 const {
   getComment,
@@ -173,8 +174,10 @@ module.exports = {
 
     async commentEdit(parent, args, context) {
       // NOTE: This is NOT in use anywhere
-      const defaultReviewerAccess = process.env.REVIEWER_ACCESS_FOR_PRIVATE_STREAMS === 'true'
-      if(!defaultReviewerAccess)
+      const info = await getServerInfo()
+
+      const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+      if (!enableGlobalReviewerAccess)
         await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
       await editComment({ userId: context.userId, input: args.input })
       return true

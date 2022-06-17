@@ -92,7 +92,7 @@ exports.init = async (app) => {
       try {
         const info = await getServerInfo()
         const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)        
+        if (!enableGlobalReviewerAccess)
           await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
       } catch (err) {
         return res.status(401).send("You don't have access to this private stream")

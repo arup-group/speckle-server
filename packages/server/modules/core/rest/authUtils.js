@@ -35,7 +35,7 @@ module.exports = {
       try {
         const info = await getServerInfo()
         const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)   
+        if (!enableGlobalReviewerAccess)
           await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
       } catch (err) {
         return { result: false, status: 401 }

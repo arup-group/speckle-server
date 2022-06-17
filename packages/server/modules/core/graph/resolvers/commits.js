@@ -183,8 +183,12 @@ module.exports = {
       if (!stream.public) {
         const info = await getServerInfo()
         const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)
-          await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
+        if (!enableGlobalReviewerAccess)
+          await authorizeResolver(
+            context.userId,
+            args.input.streamId,
+            'stream:reviewer'
+          )
       }
 
       await getCommitById({
@@ -248,9 +252,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_CREATED]),
         async (payload, variables, context) => {
-        const info = await getServerInfo()
-        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)   
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
@@ -261,9 +265,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_UPDATED]),
         async (payload, variables, context) => {
-        const info = await getServerInfo()
-        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)         
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
@@ -280,9 +284,9 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_DELETED]),
         async (payload, variables, context) => {
-        const info = await getServerInfo()
-        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if(!enableGlobalReviewerAccess)       
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
             await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
