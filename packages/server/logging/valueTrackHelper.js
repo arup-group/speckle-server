@@ -111,14 +111,17 @@ module.exports = {
       jobNumber: event.jobNumber,
       userName: event.userName
     })
+    console.log(data)
     axios
       .post(`${process.env.VALUETRACK_API_URL}/UsageEvent`, data, { headers })
       .then(function (response) {
+        console.log(response.data)
         if (response.status === 201)
           debug('speckle:valuetrack')('Sent usage event to ValueTrack')
         else console.log(response.data)
       })
       .catch(function (error) {
+        console.log(error)
         if (error.response) {
           if (error.response.status === 409)
             debug('speckle:valuetrack')('Duplicate usage event refused')
@@ -140,9 +143,11 @@ module.exports = {
       userName: summary.userId,
       narrative: 'Test narrative from Speckle'
     })
+    console.log(data)
     axios
       .post(`${process.env.VALUETRACK_API_URL}/UsageSummary`, data, { headers })
       .then(function (response) {
+        console.log(response.data)
         if (response.status === 201) {
           debug('speckle:valuetrack')('Sent usage summary (with cost!) to ValueTrack')
           summary.cost = cost
@@ -150,6 +155,7 @@ module.exports = {
         } else console.log(response.data)
       })
       .catch(function (error) {
+        console.log(error)
         if (error.response) {
           if (error.response.status === 409)
             debug('speckle:valuetrack')('Duplicate usage summary refused')
