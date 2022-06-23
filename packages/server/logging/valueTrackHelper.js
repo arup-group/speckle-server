@@ -9,7 +9,7 @@ const headers = {
 }
 
 const applicationName = 'Speckle'
-const cost = process.env.VALUETRACK_SUBCRIPTION_FEE
+const cost = parseFloat(process.env.VALUETRACK_SUBCRIPTION_FEE)
 const interval = process.env.VALUETRACK_SUBSCRIPTION_INTERVAL
 
 const eventDateTime = () => {
