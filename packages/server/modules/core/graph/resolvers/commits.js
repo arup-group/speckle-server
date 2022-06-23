@@ -116,7 +116,7 @@ module.exports = {
       if (requireJobNumber) {
         if (!stream.jobNumber) {
           throw new Error(
-            'A job number is required to create a commit. Please make sure a job number has been assigned to the stream you are working with.'
+            'A job number is required to create a commit on this server. Please make sure a job number has been assigned to the stream you are working with.'
           )
         }
       }

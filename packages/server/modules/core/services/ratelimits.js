@@ -2,6 +2,7 @@
 const knex = require('@/db/knex')
 const debug = require('debug')
 const { captureUsageSummary } = require('../../../logging/valueTrackHelper')
+const { getUserById } = require('./users')
 
 const RatelimitActions = () => knex('ratelimit_actions')
 const prometheusClient = require('prom-client')
@@ -252,14 +253,16 @@ module.exports = {
     const rateLimitKey = `${action} ${source}`
 
     const promise = await shouldChargeForValueTrack({ action, source }).then(
-      (shouldCharge) => {
+      async (shouldCharge) => {
         if (shouldCharge) {
           rateLimitedCache[rateLimitKey] = true
 
           if (source) {
+            const user = await getUserById({ userId })
             const vtData = {
               jobNumber: source,
-              userId
+              userId,
+              userName: user.name
             }
             debug('speckle:valuetrack')(
               'Project should be charged - will send usage summary (with cost!) to VT'

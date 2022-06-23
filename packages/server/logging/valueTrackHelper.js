@@ -111,56 +111,50 @@ module.exports = {
       jobNumber: event.jobNumber,
       userName: event.userName
     })
-    console.log(data)
     axios
       .post(`${process.env.VALUETRACK_API_URL}/UsageEvent`, data, { headers })
       .then(function (response) {
-        console.log(response.data)
         if (response.status === 201)
           debug('speckle:valuetrack')('Sent usage event to ValueTrack')
         else console.log(response.data)
       })
       .catch(function (error) {
-        console.log(error)
         if (error.response) {
           if (error.response.status === 409)
             debug('speckle:valuetrack')('Duplicate usage event refused')
           else {
             debug('speckle:valuetrack')(error.response.data)
-            console.log(error.response.data)
-            console.log(error.toJSON())
           }
         } else console.log(error)
       })
   },
-  captureUsageSummary(summary) {
+  async captureUsageSummary(summary) {
     const dateTime = startOfCurrentInterval()
-    const data = JSON.stringify({
+    const data = {
       usageStartDateTime: dateTime, //start of current interval
       usageEndDateTime: endOfCurrentInterval(), //end of current interval
       applicationName,
       cost,
       jobNumber: summary.jobNumber,
-      userName: summary.userId,
+      userName: summary.userName,
       narrative: `Speckle ${dateTime.split('-').slice(0, -1).join('-')}` //Speckle-YYYY-MM
-    })
-    console.log(data)
+    }
     axios
-      .post(`${process.env.VALUETRACK_API_URL}/UsageSummary`, data, { headers })
+      .post(`${process.env.VALUETRACK_API_URL}/UsageSummary`, JSON.stringify(data), {
+        headers
+      })
       .then(function (response) {
-        console.log(response.data)
         if (response.status === 201) {
           debug('speckle:valuetrack')('Sent usage summary (with cost!) to ValueTrack')
-          summary.cost = cost
-          captureValueTrackUsage('valuetrack_capture', summary)
+          captureValueTrackUsage('valuetrack_capture', summary.userId, data)
         } else console.log(response.data)
       })
       .catch(function (error) {
-        console.log(error)
         if (error.response) {
-          if (error.response.status === 409)
+          if (error.response.status === 409) {
             debug('speckle:valuetrack')('Duplicate usage summary refused')
-          else debug('speckle:valuetrack')(error)
+            captureValueTrackUsage('valuetrack_capture_refused', summary.userId, data)
+          } else debug('speckle:valuetrack')(error)
         } else console.log(error)
       })
   }

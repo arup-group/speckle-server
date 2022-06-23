@@ -207,7 +207,7 @@ module.exports = {
       if (requireJobNumber) {
         if (!args.stream.jobNumber) {
           throw new Error(
-            'A job number is required to create a stream. Please provide one.'
+            'A job number is required to create a stream on this server. Please provide one.'
           )
         }
       }
