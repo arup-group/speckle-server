@@ -134,14 +134,15 @@ module.exports = {
       })
   },
   captureUsageSummary(summary) {
+    const dateTime = startOfCurrentInterval()
     const data = JSON.stringify({
-      usageStartDateTime: startOfCurrentInterval(), //start of current interval
-      usageEndDateTime: endOfCurrentInterval(), //end of next interval
+      usageStartDateTime: dateTime, //start of current interval
+      usageEndDateTime: endOfCurrentInterval(), //end of current interval
       applicationName,
       cost,
       jobNumber: summary.jobNumber,
       userName: summary.userId,
-      narrative: 'Test narrative from Speckle'
+      narrative: `Speckle ${dateTime.split('-').slice(0, -1).join('-')}` //Speckle-YYYY-MM
     })
     console.log(data)
     axios
