@@ -20,7 +20,13 @@
           ref="input-field"
           @jobObjectSelected="selectedJobNumber"
         ></job-number-search> -->
-        <v-text-field v-model="jobNumber" label="Job Number (required)" />
+        <v-text-field
+          v-model="jobNumber"
+          :rules="jobNumberRules"
+          validate-on-blur
+          label="Job Number (required)"
+          class="required"
+        />
         <v-text-field
           v-model="name"
           :rules="nameRules"
@@ -160,6 +166,18 @@ export default {
       description: null,
       valid: false,
       search: null,
+      junkJobNumbers: ['00000000', '12345678', '12345600', '99999999'],
+      jobNumberRules: [
+        (v) => !!v || 'Job number is required',
+        (v) =>
+          (v && this.junkJobNumbers.findIndex((e) => e === v) === -1) ||
+          `That doesn't look like a valid job number`,
+        (v) => (/^\d+$/.test(v) ? true : 'Job number must contain numbers only'),
+        (v) => {
+          if (v && v.length !== 8) return 'Job number must be 8 characters'
+          return true
+        }
+      ],
       nameRules: [],
       isPublic: false,
       collabs: [],
@@ -259,3 +277,10 @@ export default {
   }
 }
 </script>
+
+<style lang="css">
+.required .v-label {
+  color: red;
+  opacity: 0.7;
+}
+</style>
