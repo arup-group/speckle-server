@@ -31,7 +31,11 @@ const {
   pubsub
 } = require(`@/modules/shared`)
 const { saveActivity } = require(`@/modules/activitystream/services`)
-const { respectsLimits } = require('@/modules/core/services/ratelimits')
+const {
+  respectsLimits,
+  respectsLimitsByProject,
+  sendProjectInfoToValueTrack
+} = require('@/modules/core/services/ratelimits')
 
 const { getServerInfo } = require('../../services/generic')
 
@@ -199,10 +203,44 @@ module.exports = {
 
   Mutation: {
     async streamCreate(parent, args, context) {
-      if (
-        !(await respectsLimits({ action: 'STREAM_CREATE', source: context.userId }))
-      ) {
-        throw new Error('Blocked due to rate-limiting. Try again later')
+      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      if (requireJobNumber) {
+        if (!args.stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a stream. Please provide one.'
+          )
+        }
+      }
+
+      const rateLimitByProject = process.env.RATE_LIMIT_BY_PROJECT === 'true'
+      if (!rateLimitByProject) {
+        if (
+          !(await respectsLimits({
+            action: 'STREAM_CREATE',
+            source: context.userId
+          }))
+        ) {
+          throw new Error('Blocked due to rate-limiting. Try again later')
+        }
+      } else {
+        const respectsLimits = await respectsLimitsByProject({
+          action: 'STREAM_CREATE',
+          source: args.stream.jobNumber
+        })
+        if (!respectsLimits) {
+          throw new Error(
+            'Blocked due to rate-limiting (on a per project basis). Please get in touch with your PM regarding use of Speckle on your project.'
+          )
+        }
+      }
+
+      const useValueTrack = process.env.USE_VALUETRACK === 'true'
+      if (useValueTrack) {
+        await sendProjectInfoToValueTrack({
+          action: 'CREATE_ACTION_VALUETRACK',
+          source: args.stream.jobNumber,
+          userId: context.userId
+        })
       }
 
       const id = await createStream({ ...args.stream, ownerId: context.userId })

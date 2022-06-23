@@ -26,5 +26,17 @@ module.exports = {
       event,
       properties: cloneEventPayload
     })
+  },
+  captureValueTrackUsage(event, eventPayload) {
+    const cloneEventPayload = {
+      userId: eventPayload.userId,
+      jobNumber: eventPayload.jobNumber,
+      cost: eventPayload.cost
+    }
+    client.capture({
+      distinctId: cloneEventPayload.userId,
+      event,
+      properties: cloneEventPayload
+    })
   }
 }

@@ -26,7 +26,11 @@ const { getStream } = require('../../services/streams')
 const { getUser } = require('../../services/users')
 const { getServerInfo } = require('../../services/generic')
 
-const { respectsLimits } = require('../../services/ratelimits')
+const {
+  respectsLimits,
+  respectsLimitsByProject,
+  sendProjectInfoToValueTrack
+} = require('@/modules/core/services/ratelimits')
 
 // subscription events
 const COMMIT_CREATED = 'COMMIT_CREATED'
@@ -106,16 +110,52 @@ module.exports = {
   },
   Mutation: {
     async commitCreate(parent, args, context) {
+      const stream = await getStream({ streamId: args.commit.streamId })
+
+      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      if (requireJobNumber) {
+        if (!stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a commit. Please make sure a job number has been assigned to the stream you are working with.'
+          )
+        }
+      }
+
       await authorizeResolver(
         context.userId,
         args.commit.streamId,
         'stream:contributor'
       )
 
-      if (
-        !(await respectsLimits({ action: 'COMMIT_CREATE', source: context.userId }))
-      ) {
-        throw new Error('Blocked due to rate-limiting. Try again later')
+      const rateLimitByProject = process.env.RATE_LIMIT_BY_PROJECT === 'true'
+      if (!rateLimitByProject) {
+        if (
+          !(await respectsLimits({
+            action: 'COMMIT_CREATE',
+            source: context.userId
+          }))
+        ) {
+          throw new Error('Blocked due to rate-limiting. Try again later')
+        }
+      } else {
+        const respectsLimits = await respectsLimitsByProject({
+          action: 'COMMIT_CREATE',
+          source: stream.jobNumber
+        })
+        if (!respectsLimits) {
+          throw new Error(
+            'Blocked due to rate-limiting (on a per project basis). Please get in touch with your PM regarding use of Speckle on your project.'
+          )
+        }
+      }
+
+      const useValueTrack = process.env.USE_VALUETRACK === 'true'
+      if (useValueTrack) {
+        await sendProjectInfoToValueTrack({
+          action: 'CREATE_ACTION_VALUETRACK',
+          source: stream.jobNumber,
+          userId: context.userId
+        })
       }
 
       const id = await createCommitByBranchName({
