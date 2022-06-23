@@ -122,7 +122,11 @@ module.exports = {
         if (error.response) {
           if (error.response.status === 409)
             debug('speckle:valuetrack')('Duplicate usage event refused')
-          else debug('speckle:valuetrack')(error)
+          else {
+            debug('speckle:valuetrack')(error.response.data)
+            console.log(error.response.data)
+            console.log(error.toJSON())
+          }
         } else console.log(error)
       })
   },
