@@ -16,17 +16,6 @@ Vue.use(VueMatomo, {
 // eslint-disable-next-line no-undef
 Vue.config.productionTip = process.env.NODE_ENV === 'development'
 
-import VueMixpanel from 'vue-mixpanel'
-Vue.use(VueMixpanel, {
-  token: 'acd87c5a50b56df91a795e999812a3a4',
-  config: {
-    // eslint-disable-next-line camelcase
-    api_host: 'https://analytics.speckle.systems',
-    // eslint-disable-next-line camelcase
-    opt_out_tracking_by_default: true
-  }
-})
-
 import '@/plugins/helpers'
 import store from '@/main/store'
 
