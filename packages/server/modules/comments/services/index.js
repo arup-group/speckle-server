@@ -1,65 +1,61 @@
 'use strict'
 const crs = require('crypto-random-string')
 const knex = require('@/db/knex')
-const sanitizeHtml = require('sanitize-html')
+const { ForbiddenError } = require('@/modules/shared/errors')
+const {
+  buildCommentTextFromInput
+} = require('@/modules/comments/services/commentTextService')
 
 const Comments = () => knex('comments')
 const CommentLinks = () => knex('comment_links')
 const CommentViews = () => knex('comment_views')
 
+const resourceCheck = async (res, streamId) => {
+  // The switch of doom: if something throws, we're out
+  switch (res.resourceType) {
+    case 'stream':
+      // Stream validity is already checked, so we can just go ahead.
+      break
+    case 'commit': {
+      const linkage = await knex('stream_commits')
+        .select()
+        .where({ commitId: res.resourceId, streamId })
+        .first()
+      if (!linkage) throw new Error('Commit not found')
+      if (linkage.streamId !== streamId)
+        throw new Error(
+          'Stop hacking - that commit id is not part of the specified stream.'
+        )
+      break
+    }
+    case 'object': {
+      const obj = await knex('objects')
+        .select()
+        .where({ id: res.resourceId, streamId })
+        .first()
+      if (!obj) throw new Error('Object not found')
+      break
+    }
+    case 'comment': {
+      const comment = await Comments().where({ id: res.resourceId }).first()
+      if (!comment) throw new Error('Comment not found')
+      if (comment.streamId !== streamId)
+        throw new Error(
+          'Stop hacking - that comment is not part of the specified stream.'
+        )
+      break
+    }
+    default:
+      throw Error(
+        `resource type ${res.resourceType} is not supported as a comment target`
+      )
+  }
+}
+
 module.exports = {
-  /**
-   * Format comment text field (e.g. for returning to frontend or saving to DB)
-   * @param {Object} comment
-   * @returns {string}
-   */
-  formatCommentText(comment) {
-    if (!comment || !comment.text) return ''
-    return sanitizeHtml(comment.text)
-  },
   async streamResourceCheck({ streamId, resources }) {
     // this itches - a for loop with queries... but okay let's hit the road now
-    for (const res of resources) {
-      // The switch of doom: if something throws, we're out
-      switch (res.resourceType) {
-        case 'stream':
-          // Stream validity is already checked, so we can just go ahead.
-          break
-        case 'commit': {
-          const linkage = await knex('stream_commits')
-            .select()
-            .where({ commitId: res.resourceId, streamId })
-            .first()
-          if (!linkage) throw new Error('Commit not found')
-          if (linkage.streamId !== streamId)
-            throw new Error(
-              'Stop hacking - that commit id is not part of the specified stream.'
-            )
-          break
-        }
-        case 'object': {
-          const obj = await knex('objects')
-            .select()
-            .where({ id: res.resourceId, streamId })
-            .first()
-          if (!obj) throw new Error('Object not found')
-          break
-        }
-        case 'comment': {
-          const comment = await Comments().where({ id: res.resourceId }).first()
-          if (!comment) throw new Error('Comment not found')
-          if (comment.streamId !== streamId)
-            throw new Error(
-              'Stop hacking - that comment is not part of the specified stream.'
-            )
-          break
-        }
-        default:
-          throw Error(
-            `resource type ${res.resourceType} is not supported as a comment target`
-          )
-      }
-    }
+    await Promise.all(resources.map((res) => resourceCheck(res, streamId)))
   },
 
   async createComment({ userId, input }) {
@@ -84,7 +80,7 @@ module.exports = {
 
     comment.id = crs({ length: 10 })
     comment.authorId = userId
-    comment.text = module.exports.formatCommentText(comment)
+    comment.text = buildCommentTextFromInput(input.text)
 
     await Comments().insert(comment)
     try {
@@ -104,19 +100,18 @@ module.exports = {
       throw e // pass on to resolver
     }
     await module.exports.viewComment({ userId, commentId: comment.id }) // so we don't self mark a comment as unread the moment it's created
-    return comment.id
+    return comment
   },
 
   async createCommentReply({ authorId, parentCommentId, streamId, text, data }) {
     const comment = {
       id: crs({ length: 10 }),
       authorId,
-      text,
+      text: buildCommentTextFromInput(text),
       data,
       streamId,
       parentComment: parentCommentId
     }
-    comment.text = module.exports.formatCommentText(comment)
 
     await Comments().insert(comment)
     try {
@@ -132,16 +127,17 @@ module.exports = {
     }
     await Comments().where({ id: parentCommentId }).update({ updatedAt: knex.fn.now() })
 
-    return comment.id
+    return comment
   },
 
-  async editComment({ userId, input }) {
+  async editComment({ userId, input, matchUser = false }) {
     const editedComment = await Comments().where({ id: input.id }).first()
     if (!editedComment) throw new Error("The comment doesn't exist")
-    if (editedComment.authorId !== userId)
-      throw new Error("You cannot edit someone else's comments")
+    if (matchUser && editedComment.authorId !== userId)
+      throw new ForbiddenError("You cannot edit someone else's comments")
 
-    await Comments().where({ id: input.id }).update({ text: input.text })
+    const newText = buildCommentTextFromInput(input.text)
+    await Comments().where({ id: input.id }).update({ text: newText })
   },
 
   async viewComment({ userId, commentId }) {
@@ -185,7 +181,7 @@ module.exports = {
 
     if (comment.authorId !== userId) {
       if (!aclEntry || aclEntry.role !== 'stream:owner')
-        throw new Error("You don't have permission to archive the comment")
+        throw new ForbiddenError("You don't have permission to archive the comment")
     }
 
     await Comments().where({ id: commentId }).update({ archived })

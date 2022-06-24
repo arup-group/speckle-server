@@ -2,22 +2,29 @@
 'use strict'
 
 const debug = require('debug')
-const Busboy = require('busboy')
-
+const { contextMiddleware } = require('@/modules/shared')
+const { saveUploadFile } = require('./services/fileuploads')
+const request = require('request')
 const {
-  contextMiddleware,
-  validateScopes,
-  authorizeResolver
-} = require('@/modules/shared')
+  authMiddlewareCreator,
+  streamWritePermissions
+} = require('@/modules/shared/authz')
 
-const {
-  checkBucket,
-  startUploadFile,
-  finishUploadFile,
-  getFileInfo,
-  getFileStream
-} = require('./services/fileuploads')
-const { getStream } = require('../core/services/streams')
+const saveFileUploads = async ({ userId, streamId, branchName, uploadResults }) => {
+  await Promise.all(
+    uploadResults.map(async (upload) => {
+      await saveUploadFile({
+        fileId: upload.blobId,
+        streamId,
+        branchName,
+        userId,
+        fileName: upload.fileName,
+        fileType: upload.fileName.split('.').pop(),
+        fileSize: upload.fileSize
+      })
+    })
+  )
+}
 const { getServerInfo } = require('../core/services/generic')
 
 exports.init = async (app) => {
@@ -111,54 +118,25 @@ exports.init = async (app) => {
     app.post(
       '/api/file/:fileType/:streamId/:branchName?',
       contextMiddleware,
+      authMiddlewareCreator(streamWritePermissions),
       async (req, res) => {
-        if (process.env.DISABLE_FILE_UPLOADS) {
-          return res.status(503).send('File uploads are disabled on this server')
-        }
-        const { hasPermissions, httpErrorCode } = await checkStreamPermissions(req)
-        if (!hasPermissions) {
-          return res.status(httpErrorCode).end()
-        }
-
-        const fileUploadPromises = []
-        const busboy = Busboy({ headers: req.headers })
-
-        busboy.on('file', (name, file, info) => {
-          const { filename } = info
-          let fileType = req.params.fileType
-          if (fileType === 'autodetect')
-            fileType = filename.split('.').pop().toLowerCase()
-
-          const promise = startUploadFile({
-            streamId: req.params.streamId,
-            branchName: req.params.branchName || '',
-            userId: req.context.userId,
-            fileName: filename,
-            fileType,
-            fileStream: file
-          })
-          fileUploadPromises.push(promise)
-        })
-
-        busboy.on('finish', async function () {
-          const fileIds = []
-
-          for (const promise of fileUploadPromises) {
-            const fileId = await promise
-            fileIds.push(fileId)
-          }
-          for (const fileId of fileIds) {
-            await finishUploadFile({ fileId })
-          }
-          res.send(fileIds)
-        })
-
-        busboy.on('error', async (err) => {
-          console.log(`FileUpload error: ${err}`)
-          res.status(400).end('Upload request error. The server logs have more details')
-        })
-
-        req.pipe(busboy)
+        req.pipe(
+          request(
+            `${process.env.CANONICAL_URL}/api/stream/${req.params.streamId}/blob`,
+            async (err, response, body) => {
+              if (response.statusCode === 201) {
+                const { uploadResults } = JSON.parse(body)
+                await saveFileUploads({
+                  userId: req.context.userId,
+                  streamId: req.params.streamId,
+                  branchName: req.params.branchName ?? 'main',
+                  uploadResults
+                })
+              }
+              res.status(response.statusCode).send(body)
+            }
+          )
+        )
       }
     )
 }

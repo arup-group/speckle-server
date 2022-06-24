@@ -48,7 +48,7 @@ async function buildContext({ req, connection }) {
 }
 
 /**
- * Graphql server context helper: sets req.context to have an auth prop (true/false), userId and server role.
+ * Not just Graphql server context helper: sets req.context to have an auth prop (true/false), userId and server role.
  * @returns {AuthContextPart}
  */
 async function contextApiTokenHelper({ req, connection }) {
@@ -94,6 +94,12 @@ async function contextMiddleware(req, res, next) {
 
 let roles
 
+const getRoles = async () => {
+  if (roles) return roles
+  roles = await knex('user_roles').select('*')
+  return roles
+}
+
 /**
  * Validates a server role against the req's context object.
  * @param  {[type]} context      [description]
@@ -101,7 +107,7 @@ let roles
  * @return {[type]}              [description]
  */
 async function validateServerRole(context, requiredRole) {
-  if (!roles) roles = await knex('user_roles').select('*')
+  const roles = await getRoles()
 
   if (!context.auth) throw new ForbiddenError('You must provide an auth token.')
 
@@ -204,5 +210,6 @@ module.exports = {
   validateServerRole,
   validateScopes,
   authorizeResolver,
-  pubsub
+  pubsub,
+  getRoles
 }

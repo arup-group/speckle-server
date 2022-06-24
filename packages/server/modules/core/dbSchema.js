@@ -56,5 +56,13 @@ module.exports = {
       ip: 'users.ip'
     }
   },
+  ServerAcl: {
+    name: 'server_acl',
+    knex: () => knex('server_acl'),
+    col: {
+      userId: 'server_acl.userId',
+      role: 'server_acl.role'
+    }
+  },
   knex
 }

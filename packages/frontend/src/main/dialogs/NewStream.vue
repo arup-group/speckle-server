@@ -43,12 +43,12 @@
           v-model="isPublic"
           v-tooltip="
             isPublic
-              ? `Anyone can view this stream. It is also visible on your profile page. Only collaborators
+              ? `Anyone with the link can view this stream. It is also visible on your profile page. Only collaborators
           can edit it.`
               : `Only collaborators can access this stream.`
           "
           inset
-          :label="`${isPublic ? 'Public stream' : 'Private stream'}`"
+          :label="`${isPublic ? 'Link Sharing On' : 'Link Sharing Off'}`"
         />
 
         <p class="mt-5">
@@ -168,18 +168,19 @@ export default {
       search: null,
       junkJobNumbers: ['00000000', '12345678', '12345600', '99999999'],
       jobNumberRules: [
-        (v) => !!v || 'Job number is required',
+        // (v) => !!v || 'Job number is required',
         (v) =>
-          (v && this.junkJobNumbers.findIndex((e) => e === v) === -1) ||
+          !v ||
+          this.junkJobNumbers.findIndex((e) => e === v) === -1 ||
           `That doesn't look like a valid job number`,
-        (v) => (/^\d+$/.test(v) ? true : 'Job number must contain numbers only'),
+        (v) => (!v || /^\d+$/.test(v) ? true : 'Job number must contain numbers only'),
         (v) => {
           if (v && v.length !== 8) return 'Job number must be 8 characters'
           return true
         }
       ],
       nameRules: [],
-      isPublic: false,
+      isPublic: true,
       collabs: [],
       isLoading: false
     }

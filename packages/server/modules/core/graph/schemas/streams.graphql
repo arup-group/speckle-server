@@ -71,7 +71,7 @@ type StreamCollaborator {
 type StreamCollection {
   totalCount: Int!
   cursor: String
-  items: [Stream]
+  items: [Stream!]
 }
 
 extend type Mutation {

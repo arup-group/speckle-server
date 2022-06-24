@@ -1,7 +1,5 @@
 import Vue from 'vue'
-
-// Event hub
-Vue.prototype.$eventHub = new Vue()
+import '@/vueBootstrapper'
 
 import App from '@/main/App.vue'
 import store from '@/main/store'
@@ -15,13 +13,6 @@ import {
 
 import router from '@/main/router/index'
 import vuetify from '@/plugins/vuetify'
-
-// process.env.NODE_ENV is injected by Webpack
-// eslint-disable-next-line no-undef
-Vue.config.productionTip = process.env.NODE_ENV === 'development'
-
-import PortalVue from 'portal-vue'
-Vue.use(PortalVue)
 
 import VueTimeago from 'vue-timeago'
 Vue.use(VueTimeago, { locale: 'en' })
@@ -137,3 +128,5 @@ function initVue() {
     render: (h) => h(App)
   }).$mount('#app')
 }
+
+export { apolloProvider }
