@@ -36,7 +36,9 @@ module.exports = {
     termsOfService,
     inviteOnly,
     createDefaultGlobals,
-    defaultGlobals
+    defaultGlobals,
+    loggedInUsersOnly,
+    enableGlobalReviewerAccess
   }) {
     const serverInfo = await Info().select('*').first()
     if (!serverInfo)
@@ -49,6 +51,8 @@ module.exports = {
         inviteOnly,
         createDefaultGlobals,
         defaultGlobals,
+        loggedInUsersOnly,
+        enableGlobalReviewerAccess,
         completed: true
       })
     else
@@ -61,6 +65,8 @@ module.exports = {
         inviteOnly,
         createDefaultGlobals,
         defaultGlobals,
+        loggedInUsersOnly,
+        enableGlobalReviewerAccess,
         completed: true
       })
   }

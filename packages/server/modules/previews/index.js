@@ -11,6 +11,7 @@ const {
 
 const { getStream } = require('../core/services/streams')
 const { getObject } = require('../core/services/objects')
+const { getServerInfo } = require('../core/services/generic')
 const {
   getCommitsByStreamId,
   getCommitsByBranchName,
@@ -73,6 +74,7 @@ exports.init = (app) => {
       )
       return {
         type: 'file',
+        error: true,
         file: previewErrorImage
       }
     }
@@ -110,7 +112,9 @@ exports.init = (app) => {
         }
       }
     }
-
+    if (previewBufferOrFile.error) {
+      res.set('X-Preview-Error', 'true')
+    }
     if (previewBufferOrFile.type === 'file') {
       res.sendFile(previewBufferOrFile.file)
     } else {
@@ -143,11 +147,14 @@ exports.init = (app) => {
       }
 
       try {
-        await authorizeResolver(
-          req.context.userId,
-          req.params.streamId,
-          'stream:reviewer'
-        )
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if (!enableGlobalReviewerAccess)
+          await authorizeResolver(
+            req.context.userId,
+            req.params.streamId,
+            'stream:reviewer'
+          )
       } catch (err) {
         return { hasPermissions: false, httpErrorCode: 401 }
       }
@@ -155,27 +162,7 @@ exports.init = (app) => {
     return { hasPermissions: true, httpErrorCode: 200 }
   }
 
-  app.get(
-    '/preview/:streamId/objects/:objectId/:angle',
-    contextMiddleware,
-    async (req, res) => {
-      const { hasPermissions, httpErrorCode } = await checkStreamPermissions(req)
-      if (!hasPermissions) {
-        // return res.status( httpErrorCode ).end()
-        return res.sendFile(httpErrorImage(httpErrorCode))
-      }
-
-      return sendObjectPreview(
-        req,
-        res,
-        req.params.streamId,
-        req.params.objectId,
-        req.params.angle
-      )
-    }
-  )
-
-  app.get('/preview/:streamId', contextMiddleware, async (req, res) => {
+  app.get('/preview/:streamId/:angle?', contextMiddleware, async (req, res) => {
     const { hasPermissions, httpErrorCode } = await checkStreamPermissions(req)
     if (!hasPermissions) {
       // return res.status( httpErrorCode ).end()
@@ -197,12 +184,12 @@ exports.init = (app) => {
       res,
       req.params.streamId,
       lastCommit.referencedObject,
-      DEFAULT_ANGLE
+      req.params.angle || DEFAULT_ANGLE
     )
   })
 
   app.get(
-    '/preview/:streamId/branches/:branchName',
+    '/preview/:streamId/branches/:branchName/:angle?',
     contextMiddleware,
     async (req, res) => {
       const { hasPermissions, httpErrorCode } = await checkStreamPermissions(req)
@@ -232,13 +219,13 @@ exports.init = (app) => {
         res,
         req.params.streamId,
         lastCommit.referencedObject,
-        DEFAULT_ANGLE
+        req.params.angle || DEFAULT_ANGLE
       )
     }
   )
 
   app.get(
-    '/preview/:streamId/commits/:commitId',
+    '/preview/:streamId/commits/:commitId/:angle?',
     contextMiddleware,
     async (req, res) => {
       const { hasPermissions, httpErrorCode } = await checkStreamPermissions(req)
@@ -258,13 +245,13 @@ exports.init = (app) => {
         res,
         req.params.streamId,
         commit.referencedObject,
-        DEFAULT_ANGLE
+        req.params.angle || DEFAULT_ANGLE
       )
     }
   )
 
   app.get(
-    '/preview/:streamId/objects/:objectId',
+    '/preview/:streamId/objects/:objectId/:angle?',
     contextMiddleware,
     async (req, res) => {
       const { hasPermissions } = await checkStreamPermissions(req)
@@ -278,7 +265,7 @@ exports.init = (app) => {
         res,
         req.params.streamId,
         req.params.objectId,
-        DEFAULT_ANGLE
+        req.params.angle || DEFAULT_ANGLE
       )
     }
   )

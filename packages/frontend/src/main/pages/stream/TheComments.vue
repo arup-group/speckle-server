@@ -1,6 +1,6 @@
 <template>
   <div class="">
-    <portal to="toolbar">
+    <portal v-if="canRenderToolbarPortal" to="toolbar">
       <div v-if="!$apollo.loading" class="d-flex align-center">
         <div class="text-truncate flex-shrink-1">
           <router-link
@@ -31,9 +31,32 @@
     </portal>
     <v-row v-if="localComments.length === 0">
       <v-col cols="12">
-        <no-data-placeholder>
-          <h2 class="space-grotesk">No comments here just yet!</h2>
-        </no-data-placeholder>
+        <div class="d-flex flex-column text-center justify-center mt-10">
+          <div class="d-flex justify-center">
+            <a
+              href="https://speckle.systems/tutorials/live-3d-comments-for-distributed-real-time-reviews/"
+              target="_blank"
+            >
+              <v-img
+                src="@/assets/comments.gif"
+                max-width="450"
+                class="rounded-xl elevation-5"
+              ></v-img>
+            </a>
+          </div>
+          <div class="ml-5 mt-10">
+            <span class="caption">There are no comments in this stream yet.</span>
+            <br />
+            <a
+              href="https://speckle.systems/tutorials/live-3d-comments-for-distributed-real-time-reviews/"
+              target="_blank"
+              class="font-weight-bold text-decoration-none"
+            >
+              Read more about Speckle's Live 3D Comments for Distributed Real Time
+              Reviews!
+            </a>
+          </div>
+        </div>
       </v-col>
     </v-row>
     <v-row v-else>
@@ -68,14 +91,18 @@
 </template>
 <script>
 import gql from 'graphql-tag'
+import {
+  STANDARD_PORTAL_KEYS,
+  buildPortalStateMixin
+} from '@/main/utils/portalStateManager'
 
 export default {
   name: 'TheComments',
   components: {
     CommentListItem: () => import('@/main/components/comments/CommentListItem.vue'),
-    NoDataPlaceholder: () => import('@/main/components/common/NoDataPlaceholder'),
     InfiniteLoading: () => import('vue-infinite-loading')
   },
+  mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-comments', 1)],
   data() {
     return {
       localComments: [],
@@ -184,4 +211,3 @@ export default {
   }
 }
 </script>
-<style scoped></style>

@@ -1,6 +1,6 @@
 <template>
   <v-container class="pa-0">
-    <portal to="toolbar">
+    <portal v-if="canRenderToolbarPortal" to="toolbar">
       <div v-if="stream" class="d-flex align-center">
         <div class="text-truncate">
           <router-link
@@ -21,9 +21,12 @@
     </portal>
     <v-row v-if="stream">
       <v-col v-if="stream.role !== 'stream:owner'" cols="12">
-        <v-alert type="warning">
+        <v-alert v-if="stream.role" type="warning">
           Your permission level ({{ stream.role }}) is not high enough to edit this
-          stream's details.
+          stream's collaborators.
+        </v-alert>
+        <v-alert v-else type="warning">
+          Your permission level is not high enough to edit this stream's collaborators.
         </v-alert>
       </v-col>
       <v-col cols="12">
@@ -34,7 +37,14 @@
           </template>
           <v-card-text>
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
-              <h2>Name and description</h2>
+              <h2>Job number, name and description</h2>
+              <v-text-field
+                v-model="jobNumber"
+                label="Job Number"
+                hint="The job number associated with this stream."
+                class="mt-5"
+                :disabled="stream.role !== 'stream:owner'"
+              />
               <v-text-field
                 v-model="name"
                 :rules="validation.nameRules"
@@ -55,7 +65,7 @@
                 v-model="isPublic"
                 inset
                 class="mt-5"
-                :label="isPublic ? 'Public (Link Sharing)' : 'Private'"
+                :label="isPublic ? 'Link Sharing On' : 'Link Sharing Off'"
                 :hint="
                   isPublic
                     ? 'Anyone with the link can view this stream. It is also visible on your profile page. Only collaborators can push data to it.'
@@ -175,18 +185,24 @@
 
 <script>
 import gql from 'graphql-tag'
+import {
+  STANDARD_PORTAL_KEYS,
+  buildPortalStateMixin
+} from '@/main/utils/portalStateManager'
 
 export default {
   name: 'TheSettings',
   components: {
     SectionCard: () => import('@/main/components/common/SectionCard')
   },
+  mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-settings', 1)],
   apollo: {
     stream: {
       query: gql`
         query Stream($id: String!) {
           stream(id: $id) {
             id
+            jobNumber
             name
             description
             isPublic
@@ -208,7 +224,8 @@ export default {
             name: this.name,
             description: this.description,
             isPublic: this.isPublic,
-            allowPublicComments: this.allowPublicComments
+            allowPublicComments: this.allowPublicComments,
+            jobNumber: this.jobNumber
           } = stream)
 
         return stream
@@ -221,6 +238,7 @@ export default {
     loadingDelete: false,
     valid: false,
     name: null,
+    jobNumber: null,
     deleteDialog: false,
     streamNameConfirm: '',
     description: null,
@@ -238,7 +256,8 @@ export default {
         (this.name !== this.stream.name ||
           this.description !== this.stream.description ||
           this.isPublic !== this.stream.isPublic ||
-          this.allowPublicComments !== this.stream.allowPublicComments)
+          this.allowPublicComments !== this.stream.allowPublicComments ||
+          this.jobNumber !== this.stream.jobNumber)
       )
     }
   },
@@ -267,7 +286,8 @@ export default {
               name: this.name,
               description: this.description,
               isPublic: this.isPublic,
-              allowPublicComments: this.allowPublicComments
+              allowPublicComments: this.allowPublicComments,
+              jobNumber: this.jobNumber
             }
           }
         })

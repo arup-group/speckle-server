@@ -15,6 +15,7 @@ type Branch {
   name: String!
   author: User
   description: String
+  createdAt: DateTime
   commits(limit: Int! = 25, cursor: String): CommitCollection
 }
 
@@ -169,7 +170,11 @@ input CommitCreateInput {
 input CommitUpdateInput {
   streamId: String!
   id: String!
-  message: String!
+  message: String
+  """
+  To move the commit to a different branch, please the name of the branch.
+  """
+  newBranchName: String
 }
 
 input CommitReceivedInput {

@@ -6,6 +6,7 @@ const {
 } = require('@/modules/shared')
 
 const { getStream } = require('../services/streams')
+const { getServerInfo } = require('../services/generic')
 
 module.exports = {
   async validatePermissionsReadStream(streamId, req) {
@@ -32,7 +33,10 @@ module.exports = {
       }
 
       try {
-        await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if (!enableGlobalReviewerAccess)
+          await authorizeResolver(req.context.userId, streamId, 'stream:reviewer')
       } catch (err) {
         return { result: false, status: 401 }
       }

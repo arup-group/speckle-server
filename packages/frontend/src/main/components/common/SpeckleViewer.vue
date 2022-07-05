@@ -1,14 +1,20 @@
 <template lang="html">
-  <div style="height: 100vh; position: relative" class="transparent">
+  <div style="height: 100vh; position: relative" class="speckle-viewer transparent">
     <div
       id="rendererparent"
       ref="rendererparent"
-      :class="`background-${$vuetify.theme.dark ? 'dark' : 'light'}`"
+      :class="`${
+        $route.query.transparent === 'true'
+          ? ''
+          : $vuetify.theme.dark
+          ? 'background-dark'
+          : 'background-light'
+      }`"
     ></div>
   </div>
 </template>
 <script>
-import { Viewer } from '@speckle/viewer'
+import { Viewer, DefaultViewerParams } from '@speckle/viewer'
 import throttle from 'lodash/throttle'
 
 export default {
@@ -41,7 +47,8 @@ export default {
       renderDomElement.id = 'renderer'
     }
     if (!window.__viewer) {
-      window.__viewer = new Viewer({ container: renderDomElement, showStats: false })
+      window.__viewer = new Viewer(renderDomElement, DefaultViewerParams)
+      await window.__viewer.init()
     }
 
     this.domElement = renderDomElement
@@ -88,7 +95,7 @@ export default {
 <style>
 #rendererparent {
   position: relative;
-  display: inline-block;
+  display: block;
   width: 100%;
   height: 100vh;
 }

@@ -8,6 +8,7 @@ docker_image_tag: v2.3.3
 db:
   # postgres_url: secret -> postgres_url
   useCertificate: false
+  maxConnectionsServer: 4
   certificate: '' # Multi-line string with the contents of `ca-certificate.crt`
   PGSSLMODE: require
 
@@ -101,3 +102,5 @@ enable_prometheus_monitoring: false
 cert_manager_issuer: letsencrypt-staging
 
 helm_test_enabled: true
+
+create_namespace: false

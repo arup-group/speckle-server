@@ -11,6 +11,7 @@ module.exports = {
     col: {
       id: 'streams.id',
       name: 'streams.name',
+      jobNumber: 'streams.jobNumber',
       description: 'streams.description',
       isPublic: 'streams.isPublic',
       clonedFrom: 'streams.clonedFrom',
@@ -53,6 +54,14 @@ module.exports = {
       profiles: 'users.profiles',
       passwordDigest: 'users.passwordDigest',
       ip: 'users.ip'
+    }
+  },
+  ServerAcl: {
+    name: 'server_acl',
+    knex: () => knex('server_acl'),
+    col: {
+      userId: 'server_acl.userId',
+      role: 'server_acl.role'
     }
   },
   knex

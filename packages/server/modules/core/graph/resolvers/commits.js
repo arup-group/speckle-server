@@ -24,8 +24,13 @@ const {
 
 const { getStream } = require('../../services/streams')
 const { getUser } = require('../../services/users')
+const { getServerInfo } = require('../../services/generic')
 
-const { respectsLimits } = require('../../services/ratelimits')
+const {
+  respectsLimits,
+  respectsLimitsByProject,
+  sendProjectInfoToValueTrack
+} = require('@/modules/core/services/ratelimits')
 
 // subscription events
 const COMMIT_CREATED = 'COMMIT_CREATED'
@@ -105,16 +110,52 @@ module.exports = {
   },
   Mutation: {
     async commitCreate(parent, args, context) {
+      const stream = await getStream({ streamId: args.commit.streamId })
+
+      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      if (requireJobNumber) {
+        if (!stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a commit on this server. Please make sure a job number has been assigned to the stream you are working with.'
+          )
+        }
+      }
+
       await authorizeResolver(
         context.userId,
         args.commit.streamId,
         'stream:contributor'
       )
 
-      if (
-        !(await respectsLimits({ action: 'COMMIT_CREATE', source: context.userId }))
-      ) {
-        throw new Error('Blocked due to rate-limiting. Try again later')
+      const rateLimitByProject = process.env.RATE_LIMIT_BY_PROJECT === 'true'
+      if (!rateLimitByProject) {
+        if (
+          !(await respectsLimits({
+            action: 'COMMIT_CREATE',
+            source: context.userId
+          }))
+        ) {
+          throw new Error('Blocked due to rate-limiting. Try again later')
+        }
+      } else {
+        const respectsLimits = await respectsLimitsByProject({
+          action: 'COMMIT_CREATE',
+          source: stream.jobNumber
+        })
+        if (!respectsLimits) {
+          throw new Error(
+            'Blocked due to rate-limiting (on a per project basis). Please get in touch with your PM regarding use of Speckle on your project.'
+          )
+        }
+      }
+
+      const useValueTrack = process.env.USE_VALUETRACK === 'true'
+      if (useValueTrack) {
+        await sendProjectInfoToValueTrack({
+          action: 'CREATE_ACTION_VALUETRACK',
+          source: stream.jobNumber,
+          userId: context.userId
+        })
       }
 
       const id = await createCommitByBranchName({
@@ -141,20 +182,27 @@ module.exports = {
     },
 
     async commitUpdate(parent, args, context) {
-      await authorizeResolver(
+      const role = await authorizeResolver(
         context.userId,
         args.commit.streamId,
         'stream:contributor'
       )
 
+      if (!args.commit.message && !args.commit.newBranchName)
+        throw new UserInputError('Please provide a message and/or a new branch name.')
+
       const commit = await getCommitById({
         streamId: args.commit.streamId,
         id: args.commit.id
       })
-      if (commit.authorId !== context.userId)
-        throw new ForbiddenError('Only the author of a commit may update it.')
+
+      if (commit.authorId !== context.userId && role !== 'stream:owner')
+        throw new ForbiddenError(
+          'Only the author of a commit or a stream owner may update it.'
+        )
 
       const updated = await updateCommit({ ...args.commit })
+
       if (updated) {
         await saveActivity({
           streamId: args.commit.streamId,
@@ -180,7 +228,14 @@ module.exports = {
       const stream = await getStream({ streamId: args.input.streamId })
 
       if (!stream.public) {
-        await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
+        const info = await getServerInfo()
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if (!enableGlobalReviewerAccess)
+          await authorizeResolver(
+            context.userId,
+            args.input.streamId,
+            'stream:reviewer'
+          )
       }
 
       await getCommitById({
@@ -244,7 +299,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_CREATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )
@@ -254,7 +312,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_UPDATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
           if (streamMatch && variables.commitId) {
@@ -270,7 +331,10 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_DELETED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const info = await getServerInfo()
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }

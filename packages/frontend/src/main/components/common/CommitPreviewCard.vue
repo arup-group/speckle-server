@@ -1,14 +1,17 @@
 <template>
   <v-hover v-slot="{ hover }">
     <v-card
-      class="rounded-lg overflow-hidden"
+      :class="`rounded-lg overflow-hidden`"
       :elevation="hover ? 10 : 1"
-      style="transition: all 0.2s ease-in-out"
+      :style="`transition: all 0.2s ease-in-out; ${
+        highlight ? 'outline: 0.2rem solid #047EFB;' : ''
+      }`"
     >
       <router-link :to="`/streams/${streamId}/commits/${commit.id}`">
         <preview-image
           :url="`/preview/${streamId}/commits/${commit.id}`"
           :height="previewHeight"
+          rotate
         ></preview-image>
       </router-link>
       <v-toolbar class="transparent elevation-0" dense>
@@ -86,7 +89,8 @@ export default {
   props: {
     commit: { type: Object, default: () => null },
     previewHeight: { type: Number, default: () => 180 },
-    showStreamAndBranch: { type: Boolean, default: true }
+    showStreamAndBranch: { type: Boolean, default: true },
+    highlight: { type: Boolean, default: false }
   },
   computed: {
     streamId() {

@@ -12,6 +12,8 @@ export const MAIN_SERVER_INFO_FIELDS = gql`
     version
     createDefaultGlobals
     defaultGlobals
+    loggedInUsersOnly
+    enableGlobalReviewerAccess
   }
 `
 

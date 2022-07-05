@@ -1,6 +1,6 @@
 <template>
   <div v-if="stream">
-    <portal to="toolbar">
+    <portal v-if="canRenderToolbarPortal" to="toolbar">
       <div class="d-flex align-center">
         <div class="text-truncate">
           <router-link
@@ -24,14 +24,12 @@
                 Commits: ${stream.commits.totalCount} <br>
                 Branches: ${stream.branches.totalCount}`
             }"
-            class="caption mx-1"
+            class="caption mx-2"
           >
-            Updated
-            <timeago :datetime="stream.updatedAt"></timeago>
-            <v-icon style="font-size: 11px" class="ml-1">mdi-source-commit</v-icon>
+            <!-- <v-icon style="font-size: 11px" class="ml-1">mdi-source-commit</v-icon>
             {{ stream.commits.totalCount }}
             <v-icon style="font-size: 11px" class="ml-1">mdi-source-branch</v-icon>
-            {{ stream.branches.totalCount }}
+            {{ stream.branches.totalCount }} -->
             <v-icon x-small class="">mdi-heart-multiple</v-icon>
             {{ stream.favoritesCount }}
           </span>
@@ -41,24 +39,20 @@
         </div>
       </div>
     </portal>
-    <portal to="actions">
+    <portal v-if="canRenderActionsPortal" to="actions">
       <span v-if="user" style="position: relative; right: -5px">
         <stream-favorite-btn :stream="stream" :user="user" />
       </span>
       <v-btn
         v-if="stream"
         v-tooltip="'Share this stream'"
-        elevation="0"
-        text
+        xxxelevation="0"
         rounded
-        class="mr-1 px-0"
+        class="mr-2 ml-2 px-0 primary"
         @click="shareStream = true"
       >
-        <v-icon v-if="!stream.isPublic" x-small class="mr-1 grey--text">
-          mdi-lock
-        </v-icon>
-        <v-icon v-else x-small class="mr-1 grey--text">mdi-lock-open</v-icon>
-        <v-icon small class="primary--text">mdi-share-variant</v-icon>
+        <v-icon v-if="!stream.isPublic" small class="mr-1">mdi-lock</v-icon>
+        <v-icon small>mdi-share-variant</v-icon>
       </v-btn>
     </portal>
     <v-dialog
@@ -71,6 +65,11 @@
   </div>
 </template>
 <script>
+import {
+  STANDARD_PORTAL_KEYS,
+  buildPortalStateMixin
+} from '@/main/utils/portalStateManager'
+
 export default {
   components: {
     CollaboratorsDisplay: () => import('@/main/components/stream/CollaboratorsDisplay'),
@@ -78,12 +77,19 @@ export default {
     StreamFavoriteBtn: () =>
       import('@/main/components/stream/favorites/StreamFavoriteBtn.vue')
   },
+  mixins: [
+    buildPortalStateMixin(
+      [STANDARD_PORTAL_KEYS.Actions, STANDARD_PORTAL_KEYS.Toolbar],
+      'stream-main',
+      0
+    )
+  ],
   props: {
     stream: { type: Object, required: true },
     user: { type: Object, default: () => null }
   },
   data() {
-    return { shareStream: false }
+    return { shareStream: false, portalIdentity: 'stream-main' }
   }
 }
 </script>

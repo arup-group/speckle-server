@@ -1,6 +1,6 @@
 const _ = require('lodash')
 const { Streams, StreamAcl, StreamFavorites, knex } = require('@/modules/core/dbSchema')
-const { InvalidArgumentError } = require('@/modules/core/errors/base')
+const { InvalidArgumentError } = require('@/modules/shared/errors')
 const { Roles } = require('@/modules/core/helpers/mainConstants')
 
 /**
@@ -10,6 +10,7 @@ const { Roles } = require('@/modules/core/helpers/mainConstants')
 const BASE_STREAM_COLUMNS = [
   Streams.col.id,
   Streams.col.name,
+  Streams.col.jobNumber,
   Streams.col.description,
   Streams.col.isPublic,
   Streams.col.createdAt,

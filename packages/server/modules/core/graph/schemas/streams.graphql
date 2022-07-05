@@ -22,6 +22,7 @@ extend type Query {
 type Stream {
   id: String!
   name: String!
+  jobNumber: String
   description: String
   isPublic: Boolean!
   allowPublicComments: Boolean!
@@ -70,7 +71,7 @@ type StreamCollaborator {
 type StreamCollection {
   totalCount: Int!
   cursor: String
-  items: [Stream]
+  items: [Stream!]
 }
 
 extend type Mutation {
@@ -158,6 +159,7 @@ input StreamCreateInput {
   name: String
   description: String
   isPublic: Boolean
+  jobNumber: String
 }
 
 input StreamUpdateInput {
@@ -166,6 +168,7 @@ input StreamUpdateInput {
   description: String
   isPublic: Boolean
   allowPublicComments: Boolean
+  jobNumber: String
 }
 
 input StreamGrantPermissionInput {

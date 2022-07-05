@@ -31,7 +31,13 @@ const {
   pubsub
 } = require(`@/modules/shared`)
 const { saveActivity } = require(`@/modules/activitystream/services`)
-const { respectsLimits } = require('@/modules/core/services/ratelimits')
+const {
+  respectsLimits,
+  respectsLimitsByProject,
+  sendProjectInfoToValueTrack
+} = require('@/modules/core/services/ratelimits')
+
+const { getServerInfo } = require('../../services/generic')
 
 // subscription events
 const USER_STREAM_ADDED = 'USER_STREAM_ADDED'
@@ -89,10 +95,17 @@ module.exports = {
       if (!stream.isPublic && context.auth === false)
         throw new ForbiddenError('You are not authorized.')
 
-      if (!stream.isPublic) {
+      const info = await getServerInfo()
+      const loggedInUsersOnly = info.loggedInUsersOnly
+      if (loggedInUsersOnly || !stream.isPublic)
         await validateServerRole(context, 'server:user')
+
+      if (!stream.isPublic) {
         await validateScopes(context.scopes, 'streams:read')
-        await authorizeResolver(context.userId, args.id, 'stream:reviewer')
+
+        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+        if (!enableGlobalReviewerAccess)
+          await authorizeResolver(context.userId, args.id, 'stream:reviewer')
       }
 
       return stream
@@ -190,10 +203,44 @@ module.exports = {
 
   Mutation: {
     async streamCreate(parent, args, context) {
-      if (
-        !(await respectsLimits({ action: 'STREAM_CREATE', source: context.userId }))
-      ) {
-        throw new Error('Blocked due to rate-limiting. Try again later')
+      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      if (requireJobNumber) {
+        if (!args.stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a stream on this server. Please provide one.'
+          )
+        }
+      }
+
+      const rateLimitByProject = process.env.RATE_LIMIT_BY_PROJECT === 'true'
+      if (!rateLimitByProject) {
+        if (
+          !(await respectsLimits({
+            action: 'STREAM_CREATE',
+            source: context.userId
+          }))
+        ) {
+          throw new Error('Blocked due to rate-limiting. Try again later')
+        }
+      } else {
+        const respectsLimits = await respectsLimitsByProject({
+          action: 'STREAM_CREATE',
+          source: args.stream.jobNumber
+        })
+        if (!respectsLimits) {
+          throw new Error(
+            'Blocked due to rate-limiting (on a per project basis). Please get in touch with your PM regarding use of Speckle on your project.'
+          )
+        }
+      }
+
+      const useValueTrack = process.env.USE_VALUETRACK === 'true'
+      if (useValueTrack) {
+        await sendProjectInfoToValueTrack({
+          action: 'CREATE_ACTION_VALUETRACK',
+          source: args.stream.jobNumber,
+          userId: context.userId
+        })
       }
 
       const id = await createStream({ ...args.stream, ownerId: context.userId })
@@ -223,7 +270,8 @@ module.exports = {
         name: args.stream.name,
         description: args.stream.description,
         isPublic: args.stream.isPublic,
-        allowPublicComments: args.stream.allowPublicComments
+        allowPublicComments: args.stream.allowPublicComments,
+        jobNumber: args.stream.jobNumber
       }
 
       await updateStream(update)
@@ -241,7 +289,8 @@ module.exports = {
         streamUpdated: {
           id: args.stream.id,
           name: args.stream.name,
-          description: args.stream.description
+          description: args.stream.description,
+          jobNumber: args.stream.jobNumber
         },
         id: args.stream.id
       })
@@ -369,7 +418,12 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_UPDATED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
+          const info = await getServerInfo()
+          const loggedInUsersOnly = info.loggedInUsersOnly
+          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
+            await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
           return payload.id === variables.streamId
         }
       )
@@ -379,7 +433,12 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_DELETED]),
         async (payload, variables, context) => {
-          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          const info = await getServerInfo()
+          const loggedInUsersOnly = info.loggedInUsersOnly
+          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
+          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
+          if (!enableGlobalReviewerAccess)
+            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )

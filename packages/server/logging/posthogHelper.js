@@ -26,5 +26,12 @@ module.exports = {
       event,
       properties: cloneEventPayload
     })
+  },
+  captureValueTrackUsage(event, id, eventPayload) {
+    client.capture({
+      distinctId: id,
+      event,
+      properties: eventPayload
+    })
   }
 }

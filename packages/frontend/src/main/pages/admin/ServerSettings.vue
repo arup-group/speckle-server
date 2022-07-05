@@ -1,6 +1,6 @@
 <template>
   <div>
-    <portal to="toolbar">Server Info and Settings</portal>
+    <portal v-if="canRenderToolbarPortal" to="toolbar">Server Info and Settings</portal>
     <section-card>
       <v-card-text>Here you can edit your server's basic information.</v-card-text>
     </section-card>
@@ -58,12 +58,17 @@
 import gql from 'graphql-tag'
 import { MainServerInfoQuery } from '@/graphql/server'
 import pick from 'lodash/pick'
+import {
+  STANDARD_PORTAL_KEYS,
+  buildPortalStateMixin
+} from '@/main/utils/portalStateManager'
 
 export default {
   name: 'ServerInfoAdminCard',
   components: {
     SectionCard: () => import('@/main/components/common/SectionCard')
   },
+  mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'admin-settings', 1)],
   data() {
     return {
       edit: false,
@@ -91,8 +96,19 @@ export default {
           hint: 'Url pointing to the terms of service page'
         },
         inviteOnly: {
-          label: 'Invite-Only mode',
+          label: 'Invite-only mode',
           hint: 'Only users with an invitation will be able to join',
+          type: 'boolean'
+        },
+        loggedInUsersOnly: {
+          label: 'Require log-in to access streams on this server',
+          hint: 'Only logged-in users will be able to access streams - applies to both public and private streams',
+          type: 'boolean'
+        },
+        enableGlobalReviewerAccess: {
+          label:
+            'Enable reviewer access to all streams on this server for any server user',
+          hint: 'Give all server users reviewer (read only) access to all streams (both public and private) on this server',
           type: 'boolean'
         },
         createDefaultGlobals: {

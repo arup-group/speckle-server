@@ -18,6 +18,8 @@ type ServerInfo {
   version: String
   createDefaultGlobals: Boolean
   defaultGlobals: JSONObject
+  loggedInUsersOnly: Boolean
+  enableGlobalReviewerAccess: Boolean
 }
 
 """
@@ -52,4 +54,6 @@ input ServerInfoUpdateInput {
   inviteOnly: Boolean
   createDefaultGlobals: Boolean
   defaultGlobals: JSONObject
+  loggedInUsersOnly: Boolean
+  enableGlobalReviewerAccess: Boolean
 }

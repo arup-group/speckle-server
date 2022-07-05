@@ -17,10 +17,7 @@ const {
   setStreamFavorited,
   canUserFavoriteStream
 } = require('@/modules/core/repositories/streams')
-const {
-  UnauthorizedAccessError,
-  InvalidArgumentError
-} = require('@/modules/core/errors/base')
+const { UnauthorizedError, InvalidArgumentError } = require('@/modules/shared/errors')
 
 /**
  * Get base query for finding or counting user streams
@@ -47,12 +44,13 @@ function getUserStreamsQueryBase({ userId, publicOnly, searchQuery }) {
 }
 
 module.exports = {
-  async createStream({ name, description, isPublic, ownerId }) {
+  async createStream({ name, description, isPublic, ownerId, jobNumber }) {
     const stream = {
       id: crs({ length: 10 }),
       name: name || generateStreamName(),
       description: description || '',
       isPublic: isPublic !== false,
+      jobNumber: jobNumber || '',
       updatedAt: knex.fn.now()
     }
 
@@ -98,7 +96,14 @@ module.exports = {
 
   getStream,
 
-  async updateStream({ streamId, name, description, isPublic, allowPublicComments }) {
+  async updateStream({
+    streamId,
+    name,
+    description,
+    isPublic,
+    allowPublicComments,
+    jobNumber
+  }) {
     const [{ id }] = await Streams.knex()
       .returning('id')
       .where({ id: streamId })
@@ -107,6 +112,7 @@ module.exports = {
         description,
         isPublic,
         allowPublicComments,
+        jobNumber,
         updatedAt: knex.fn.now()
       })
     return id
@@ -314,12 +320,9 @@ module.exports = {
   async favoriteStream({ userId, streamId, favorited }) {
     // Check if user has access to stream
     if (!(await canUserFavoriteStream({ userId, streamId }))) {
-      throw new UnauthorizedAccessError(
-        "User doesn't have access to the specified stream",
-        {
-          info: { userId, streamId }
-        }
-      )
+      throw new UnauthorizedError("User doesn't have access to the specified stream", {
+        info: { userId, streamId }
+      })
     }
 
     // Favorite/unfavorite the stream

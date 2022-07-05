@@ -106,9 +106,6 @@ export default {
         'progress',
         function (e) {
           this.percentCompleted = (e.loaded / e.total) * 100
-          if (this.percentCompleted >= 100) {
-            this.$emit('done', this.file.name)
-          }
         }.bind(this)
       )
 
@@ -116,7 +113,7 @@ export default {
       request.addEventListener(
         'load',
         function () {
-          if (request.status !== 200) {
+          if (request.status !== 201) {
             this.error = request.response
           }
 
@@ -127,7 +124,7 @@ export default {
       request.addEventListener(
         'error',
         function () {
-          if (request.status !== 200) {
+          if (request.status !== 201) {
             this.error = request.response
           }
         }.bind(this)

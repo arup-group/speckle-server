@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="px-0 py-0" xxxstyle="max-width: 768px">
-    <portal v-if="stream" to="toolbar">
+    <portal v-if="stream && canRenderToolbarPortal" to="toolbar">
       <div class="d-flex align-center">
         <div class="text-truncate">
           <router-link
@@ -21,9 +21,12 @@
     </portal>
     <v-row justify="center">
       <v-col v-if="stream.role !== 'stream:owner'" cols="12">
-        <v-alert type="warning">
+        <v-alert v-if="stream.role" type="warning">
           Your permission level ({{ stream.role }}) is not high enough to edit this
           stream's collaborators.
+        </v-alert>
+        <v-alert v-else type="warning">
+          Your permission level is not high enough to edit this stream's collaborators.
         </v-alert>
       </v-col>
 
@@ -122,8 +125,14 @@
                 {{ role.description }}
               </v-card-text>
               <v-card-text v-if="role.name === 'stream:reviewer'">
+                <div v-if="serverInfo.enableGlobalReviewerAccess">
+                  Reviewer access to all streams on this server has been granted to any
+                  server user (this is controlled by the server admin in the server
+                  settings).
+                </div>
                 <div
                   v-for="user in reviewers"
+                  v-else
                   :key="user.id"
                   class="d-flex align-center mb-2"
                 >
@@ -236,6 +245,10 @@ import gql from 'graphql-tag'
 import streamCollaboratorsQuery from '@/graphql/streamCollaborators.gql'
 import userSearchQuery from '@/graphql/userSearch.gql'
 import { FullServerInfoQuery } from '@/graphql/server'
+import {
+  STANDARD_PORTAL_KEYS,
+  buildPortalStateMixin
+} from '@/main/utils/portalStateManager'
 
 export default {
   name: 'TheCollaborators',
@@ -245,6 +258,9 @@ export default {
     SectionCard: () => import('@/main/components/common/SectionCard'),
     StreamInviteDialog: () => import('@/main/dialogs/StreamInviteDialog')
   },
+  mixins: [
+    buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-collaborators', 1)
+  ],
   data: () => ({
     search: '',
     selectedUsers: null,
