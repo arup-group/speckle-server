@@ -16,17 +16,10 @@
       @submit.prevent="createStream"
     >
       <v-card-text>
-        <!-- <job-number-search
+        <job-number-search
           ref="input-field"
           @jobObjectSelected="selectedJobNumber"
-        ></job-number-search> -->
-        <v-text-field
-          v-model="jobNumber"
-          :rules="jobNumberRules"
-          validate-on-blur
-          label="Job Number (required)"
-          class="required"
-        />
+        ></job-number-search>
         <v-text-field
           v-model="name"
           :rules="nameRules"
@@ -131,8 +124,8 @@ import userSearchQuery from '../../graphql/userSearch.gql'
 
 export default {
   components: {
-    UserAvatar: () => import('@/main/components/common/UserAvatar')
-    // JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
+    UserAvatar: () => import('@/main/components/common/UserAvatar'),
+    JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
   },
   props: {
     open: {
@@ -267,14 +260,14 @@ export default {
         })
       }
       this.isLoading = false
+    },
+    selectedJobNumber(event) {
+      console.log(event)
+      if (event) {
+        this.jobNumber = event.JobCode
+        console.log(this.jobNumber)
+      }
     }
-    // selectedJobNumber(event) {
-    //   console.log(event)
-    //   if (event) {
-    //     this.jobNumber = event.JobCode
-    //     console.log(this.jobNumber)
-    //   }
-    // }
   }
 }
 </script>

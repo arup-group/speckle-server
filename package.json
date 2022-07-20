@@ -43,5 +43,8 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "odata": "^1.3.1"
   }
 }
