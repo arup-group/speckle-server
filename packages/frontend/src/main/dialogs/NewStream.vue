@@ -173,7 +173,7 @@ export default {
         }
       ],
       nameRules: [],
-      isPublic: true,
+      isPublic: false,
       collabs: [],
       isLoading: false
     }
