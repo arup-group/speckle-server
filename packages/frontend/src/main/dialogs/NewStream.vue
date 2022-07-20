@@ -17,6 +17,7 @@
     >
       <v-card-text>
         <job-number-search
+          v-if="requireJobNumberToCreateStreams"
           ref="input-field"
           @jobObjectSelected="selectedJobNumber"
         ></job-number-search>
@@ -150,6 +151,17 @@ export default {
         return !this.search || this.search.length < 3
       },
       debounce: 300
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
     }
   },
   data() {

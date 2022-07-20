@@ -65,7 +65,7 @@ export default {
   },
   data() {
     return {
-      jobNumberLabel: 'Search job numbers or names... (required)',
+      jobNumberLabel: 'Search job numbers or names...',
       searchError: false,
       jobNumberAndName: null,
       jobNumber: null,
@@ -75,8 +75,12 @@ export default {
       loading: false
     }
   },
-  created() {
-    this.jobNumber = this.initialJobNumber
+  async mounted() {
+    await this.getJobNumbers(this.initialJobNumber)
+    const job = this.searchOptions.find((j) => {
+      return j.JobCode === this.initialJobNumber
+    })
+    await this.jobNumberSelected(job)
   },
   methods: {
     //Call back function whenever jobNumber in the text field changes
@@ -106,7 +110,12 @@ export default {
       if (!jobNumber) {
         return 'Job number required'
       }
-      if (jobNumber === '00000000') {
+      if (
+        jobNumber === '00000000' ||
+        jobNumber === '12345678' ||
+        jobNumber === '12345600' ||
+        jobNumber === '99999999'
+      ) {
         return 'Do not use this job number'
       }
       if (!this.jobName) {
@@ -136,7 +145,6 @@ export default {
 
       try {
         jobNumbers = await this.getJobNumber(job)
-        console.log(jobNumbers)
       } catch (e) {
         this.searchError = true
         console.error(

@@ -59,4 +59,6 @@ input ServerInfoUpdateInput {
   loggedInUsersOnly: Boolean
   enableGlobalReviewerAccess: Boolean
   enforceJobNumberRequirement: Boolean
+  requireJobNumberToCreateStreams: Boolean
+  requireJobNumberToCreateCommits: Boolean
 }

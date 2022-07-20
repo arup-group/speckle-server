@@ -20,11 +20,6 @@ exports.init = async (app) => {
     )
   }
 
-  // sweet and simple
-  app.get('/api/jobNumber', (req, res) => {
-    res.sendFile(require.resolve('@/modules/apiexplorer/explorer.html'))
-  })
-
   app.get('/api/jobNumber/:jobNumber', contextMiddleware, async (req, res) => {
     await validateServerRole(req.context, 'server:user')
     try {

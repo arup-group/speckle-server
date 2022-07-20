@@ -44,13 +44,6 @@
                 :disabled="stream.role !== 'stream:owner'"
                 @jobObjectSelected="selectedJobNumber"
               ></job-number-search>
-              <!-- <v-text-field
-                v-model="jobNumber"
-                label="Job Number"
-                hint="The job number associated with this stream."
-                class="mt-5"
-                :disabled="stream.role !== 'stream:owner'"
-              /> -->
               <v-text-field
                 v-model="name"
                 :rules="validation.nameRules"
