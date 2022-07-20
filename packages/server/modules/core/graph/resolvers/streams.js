@@ -203,7 +203,8 @@ module.exports = {
 
   Mutation: {
     async streamCreate(parent, args, context) {
-      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      const info = await getServerInfo()
+      const requireJobNumber = info.requireJobNumberToCreateStreams
       if (requireJobNumber) {
         if (!args.stream.jobNumber) {
           throw new Error(

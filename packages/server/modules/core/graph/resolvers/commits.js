@@ -112,7 +112,8 @@ module.exports = {
     async commitCreate(parent, args, context) {
       const stream = await getStream({ streamId: args.commit.streamId })
 
-      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      const info = await getServerInfo()
+      const requireJobNumber = info.requireJobNumberToCreateCommits
       if (requireJobNumber) {
         if (!stream.jobNumber) {
           throw new Error(

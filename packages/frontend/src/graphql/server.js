@@ -14,6 +14,8 @@ export const MAIN_SERVER_INFO_FIELDS = gql`
     defaultGlobals
     loggedInUsersOnly
     enableGlobalReviewerAccess
+    requireJobNumberToCreateStreams
+    requireJobNumberToCreateCommits
   }
 `
 
