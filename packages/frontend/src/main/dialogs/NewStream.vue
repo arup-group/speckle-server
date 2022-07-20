@@ -262,10 +262,8 @@ export default {
       this.isLoading = false
     },
     selectedJobNumber(event) {
-      console.log(event)
       if (event) {
         this.jobNumber = event.JobCode
-        console.log(this.jobNumber)
       }
     }
   }

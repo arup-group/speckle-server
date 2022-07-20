@@ -6,7 +6,7 @@ module.exports = class TokenStore {
   }
 
   async getToken() {
-    let token = {
+    const token = {
       tokenType: '',
       scope: '',
       expiresIn: 0,
@@ -21,7 +21,16 @@ module.exports = class TokenStore {
     const response = await axios.post(`${this.config.adsTokenUrl}`, body)
     try {
       if (response.status === 200) {
-        token = await response.data
+        const data = await response.data
+        token.tokenType = data.token_type
+        token.scope = data.scope
+        token.expiresIn = data.expires_in
+        token.expiresOn = data.expires_on
+        token.extExpiresIn = data.ext_expires_in
+        token.notBefore = data.not_before
+        token.resource = data.resource
+        token.refreshToken = data.refresh_token
+        token.accessToken = data.access_token
       } else {
         throw new Error(response.text)
       }
