@@ -123,9 +123,12 @@ export default {
       }
       return true
     },
-    async getJobNumber(jobNumber) {
-      if (jobNumber) {
-        const res = await fetch(`/api/jobNumber/${jobNumber}`, {
+    async getJobNumber(jobQuery) {
+      if (jobQuery) {
+        const query = jobQuery.replace('-', '')
+        console.log('helelelelelelleooooooooooooooooo')
+        console.log(query)
+        const res = await fetch(`/api/jobNumber/${query}`, {
           headers: localStorage.getItem('AuthToken')
             ? { Authorization: `Bearer ${localStorage.getItem('AuthToken')}` }
             : {}
@@ -138,17 +141,17 @@ export default {
         }
       }
     },
-    async getJobNumbers(job) {
+    async getJobNumbers(jobQuery) {
       let jobNumbers
       this.loading = true
       this.searchError = false
 
       try {
-        jobNumbers = await this.getJobNumber(job)
+        jobNumbers = await this.getJobNumber(jobQuery)
       } catch (e) {
         this.searchError = true
         console.error(
-          'getJobNumber: Failed to get job number: ' + job + ' with error: ' + e
+          'getJobNumber: Failed to get job number: ' + jobQuery + ' with error: ' + e
         )
       }
 

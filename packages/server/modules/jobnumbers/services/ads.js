@@ -36,8 +36,6 @@ module.exports = class ADS {
       }
     }
     const response = await o(adsUrl, config).get(resource).query(query)
-    // .then((data) => console.log(data))
-
     return response
   }
 }

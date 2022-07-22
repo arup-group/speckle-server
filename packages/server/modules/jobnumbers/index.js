@@ -4,7 +4,7 @@ const sentry = require(`@/logging/sentryHelper`)
 const { contextMiddleware } = require('@/modules/shared')
 const { validateServerRole } = require('@/modules/shared')
 const { getServerInfo } = require('@/modules/core/services/generic')
-const { getJobCode } = require('./services/jobNumbers')
+const { getJobCodes } = require('./services/jobNumbers')
 
 exports.init = async (app) => {
   const serverInfo = await getServerInfo()
@@ -13,11 +13,11 @@ exports.init = async (app) => {
     serverInfo.requireJobNumberToCreateCommits
   ) {
     debug('speckle:modules')('📄 Init ADS integration module')
-    return
   } else {
     debug('speckle:modules')(
       '📄 Job numbers not required - ADS integration module is DISABLED'
     )
+    return
   }
 
   app.get('/api/jobNumber/:jobNumber', contextMiddleware, async (req, res) => {
@@ -27,7 +27,7 @@ exports.init = async (app) => {
         return res.status(400).send('No job number or job name parameter specified.')
 
       const jobNumber = req.params.jobNumber
-      const jobs = await getJobCode(jobNumber)
+      const jobs = await getJobCodes(jobNumber)
 
       res.setHeader('Content-Type', 'application/json')
       res.status(200)
