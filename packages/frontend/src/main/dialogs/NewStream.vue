@@ -17,8 +17,8 @@
     >
       <v-card-text>
         <job-number-search
-          v-if="requireJobNumberToCreateStreams"
           ref="input-field"
+          :job-number-required="requireJobNumberToCreateStreams"
           @jobObjectSelected="selectedJobNumber"
         ></job-number-search>
         <v-text-field
@@ -173,7 +173,6 @@ export default {
       search: null,
       junkJobNumbers: ['00000000', '12345678', '12345600', '99999999'],
       jobNumberRules: [
-        // (v) => !!v || 'Job number is required',
         (v) =>
           !v ||
           this.junkJobNumbers.findIndex((e) => e === v) === -1 ||

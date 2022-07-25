@@ -61,6 +61,10 @@ export default {
     initialJobNumber: {
       type: String,
       default: null
+    },
+    jobNumberRequired: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -75,12 +79,19 @@ export default {
       loading: false
     }
   },
+  created() {
+    if (this.jobNumberRequired) {
+      this.jobNumberLabel = this.jobNumberLabel + ' (required)'
+    }
+  },
   async mounted() {
     await this.getJobNumbers(this.initialJobNumber)
-    const job = this.searchOptions.find((j) => {
-      return j.JobCode === this.initialJobNumber
-    })
-    await this.jobNumberSelected(job)
+    if (this.searchOptions) {
+      const job = this.searchOptions.find((j) => {
+        return j.JobCode === this.initialJobNumber
+      })
+      await this.jobNumberSelected(job)
+    }
   },
   methods: {
     //Call back function whenever jobNumber in the text field changes
@@ -107,9 +118,12 @@ export default {
       }, 1)
     },
     validateJobNumber(jobNumber) {
-      if (!jobNumber) {
-        return 'Job number required'
+      if (this.jobNumberRequired) {
+        if (!jobNumber) {
+          return 'Job number required'
+        }
       }
+
       if (
         jobNumber === '00000000' ||
         jobNumber === '12345678' ||
@@ -118,16 +132,12 @@ export default {
       ) {
         return 'Do not use this job number'
       }
-      if (!this.jobName) {
-        return 'Invalid job number. Please select correct job number from list.'
-      }
+
       return true
     },
     async getJobNumber(jobQuery) {
       if (jobQuery) {
         const query = jobQuery.replace('-', '')
-        console.log('helelelelelelleooooooooooooooooo')
-        console.log(query)
         const res = await fetch(`/api/jobNumber/${query}`, {
           headers: localStorage.getItem('AuthToken')
             ? { Authorization: `Bearer ${localStorage.getItem('AuthToken')}` }
@@ -145,7 +155,6 @@ export default {
       let jobNumbers
       this.loading = true
       this.searchError = false
-
       try {
         jobNumbers = await this.getJobNumber(jobQuery)
       } catch (e) {
@@ -154,9 +163,10 @@ export default {
           'getJobNumber: Failed to get job number: ' + jobQuery + ' with error: ' + e
         )
       }
-
       this.loading = false
-      this.searchOptions = jobNumbers.jobs
+      if (jobNumbers) {
+        this.searchOptions = jobNumbers.jobs
+      }
     }
   }
 }

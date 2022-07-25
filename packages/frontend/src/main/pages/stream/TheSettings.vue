@@ -41,6 +41,7 @@
               <job-number-search
                 ref="input-field"
                 :initial-job-number="jobNumber"
+                :job-number-required="requireJobNumberToCreateStreams"
                 :disabled="stream.role !== 'stream:owner'"
                 @jobObjectSelected="selectedJobNumber"
               ></job-number-search>
@@ -230,6 +231,17 @@ export default {
 
         return stream
       }
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
     }
   },
   data: () => ({
