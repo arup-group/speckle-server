@@ -1,5 +1,5 @@
 'use strict'
-const TokenStore = require('./adsTokenStore')
+const TokenStore = require('./adstokenstore')
 const { o } = require('odata')
 
 module.exports = class ADS {

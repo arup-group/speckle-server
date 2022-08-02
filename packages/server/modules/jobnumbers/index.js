@@ -4,7 +4,7 @@ const sentry = require(`@/logging/sentryHelper`)
 const { contextMiddleware } = require('@/modules/shared')
 const { validateServerRole } = require('@/modules/shared')
 const { getServerInfo } = require('@/modules/core/services/generic')
-const { getJobCodes } = require('@/modules/jobnumbers/services/jobNumbers')
+const { getJobCodes } = require('@/modules/jobnumbers/services/jobnumbers')
 
 exports.init = async (app) => {
   const serverInfo = await getServerInfo()
