@@ -1,4 +1,4 @@
-const { pubsub } = require('@/modules/shared')
+const { authorizeResolver, pubsub } = require('@/modules/shared')
 const {
   ForbiddenError: ApolloForbiddenError,
   ApolloError,

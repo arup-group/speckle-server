@@ -17,6 +17,7 @@
     >
       <v-card-text>
         <job-number-search
+          v-if="requireJobNumberToCreateStreams"
           ref="input-field"
           :job-number-required="requireJobNumberToCreateStreams"
           @jobObjectSelected="selectedJobNumber"
