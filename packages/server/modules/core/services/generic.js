@@ -38,7 +38,9 @@ module.exports = {
     createDefaultGlobals,
     defaultGlobals,
     loggedInUsersOnly,
-    enableGlobalReviewerAccess
+    enableGlobalReviewerAccess,
+    requireJobNumberToCreateStreams,
+    requireJobNumberToCreateCommits
   }) {
     const serverInfo = await Info().select('*').first()
     if (!serverInfo)
@@ -53,6 +55,8 @@ module.exports = {
         defaultGlobals,
         loggedInUsersOnly,
         enableGlobalReviewerAccess,
+        requireJobNumberToCreateStreams,
+        requireJobNumberToCreateCommits,
         completed: true
       })
     else
@@ -67,6 +71,8 @@ module.exports = {
         defaultGlobals,
         loggedInUsersOnly,
         enableGlobalReviewerAccess,
+        requireJobNumberToCreateStreams,
+        requireJobNumberToCreateCommits,
         completed: true
       })
   }

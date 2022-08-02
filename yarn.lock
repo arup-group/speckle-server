@@ -5190,6 +5190,7 @@ __metadata:
     nodemailer: ^6.5.0
     nodemon: ^2.0.6
     nyc: ^15.0.1
+    odata: ^1.3.1
     passport: ^0.4.1
     passport-azure-ad: ^4.3.0
     passport-github2: ^0.1.12
@@ -11436,7 +11437,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cross-fetch@npm:3.1.5, cross-fetch@npm:^3.1.5":
+"cross-fetch@npm:3.1.5, cross-fetch@npm:^3.0.6, cross-fetch@npm:^3.1.5":
   version: 3.1.5
   resolution: "cross-fetch@npm:3.1.5"
   dependencies:
@@ -16120,6 +16121,13 @@ __metadata:
     is-stream: ^2.0.0
     type-fest: ^0.8.0
   checksum: 06cc474bed246761ff61c19d629977eb5f53fa817be4313a255a64ae0f433e831a29e83acb6555e3f4592b348497596f1d1653751008dda4f21c9c21ca60ac5a
+  languageName: node
+  linkType: hard
+
+"hasurl@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "hasurl@npm:1.0.0"
+  checksum: 2ce603c3f2afc3708443af0de582c0eda1b8a0d2d7d6e99698ae0aa3f563baba5aa28fa2bdc6d5834cbea3ebfbf8ad45cb975cc58d9d3b499b1c5f69a071bf95
   languageName: node
   linkType: hard
 
@@ -21225,6 +21233,17 @@ __metadata:
   version: 1.1.2
   resolution: "obuf@npm:1.1.2"
   checksum: 41a2ba310e7b6f6c3b905af82c275bf8854896e2e4c5752966d64cbcd2f599cfffd5932006bcf3b8b419dfdacebb3a3912d5d94e10f1d0acab59876c8757f27f
+  languageName: node
+  linkType: hard
+
+"odata@npm:^1.3.1":
+  version: 1.3.1
+  resolution: "odata@npm:1.3.1"
+  dependencies:
+    cross-fetch: ^3.0.6
+    tslib: ^1.9.3
+    universal-url: 2.0.0
+  checksum: cfd426c88bb59248d3028864ee161caabc92f57b3d046569f3d5b1926e98d4c5311009243aeb7df561c647118c328ca1b8b0274f7bc38027afc518dbcf9f6bbe
   languageName: node
   linkType: hard
 
@@ -27372,6 +27391,16 @@ __metadata:
   dependencies:
     crypto-random-string: ^2.0.0
   checksum: ef68f639136bcfe040cf7e3cd7a8dff076a665288122855148a6f7134092e6ed33bf83a7f3a9185e46c98dddc445a0da6ac25612afa1a7c38b8b654d6c02498e
+  languageName: node
+  linkType: hard
+
+"universal-url@npm:2.0.0":
+  version: 2.0.0
+  resolution: "universal-url@npm:2.0.0"
+  dependencies:
+    hasurl: ^1.0.0
+    whatwg-url: ^7.0.0
+  checksum: 94341c63b268dece0e2803c5546a587371b4888c83cfd7d437d585007f828ea396668c67d0517460e2dadff4981d175698f959a57474bea8764f77581bef089c
   languageName: node
   linkType: hard
 

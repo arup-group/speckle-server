@@ -37,7 +37,8 @@ const {
   sendProjectInfoToValueTrack
 } = require('@/modules/core/services/ratelimits')
 
-const { getServerInfo } = require('../../services/generic')
+const { getServerInfo } = require('@/modules/core/services/generic')
+const { validateJobNumber } = require('@/modules/jobnumbers/services/jobnumbers')
 
 // subscription events
 const USER_STREAM_ADDED = 'USER_STREAM_ADDED'
@@ -203,11 +204,18 @@ module.exports = {
 
   Mutation: {
     async streamCreate(parent, args, context) {
-      const requireJobNumber = process.env.ENFORCE_JOB_NUMBER_REQUIREMENT === 'true'
+      const info = await getServerInfo()
+      const requireJobNumber = info.requireJobNumberToCreateStreams
       if (requireJobNumber) {
         if (!args.stream.jobNumber) {
           throw new Error(
             'A job number is required to create a stream on this server. Please provide one.'
+          )
+        }
+        const isValid = await validateJobNumber(args.stream.jobNumber)
+        if (!isValid) {
+          throw new Error(
+            'Invalid job number. Provided job number must contain digits only (no spaces or dashes), must be 8 digits long (ex. 12345678) and must come from an active project.'
           )
         }
       }

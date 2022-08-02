@@ -159,6 +159,9 @@ input StreamCreateInput {
   name: String
   description: String
   isPublic: Boolean
+  """
+  If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678)
+  """
   jobNumber: String
 }
 
@@ -168,6 +171,9 @@ input StreamUpdateInput {
   description: String
   isPublic: Boolean
   allowPublicComments: Boolean
+  """
+  If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678)
+  """
   jobNumber: String
 }
 

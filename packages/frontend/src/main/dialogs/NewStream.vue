@@ -16,17 +16,11 @@
       @submit.prevent="createStream"
     >
       <v-card-text>
-        <!-- <job-number-search
+        <job-number-search
           ref="input-field"
+          :job-number-required="requireJobNumberToCreateStreams"
           @jobObjectSelected="selectedJobNumber"
-        ></job-number-search> -->
-        <v-text-field
-          v-model="jobNumber"
-          :rules="jobNumberRules"
-          validate-on-blur
-          label="Job Number (required)"
-          class="required"
-        />
+        ></job-number-search>
         <v-text-field
           v-model="name"
           :rules="nameRules"
@@ -131,8 +125,8 @@ import userSearchQuery from '../../graphql/userSearch.gql'
 
 export default {
   components: {
-    UserAvatar: () => import('@/main/components/common/UserAvatar')
-    // JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
+    UserAvatar: () => import('@/main/components/common/UserAvatar'),
+    JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
   },
   props: {
     open: {
@@ -157,6 +151,17 @@ export default {
         return !this.search || this.search.length < 3
       },
       debounce: 300
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
     }
   },
   data() {
@@ -168,7 +173,6 @@ export default {
       search: null,
       junkJobNumbers: ['00000000', '12345678', '12345600', '99999999'],
       jobNumberRules: [
-        // (v) => !!v || 'Job number is required',
         (v) =>
           !v ||
           this.junkJobNumbers.findIndex((e) => e === v) === -1 ||
@@ -180,7 +184,7 @@ export default {
         }
       ],
       nameRules: [],
-      isPublic: true,
+      isPublic: false,
       collabs: [],
       isLoading: false
     }
@@ -267,14 +271,12 @@ export default {
         })
       }
       this.isLoading = false
+    },
+    selectedJobNumber(event) {
+      if (event) {
+        this.jobNumber = event.JobCode
+      }
     }
-    // selectedJobNumber(event) {
-    //   console.log(event)
-    //   if (event) {
-    //     this.jobNumber = event.JobCode
-    //     console.log(this.jobNumber)
-    //   }
-    // }
   }
 }
 </script>

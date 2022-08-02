@@ -17,7 +17,8 @@ exports.init = async (app) => {
     './previews',
     './fileuploads',
     './comments',
-    './blobstorage'
+    './blobstorage',
+    './jobnumbers'
   ]
 
   // Stage 1: initialise all modules

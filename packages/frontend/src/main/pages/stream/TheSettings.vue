@@ -38,13 +38,13 @@
           <v-card-text>
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
               <h2>Job number, name and description</h2>
-              <v-text-field
-                v-model="jobNumber"
-                label="Job Number"
-                hint="The job number associated with this stream."
-                class="mt-5"
+              <job-number-search
+                ref="input-field"
+                :initial-job-number="jobNumber"
+                :job-number-required="requireJobNumberToCreateStreams"
                 :disabled="stream.role !== 'stream:owner'"
-              />
+                @jobObjectSelected="selectedJobNumber"
+              ></job-number-search>
               <v-text-field
                 v-model="name"
                 :rules="validation.nameRules"
@@ -193,7 +193,8 @@ import {
 export default {
   name: 'TheSettings',
   components: {
-    SectionCard: () => import('@/main/components/common/SectionCard')
+    SectionCard: () => import('@/main/components/common/SectionCard'),
+    JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
   },
   mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-settings', 1)],
   apollo: {
@@ -230,6 +231,17 @@ export default {
 
         return stream
       }
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
     }
   },
   data: () => ({
@@ -270,6 +282,11 @@ export default {
     }
   },
   methods: {
+    selectedJobNumber(event) {
+      if (event) {
+        this.jobNumber = event.JobCode
+      }
+    },
     async save() {
       this.loading = true
       this.$mixpanel.track('Stream Action', { type: 'action', name: 'update' })

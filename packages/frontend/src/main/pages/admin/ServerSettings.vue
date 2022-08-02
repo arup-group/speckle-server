@@ -111,6 +111,16 @@ export default {
           hint: 'Give all server users reviewer (read only) access to all streams (both public and private) on this server',
           type: 'boolean'
         },
+        requireJobNumberToCreateStreams: {
+          label: 'Require job numbers for stream creation',
+          hint: 'Users must provide a valid job number to create a stream (at time of stream creation)',
+          type: 'boolean'
+        },
+        requireJobNumberToCreateCommits: {
+          label: 'Require job numbers for commit creation (ie. for sending to streams)',
+          hint: 'Users can create a stream commit only for streams that contain a job number',
+          type: 'boolean'
+        },
         createDefaultGlobals: {
           label: 'Add default globals on stream creation',
           hint: 'Automatically add the specified set of globals to all streams created on this server',
