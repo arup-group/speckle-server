@@ -14,7 +14,6 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & {
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & {
   [SubKey in K]: Maybe<T[SubKey]>
 }
-
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: string
@@ -109,6 +108,7 @@ export type AuthStrategy = {
 export type BlobMetadata = {
   __typename?: 'BlobMetadata'
   createdAt: Scalars['DateTime']
+  fileHash?: Maybe<Scalars['String']>
   fileName: Scalars['String']
   fileSize?: Maybe<Scalars['Int']>
   fileType: Scalars['String']
@@ -362,6 +362,12 @@ export type FileUpload = {
   uploadDate: Scalars['DateTime']
   /** The user's id that uploaded this file. */
   userId: Scalars['String']
+}
+
+export type Globals = {
+  __typename?: 'Globals'
+  items?: Maybe<Scalars['JSONObject']>
+  totalCount: Scalars['Int']
 }
 
 export type Mutation = {
@@ -812,9 +818,15 @@ export type ServerInfo = {
   authStrategies?: Maybe<Array<Maybe<AuthStrategy>>>
   canonicalUrl?: Maybe<Scalars['String']>
   company?: Maybe<Scalars['String']>
+  createDefaultGlobals?: Maybe<Scalars['Boolean']>
+  defaultGlobals?: Maybe<Scalars['JSONObject']>
   description?: Maybe<Scalars['String']>
+  enableGlobalReviewerAccess?: Maybe<Scalars['Boolean']>
   inviteOnly?: Maybe<Scalars['Boolean']>
+  loggedInUsersOnly?: Maybe<Scalars['Boolean']>
   name: Scalars['String']
+  requireJobNumberToCreateCommits?: Maybe<Scalars['Boolean']>
+  requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>
   roles: Array<Maybe<Role>>
   scopes: Array<Maybe<Scope>>
   termsOfService?: Maybe<Scalars['String']>
@@ -824,9 +836,16 @@ export type ServerInfo = {
 export type ServerInfoUpdateInput = {
   adminContact?: InputMaybe<Scalars['String']>
   company?: InputMaybe<Scalars['String']>
+  createDefaultGlobals?: InputMaybe<Scalars['Boolean']>
+  defaultGlobals?: InputMaybe<Scalars['JSONObject']>
   description?: InputMaybe<Scalars['String']>
+  enableGlobalReviewerAccess?: InputMaybe<Scalars['Boolean']>
+  enforceJobNumberRequirement?: InputMaybe<Scalars['Boolean']>
   inviteOnly?: InputMaybe<Scalars['Boolean']>
+  loggedInUsersOnly?: InputMaybe<Scalars['Boolean']>
   name: Scalars['String']
+  requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>
+  requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>
   termsOfService?: InputMaybe<Scalars['String']>
 }
 
@@ -901,8 +920,10 @@ export type Stream = {
   fileUpload?: Maybe<FileUpload>
   /** Returns a list of all the file uploads for this stream. */
   fileUploads?: Maybe<Array<Maybe<FileUpload>>>
+  globals?: Maybe<Globals>
   id: Scalars['String']
   isPublic: Scalars['Boolean']
+  jobNumber?: Maybe<Scalars['String']>
   name: Scalars['String']
   object?: Maybe<Object>
   /** Your role for this stream. `null` if request is not authenticated, or the stream is not explicitly shared with you. */
@@ -979,6 +1000,8 @@ export type StreamCollection = {
 export type StreamCreateInput = {
   description?: InputMaybe<Scalars['String']>
   isPublic?: InputMaybe<Scalars['Boolean']>
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>
   name?: InputMaybe<Scalars['String']>
 }
 
@@ -1004,6 +1027,8 @@ export type StreamUpdateInput = {
   description?: InputMaybe<Scalars['String']>
   id: Scalars['String']
   isPublic?: InputMaybe<Scalars['Boolean']>
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>
   name?: InputMaybe<Scalars['String']>
 }
 
@@ -1383,6 +1408,12 @@ export type MainServerInfoFieldsFragment = {
   termsOfService?: string | null
   inviteOnly?: boolean | null
   version?: string | null
+  createDefaultGlobals?: boolean | null
+  defaultGlobals?: any | null
+  loggedInUsersOnly?: boolean | null
+  enableGlobalReviewerAccess?: boolean | null
+  requireJobNumberToCreateStreams?: boolean | null
+  requireJobNumberToCreateCommits?: boolean | null
 }
 
 export type ServerInfoRolesFieldsFragment = {
@@ -1414,6 +1445,12 @@ export type MainServerInfoQuery = {
     termsOfService?: string | null
     inviteOnly?: boolean | null
     version?: string | null
+    createDefaultGlobals?: boolean | null
+    defaultGlobals?: any | null
+    loggedInUsersOnly?: boolean | null
+    enableGlobalReviewerAccess?: boolean | null
+    requireJobNumberToCreateStreams?: boolean | null
+    requireJobNumberToCreateCommits?: boolean | null
   }
 }
 
@@ -1431,6 +1468,12 @@ export type FullServerInfoQuery = {
     termsOfService?: string | null
     inviteOnly?: boolean | null
     version?: string | null
+    createDefaultGlobals?: boolean | null
+    defaultGlobals?: any | null
+    loggedInUsersOnly?: boolean | null
+    enableGlobalReviewerAccess?: boolean | null
+    requireJobNumberToCreateStreams?: boolean | null
+    requireJobNumberToCreateCommits?: boolean | null
     roles: Array<{
       __typename?: 'Role'
       name: string
@@ -1507,6 +1550,7 @@ export type StreamsQuery = {
       __typename?: 'Stream'
       id: string
       name: string
+      jobNumber?: string | null
       description?: string | null
       role?: string | null
       isPublic: boolean
@@ -1538,7 +1582,11 @@ export type StreamsQuery = {
           referencedObject: string
         } | null> | null
       } | null
-      branches?: { __typename?: 'BranchCollection'; totalCount: number } | null
+      branches?: {
+        __typename?: 'BranchCollection'
+        totalCount: number
+        items?: Array<{ __typename?: 'Branch'; name: string } | null> | null
+      } | null
     }> | null
   } | null
 }
@@ -1547,6 +1595,7 @@ export type CommonStreamFieldsFragment = {
   __typename?: 'Stream'
   id: string
   name: string
+  jobNumber?: string | null
   description?: string | null
   role?: string | null
   isPublic: boolean
@@ -1577,6 +1626,7 @@ export type StreamQuery = {
     __typename?: 'Stream'
     id: string
     name: string
+    jobNumber?: string | null
     description?: string | null
     role?: string | null
     isPublic: boolean
@@ -1648,6 +1698,7 @@ export type UserFavoriteStreamsQuery = {
         __typename?: 'Stream'
         id: string
         name: string
+        jobNumber?: string | null
         description?: string | null
         role?: string | null
         isPublic: boolean
@@ -1936,6 +1987,12 @@ export const MainServerInfoFields = gql`
     termsOfService
     inviteOnly
     version
+    createDefaultGlobals
+    defaultGlobals
+    loggedInUsersOnly
+    enableGlobalReviewerAccess
+    requireJobNumberToCreateStreams
+    requireJobNumberToCreateCommits
   }
 `
 export const ServerInfoRolesFields = gql`
@@ -1959,6 +2016,7 @@ export const CommonStreamFields = gql`
   fragment CommonStreamFields on Stream {
     id
     name
+    jobNumber
     description
     role
     isPublic
@@ -2148,6 +2206,7 @@ export const Streams = gql`
       items {
         id
         name
+        jobNumber
         description
         role
         isPublic
@@ -2176,6 +2235,9 @@ export const Streams = gql`
         }
         branches {
           totalCount
+          items {
+            name
+          }
         }
         favoritedDate
         favoritesCount
@@ -2328,6 +2390,12 @@ export const MainServerInfoFieldsFragmentDoc = gql`
     termsOfService
     inviteOnly
     version
+    createDefaultGlobals
+    defaultGlobals
+    loggedInUsersOnly
+    enableGlobalReviewerAccess
+    requireJobNumberToCreateStreams
+    requireJobNumberToCreateCommits
   }
 `
 export const ServerInfoRolesFieldsFragmentDoc = gql`
@@ -2351,6 +2419,7 @@ export const CommonStreamFieldsFragmentDoc = gql`
   fragment CommonStreamFields on Stream {
     id
     name
+    jobNumber
     description
     role
     isPublic
@@ -2765,6 +2834,7 @@ export const StreamsDocument = gql`
       items {
         id
         name
+        jobNumber
         description
         role
         isPublic
@@ -2793,6 +2863,9 @@ export const StreamsDocument = gql`
         }
         branches {
           totalCount
+          items {
+            name
+          }
         }
         favoritedDate
         favoritesCount

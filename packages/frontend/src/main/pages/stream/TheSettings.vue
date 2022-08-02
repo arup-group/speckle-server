@@ -39,6 +39,7 @@
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
               <h2>Job number, name and description</h2>
               <job-number-search
+                v-if="requireJobNumberToCreateStreams"
                 ref="input-field"
                 :initial-job-number="jobNumber"
                 :job-number-required="requireJobNumberToCreateStreams"
