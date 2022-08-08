@@ -27,7 +27,7 @@ const saveFileUploads = async ({ userId, streamId, branchName, uploadResults }) 
 }
 
 exports.init = async (app) => {
-  if (process.env.DISABLE_FILE_UPLOADS) {
+  if (process.env.DISABLE_FILE_UPLOADS === 'true') {
     debug('speckle:modules')('📄 FileUploads module is DISABLED')
     return
   } else {
