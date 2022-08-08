@@ -53,7 +53,7 @@ const validateStreamRole = ({ requiredRole }) =>
     requiredRole,
     rolesLookup: getRoles,
     iddqd: Roles.Stream.Owner,
-    roleGetter: (context) => context.stream.role
+    roleGetter: (context) => context.stream?.role
   })
 
 // this could be still useful, if the operation doesnt require a stream context
@@ -116,7 +116,7 @@ const allowForRegisteredUsersOnPublicStreamsEvenWithoutRole = async ({
   context,
   authResult
 }) =>
-  context.auth && context.stream.isPublic
+  context.auth && context.stream?.isPublic
     ? authSuccess(context)
     : { context, authResult }
 
@@ -124,9 +124,13 @@ const allowForAllRegisteredUsersOnPublicStreamsWithPublicComments = async ({
   context,
   authResult
 }) =>
-  context.auth && context.stream.isPublic && context.stream.allowPublicComments
+  context.auth && context.stream?.isPublic && context.stream?.allowPublicComments
     ? authSuccess(context)
     : { context, authResult }
+
+const allowAnonymousUsersOnPublicStreams = async ({ context, authResult }) => {
+  return context.stream?.isPublic ? authSuccess(context) : { context, authResult }
+}
 
 const authPipelineCreator = (steps) => {
   const pipeline = async ({ context, params }) => {
@@ -158,7 +162,7 @@ const authMiddlewareCreator = (steps) => {
         if (authResult.error instanceof SFE) status = 403
       }
 
-      return res.status(status).send(message)
+      return res.status(status).json({ error: message })
     }
     next()
   }
@@ -188,6 +192,7 @@ module.exports = {
   authMiddlewareCreator,
   allowForRegisteredUsersOnPublicStreamsEvenWithoutRole,
   allowForAllRegisteredUsersOnPublicStreamsWithPublicComments,
+  allowAnonymousUsersOnPublicStreams,
   streamWritePermissions: [
     validateServerRole({ requiredRole: Roles.Server.User }),
     validateScope({ requiredScope: Scopes.Streams.Write }),

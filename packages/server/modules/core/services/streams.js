@@ -18,6 +18,10 @@ const {
   canUserFavoriteStream
 } = require('@/modules/core/repositories/streams')
 const { UnauthorizedError, InvalidArgumentError } = require('@/modules/shared/errors')
+const { StreamAccessUpdateError } = require('@/modules/core/errors/stream')
+const {
+  inviteUsersToStream
+} = require('@/modules/serverinvites/services/inviteCreationService')
 
 /**
  * Get base query for finding or counting user streams
@@ -44,7 +48,14 @@ function getUserStreamsQueryBase({ userId, publicOnly, searchQuery }) {
 }
 
 module.exports = {
-  async createStream({ name, description, isPublic, ownerId, jobNumber }) {
+  async createStream({
+    name,
+    description,
+    isPublic,
+    ownerId,
+    withContributors,
+    jobNumber
+  }) {
     const stream = {
       id: crs({ length: 10 }),
       name: name || generateStreamName(),
@@ -89,6 +100,11 @@ module.exports = {
         sourceApplication: 'web'
       })
       if (!commitId) return null
+    }
+
+    // Invite contributors?
+    if (withContributors && withContributors.length) {
+      await inviteUsersToStream(ownerId, streamId, withContributors)
     }
 
     return streamId
@@ -142,8 +158,9 @@ module.exports = {
     // TODO: check if streamAclEntriesCount === 1 then throw big boo-boo (can't delete last ownership link)
 
     if (parseInt(streamAclEntriesCount.count) === 1)
-      throw new Error(
-        'Stream has only one ownership link left - cannot revoke permissions.'
+      throw new StreamAccessUpdateError(
+        'Stream has only one ownership link left - cannot revoke permissions.',
+        { info: { streamId, userId } }
       )
 
     // TODO: below behaviour not correct. Flow:
@@ -160,7 +177,13 @@ module.exports = {
         resourceId: streamId,
         role: 'stream:owner'
       })
-      if (ownersCount === 1) throw new Error('Could not revoke permissions for user')
+      if (ownersCount === 1)
+        throw new StreamAccessUpdateError(
+          'Could not revoke permissions for last admin',
+          {
+            info: { streamId, userId }
+          }
+        )
       else {
         await StreamAcl.knex().where({ resourceId: streamId, userId }).del()
         return true
@@ -171,7 +194,10 @@ module.exports = {
       .where({ resourceId: streamId, userId })
       .del()
 
-    if (delCount === 0) throw new Error('Could not revoke permissions for user')
+    if (delCount === 0)
+      throw new StreamAccessUpdateError('Could not revoke permissions for user', {
+        info: { streamId, userId }
+      })
 
     // update stream updated at
     await Streams.knex().where({ id: streamId }).update({ updatedAt: knex.fn.now() })

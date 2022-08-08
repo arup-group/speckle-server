@@ -1,3 +1,9 @@
+enum StreamRole {
+  STREAM_OWNER
+  STREAM_CONTRIBUTOR
+  STREAM_REVIEWER
+}
+
 type SmartTextEditorValue {
   """
   The version of the schema
@@ -10,7 +16,13 @@ type SmartTextEditorValue {
   type: String!
 
   """
-  The actual (ProseMirror) document representing the text
+  The actual (ProseMirror) document representing the text. Can be empty,
+  if there are attachments.
   """
-  doc: JSONObject!
+  doc: JSONObject
+
+  """
+  File attachments, if any
+  """
+  attachments: [BlobMetadata!]
 }

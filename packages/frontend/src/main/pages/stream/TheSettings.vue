@@ -21,12 +21,9 @@
     </portal>
     <v-row v-if="stream">
       <v-col v-if="stream.role !== 'stream:owner'" cols="12">
-        <v-alert v-if="stream.role" type="warning">
-          Your permission level ({{ stream.role }}) is not high enough to edit this
-          stream's collaborators.
-        </v-alert>
-        <v-alert v-else type="warning">
-          Your permission level is not high enough to edit this stream's collaborators.
+        <v-alert type="warning">
+          Your permission level ({{ stream.role ? stream.role : 'none' }}) is not high
+          enough to edit this stream's details.
         </v-alert>
       </v-col>
       <v-col cols="12">
@@ -185,7 +182,7 @@
 </template>
 
 <script>
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
 import {
   STANDARD_PORTAL_KEYS,
   buildPortalStateMixin

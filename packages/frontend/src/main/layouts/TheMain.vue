@@ -61,9 +61,9 @@
   </v-app>
 </template>
 <script>
-import gql from 'graphql-tag'
-import { MainUserDataQuery } from '@/graphql/user'
-import { MainServerInfoQuery } from '@/graphql/server'
+import { gql } from '@apollo/client/core'
+import { mainUserDataQuery } from '@/graphql/user'
+import { setDarkTheme } from '@/main/utils/themeStateManager'
 
 export default {
   name: 'TheMain',
@@ -77,11 +77,8 @@ export default {
       import('@/main/components/user/EmailVerificationBanner')
   },
   apollo: {
-    serverInfo: {
-      query: MainServerInfoQuery
-    },
     user: {
-      query: MainUserDataQuery,
+      query: mainUserDataQuery,
       skip() {
         return !this.$loggedIn()
       }
@@ -137,19 +134,6 @@ export default {
   mounted() {
     this.setNavResizeEvents()
 
-    // eslint-disable-next-line camelcase
-    this.$mixpanel.register({ server_id: this.$mixpanelServerId(), hostApp: 'web' })
-    const mixpanelId = this.$mixpanelId()
-    if (mixpanelId !== null) {
-      this.$mixpanel.identify(mixpanelId)
-      this.$mixpanel.people.set(
-        'Theme Web',
-        this.$vuetify.theme.dark ? 'dark' : 'light'
-      )
-      this.$mixpanel.people.set('Identified', true)
-    }
-    this.$mixpanel.track('Visit Web App')
-
     if (this.$route.query.emailverfiedstatus) {
       setTimeout(() => {
         this.$eventHub.$emit('notification', {
@@ -161,10 +145,8 @@ export default {
   methods: {
     switchTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark
-      localStorage.setItem(
-        'darkModeEnabled',
-        this.$vuetify.theme.dark ? 'dark' : 'light'
-      )
+      setDarkTheme(this.$vuetify.theme.dark, true)
+
       this.$mixpanel.people.set(
         'Theme Web',
         this.$vuetify.theme.dark ? 'dark' : 'light'

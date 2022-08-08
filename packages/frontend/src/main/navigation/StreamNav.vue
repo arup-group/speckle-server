@@ -1,7 +1,7 @@
 <template>
   <portal v-if="canRenderNavPortal" to="nav">
     <div v-if="!$loggedIn()" class="px-4 my-2">
-      <v-btn small block color="primary" to="/authn/login">Sign In</v-btn>
+      <v-btn small block color="primary" @click="$loginAndSetRedirect()">Sign In</v-btn>
     </div>
     <v-list
       v-if="stream"
@@ -221,7 +221,7 @@
   </portal>
 </template>
 <script>
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
 import {
   STANDARD_PORTAL_KEYS,
   buildPortalStateMixin
