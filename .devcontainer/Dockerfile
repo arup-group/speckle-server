@@ -24,6 +24,10 @@ RUN echo "#!/bin/sh\n\
   fi\n\
   exec \"\$@\"" > /usr/local/share/docker-init.sh \
   && chmod +x /usr/local/share/docker-init.sh
+  
+RUN npm install && \
+    npx lerna bootstrap && \
+    npx lerna run build
 
 # VS Code overrides ENTRYPOINT and CMD when executing `docker run` by default.
 # Setting the ENTRYPOINT to docker-init.sh will configure non-root access to
