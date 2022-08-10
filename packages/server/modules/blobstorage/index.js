@@ -35,7 +35,7 @@ const {
 } = require('@/modules/shared/errors')
 
 const ensureConditions = async () => {
-  if (process.env.DISABLE_FILE_UPLOADS === 'true') {
+  if (process.env.DISABLE_FILE_UPLOADS) {
     debug('speckle:modules')('📦 Blob storage is DISABLED')
     return
   } else {
