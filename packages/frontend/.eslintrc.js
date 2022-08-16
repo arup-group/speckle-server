@@ -23,10 +23,21 @@ const config = {
     {
       files: '*.vue',
       plugins: ['vue'],
-      extends: ['plugin:vue/recommended', '@vue/eslint-config-typescript', 'prettier']
+      extends: ['plugin:vue/recommended', '@vue/eslint-config-typescript', 'prettier'],
+      rules: {
+        'no-unused-vars': 'off',
+        '@typescript-eslint/no-unused-vars': ['error']
+      }
     },
     {
       files: './*.{js, ts}',
+      env: {
+        node: true,
+        commonjs: true
+      }
+    },
+    {
+      files: './build-config/**/*.{js, ts}',
       env: {
         node: true,
         commonjs: true
@@ -45,7 +56,8 @@ const config = {
     {
       files: '*.d.ts',
       rules: {
-        '@typescript-eslint/no-unused-vars': 'off'
+        '@typescript-eslint/no-unused-vars': 'off',
+        '@typescript-eslint/no-explicit-any': 'off'
       }
     }
   ]

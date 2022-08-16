@@ -5,7 +5,9 @@ const {
   authMiddlewareCreator,
   streamReadPermissions,
   streamWritePermissions,
-  allowForAllRegisteredUsersOnPublicStreamsWithPublicComments
+  allowForAllRegisteredUsersOnPublicStreamsWithPublicComments,
+  allowForRegisteredUsersOnPublicStreamsEvenWithoutRole,
+  allowAnonymousUsersOnPublicStreams
 } = require('@/modules/shared/authz')
 const {
   ensureStorageAccess,
@@ -23,7 +25,8 @@ const {
   markUploadOverFileSizeLimit,
   deleteBlob,
   getBlobMetadata,
-  getBlobMetadataCollection
+  getBlobMetadataCollection,
+  getFileSizeLimit
 } = require('@/modules/blobstorage/services')
 const {
   NotFoundError,
@@ -80,13 +83,17 @@ exports.init = async (app) => {
       const finalizePromises = []
       const busboy = Busboy({
         headers: req.headers,
-        // this is 100 MB which matches the current frontend file size limit
-        limits: { fileSize: 104_857_600 }
+        limits: { fileSize: getFileSizeLimit() }
       })
       const streamId = req.params.streamId
-      busboy.on('file', (name, file, info) => {
+      busboy.on('file', (formKey, file, info) => {
         const { filename: fileName } = info
         const fileType = fileName.split('.').pop().toLowerCase()
+        const registerUploadResult = (processingPromise) => {
+          finalizePromises.push(
+            processingPromise.then((resultItem) => ({ ...resultItem, formKey }))
+          )
+        }
 
         const blobId = crs({ length: 10 })
 
@@ -102,18 +109,17 @@ exports.init = async (app) => {
           //this is handled by the file.on('limit', ...) event
           if (file.truncated) return
           await uploadOperations[blobId]
-          finalizePromises.push(
-            markUploadSuccess(getObjectAttributes, streamId, blobId)
-          )
+
+          registerUploadResult(markUploadSuccess(getObjectAttributes, streamId, blobId))
         })
         file.on('limit', async () => {
           await uploadOperations[blobId]
-          finalizePromises.push(
+          registerUploadResult(
             markUploadOverFileSizeLimit(deleteObject, streamId, blobId)
           )
         })
         file.on('error', (err) => {
-          finalizePromises.push(markUploadError(deleteObject, blobId, err.message))
+          registerUploadResult(markUploadError(deleteObject, blobId, err.message))
         })
       })
 
@@ -151,7 +157,9 @@ exports.init = async (app) => {
     contextMiddleware,
     authMiddlewareCreator([
       ...streamReadPermissions,
-      allowForAllRegisteredUsersOnPublicStreamsWithPublicComments
+      allowForAllRegisteredUsersOnPublicStreamsWithPublicComments,
+      allowForRegisteredUsersOnPublicStreamsEvenWithoutRole,
+      allowAnonymousUsersOnPublicStreams
     ]),
     async (req, res) => {
       errorHandler(req, res, async (req, res) => {

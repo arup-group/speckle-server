@@ -15,7 +15,9 @@
 
       <portal v-if="canRenderNavPortal" to="nav">
         <div v-if="!$loggedIn()" class="px-4 my-2">
-          <v-btn small block color="primary" to="/authn/login">Sign In</v-btn>
+          <v-btn small block color="primary" @click="$loginAndSetRedirect()">
+            Sign In
+          </v-btn>
         </div>
         <v-list nav dense class="mt-0 pt-0">
           <v-list-item
@@ -154,6 +156,14 @@
         <comments-overlay key="c" @add-resources="addResources" />
         <comment-add-overlay key="b" />
       </div>
+
+      <!-- 
+      Note: portaling out the mobile view of comment threads because of
+      stacking chaos caused by transforms, etc. in positioning from the default
+      view. 
+      -->
+      <portal-target name="mobile-comment-thread"></portal-target>
+
       <!-- Progress bar -->
       <div
         v-if="!loadedModel"

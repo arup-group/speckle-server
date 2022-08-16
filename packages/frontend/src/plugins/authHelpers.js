@@ -1,10 +1,20 @@
-import { MainUserDataQuery } from '@/graphql/user'
+import { mainUserDataQuery } from '@/graphql/user'
 import { LocalStorageKeys } from '@/helpers/mainConstants'
 import md5 from '@/helpers/md5'
 import { VALID_EMAIL_REGEX } from '@/main/lib/common/vuetify/validators'
 
 const appId = 'spklwebapp'
 const appSecret = 'spklwebapp'
+
+export function getAuthToken() {
+  try {
+    return localStorage.getItem(LocalStorageKeys.AuthToken)
+  } catch (e) {
+    // suppressed localStorage errors
+  }
+
+  return null
+}
 
 /**
  * Checks for an access token in the url and tries to exchange it for a token/refresh pair.
@@ -18,7 +28,6 @@ export async function checkAccessCodeAndGetTokens() {
     if (response.hasOwnProperty('token')) {
       localStorage.setItem(LocalStorageKeys.AuthToken, response.token)
       localStorage.setItem(LocalStorageKeys.RefreshToken, response.refreshToken)
-      window.history.replaceState({}, document.title, '/')
       return true
     }
   } else {
@@ -28,7 +37,7 @@ export async function checkAccessCodeAndGetTokens() {
 
 /**
  * Gets the user id and suuid, sets them in local storage
- * @param {import('apollo-client').ApolloClient} apolloClient
+ * @param {import('@apollo/client/core').ApolloClient} apolloClient
  * @return {Object} The full graphql response.
  */
 export async function prefetchUserAndSetSuuid(apolloClient) {
@@ -37,7 +46,7 @@ export async function prefetchUserAndSetSuuid(apolloClient) {
 
   // Pull user info (& remember it in the Apollo cache)
   const { data } = await apolloClient.query({
-    query: MainUserDataQuery
+    query: mainUserDataQuery
   })
 
   if (data.user) {

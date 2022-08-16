@@ -55,8 +55,8 @@
 </template>
 
 <script>
-import gql from 'graphql-tag'
-import { MainServerInfoQuery } from '@/graphql/server'
+import { gql } from '@apollo/client/core'
+import { mainServerInfoQuery } from '@/graphql/server'
 import pick from 'lodash/pick'
 import {
   STANDARD_PORTAL_KEYS,
@@ -64,7 +64,7 @@ import {
 } from '@/main/utils/portalStateManager'
 
 export default {
-  name: 'ServerInfoAdminCard',
+  name: 'ServerSettings',
   components: {
     SectionCard: () => import('@/main/components/common/SectionCard')
   },
@@ -150,11 +150,12 @@ export default {
   },
   apollo: {
     serverInfo: {
-      query: MainServerInfoQuery,
-      update(data) {
-        delete data.serverInfo.__typename
-        this.serverModifications = Object.assign({}, data.serverInfo)
-        return data.serverInfo
+      query: mainServerInfoQuery,
+      result({ data }) {
+        const newModifications = Object.assign({}, data.serverInfo)
+        delete newModifications.__typename
+
+        this.serverModifications = newModifications
       }
     }
   },

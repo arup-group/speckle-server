@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- If stream has data -->
     <v-row v-if="stream && stream.commits.totalCount !== 0">
       <v-col cols="12" xl="7">
         <v-toolbar class="transparent elevation-0">
@@ -118,6 +119,7 @@
       </v-col>
     </v-row>
 
+    <!-- Stream has no data -->
     <no-data-placeholder v-if="stream && stream.commits.totalCount === 0">
       <h2>This stream has not received any data.</h2>
       <p class="caption">
@@ -128,7 +130,8 @@
   </div>
 </template>
 <script>
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
+import { COMMENT_FULL_INFO_FRAGMENT } from '@/graphql/comments'
 
 export default {
   name: 'TheStreamHome',
@@ -142,7 +145,6 @@ export default {
   data() {
     return {
       clearRendererTrigger: 0,
-      error: '',
       selectedBranch: null
     }
   },
@@ -194,12 +196,8 @@ export default {
       `,
       variables() {
         return {
-          id: this.$route.params.streamId
+          id: this.streamId
         }
-      },
-      error(err) {
-        if (err.message) this.error = err.message.replace('GraphQL error: ', '')
-        else this.error = err
       }
     },
     comments: {
@@ -209,21 +207,25 @@ export default {
             totalCount
             cursor
             items {
-              id
-              archived
+              ...CommentFullInfo
             }
           }
         }
+
+        ${COMMENT_FULL_INFO_FRAGMENT}
       `,
       fetchPolicy: 'no-cache',
       variables() {
         return {
-          streamId: this.$route.params.streamId
+          streamId: this.streamId
         }
       }
     }
   },
   computed: {
+    streamId() {
+      return this.$route.params.streamId
+    },
     latestBranches() {
       if (!this.stream) return []
       const branches = this.stream.branches.items

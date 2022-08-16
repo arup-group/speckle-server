@@ -121,3 +121,9 @@ jobs:
           service: ${{ matrix.serviceName }}-${{ matrix.environment }}
           cluster: specklev2-server-${{ matrix.environment }}
           wait-for-service-stability: true
+          wait-for-minutes: 15
+
+      - name: Download logs if Deploy Failed
+        if: failure()
+        run: |
+          aws logs tail /ecs/specklev2/${{ matrix.serviceName }}/${{ matrix.environment }}

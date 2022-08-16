@@ -18,18 +18,18 @@
     },
     "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
     "types": [
-      "vue-apollo",
-      "vue-apollo-smart-ops",
       "vue-infinite-loading",
       "type-fest",
       "vue",
       "@types/node",
       "@types/mixpanel-browser",
-      "vuetify"
+      "vuetify",
+      "@types/dompurify"
     ]
   },
   "include": [
     "src/**/*.ts",
+    "src/**/*.js",
     "src/**/*.tsx",
     "src/**/*.vue",
     "tests/**/*.ts",

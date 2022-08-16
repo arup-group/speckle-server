@@ -108,6 +108,7 @@
         }`"
         :style="{
           zIndex: comment.expanded ? 20 : 10,
+          opacity: comment.expanded ? '1' : '0',
           visibility: comment.expanded ? 'visible' : 'hidden'
         }"
         @mouseenter="comment.hovered = true"
@@ -115,7 +116,7 @@
       >
         <!-- <v-card class="elevation-0 ma-0 transparent" style="height: 100%"> -->
         <v-fade-transition>
-          <div>
+          <div class="position:relative">
             <comment-thread-viewer
               :comment="comment"
               @bounce="bounceComment"
@@ -169,10 +170,11 @@
 <script>
 import * as THREE from 'three'
 import { debounce, throttle } from 'lodash'
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
 import { VIEWER_UPDATE_THROTTLE_TIME } from '@/main/lib/viewer/comments/commentsHelper'
 import { buildResizeHandlerMixin } from '@/main/lib/common/web-apis/mixins/windowResizeHandler'
 import { documentToBasicString } from '@/main/lib/common/text-editor/documentHelper'
+import { COMMENT_FULL_INFO_FRAGMENT } from '@/graphql/comments'
 
 export default {
   components: {
@@ -191,26 +193,12 @@ export default {
             totalCount
             cursor
             items {
-              id
-              authorId
-              text {
-                doc
-              }
-              createdAt
-              updatedAt
-              viewedAt
-              archived
-              data
-              resources {
-                resourceId
-                resourceType
-              }
-              replies {
-                totalCount
-              }
+              ...CommentFullInfo
             }
           }
         }
+
+        ${COMMENT_FULL_INFO_FRAGMENT}
       `,
       fetchPolicy: 'no-cache',
       variables() {
@@ -236,6 +224,10 @@ export default {
       },
       result({ data }) {
         if (!data) return
+
+        // Only reason why it's OK to mutate apollo results here, is because
+        // of the 'no-cache' fetchPolicy, which means that none of the data here is actually
+        // mutating the Apollo Cache
         for (const c of data.comments.items) {
           c.expanded = false
           c.hovered = false
@@ -253,8 +245,14 @@ export default {
       subscribeToMore: {
         document: gql`
           subscription ($streamId: String!, $resourceIds: [String]) {
-            commentActivity(streamId: $streamId, resourceIds: $resourceIds)
+            commentActivity(streamId: $streamId, resourceIds: $resourceIds) {
+              type
+              comment {
+                ...CommentFullInfo
+              }
+            }
           }
+          ${COMMENT_FULL_INFO_FRAGMENT}
         `,
         variables() {
           let resIds = [this.$route.params.resourceId]
@@ -268,14 +266,10 @@ export default {
         skip() {
           return !this.$loggedIn()
         },
-        updateQuery(prevResult, { subscriptionData }) {
-          if (
-            !subscriptionData ||
-            !subscriptionData.data ||
-            !subscriptionData.data.commentActivity
-          )
-            return
-          const newComment = subscriptionData.data.commentActivity
+        updateQuery(_, { subscriptionData }) {
+          if (!subscriptionData.data?.commentActivity) return
+
+          const { comment: newComment, type } = subscriptionData.data.commentActivity
 
           newComment.expanded = false
           newComment.hovered = false
@@ -286,8 +280,8 @@ export default {
 
           newComment.archived = false
 
-          if (subscriptionData.data.commentActivity.eventType === 'comment-added') {
-            if (prevResult.comments.items.find((c) => c.id === newComment.id)) {
+          if (type === 'comment-added') {
+            if (this.localComments.find((c) => c.id === newComment.id)) {
               return
             }
             if (!newComment.archived && newComment.data.location)
@@ -605,7 +599,7 @@ export default {
 }
 </script>
 <style scoped lang="scss">
-::v-deep .emoji-btn {
+:deep(.emoji-btn) {
   background-color: initial !important;
 
   .v-btn__content {
@@ -648,7 +642,10 @@ export default {
 .comment-bubble,
 .comment-thread {
   $timing: 0.1s;
+  $visibilityTiming: 0.2s;
+
   transition: left $timing linear, right $timing linear, top $timing linear,
-    bottom $timing linear, opacity 0.2s ease;
+    bottom $timing linear, opacity $visibilityTiming ease,
+    visibility $visibilityTiming ease;
 }
 </style>
