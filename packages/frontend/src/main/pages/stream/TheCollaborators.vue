@@ -99,7 +99,7 @@
 
           <!-- Current users/invites for each role - owner, contributor, reviewer  -->
           <v-col v-for="role in roles" :key="role.name" cols="12" md="4">
-            <section-card v-if="role" expandable>
+            <!-- <section-card v-if="role" expandable>
               <template slot="header">
                 <span class="text-capitalize">{{ role.name.split(':')[1] }}s</span>
               </template>
@@ -165,8 +165,7 @@
                   />
                 </div>
               </v-card-text>
-            </section-card>
-            =======
+            </section-card> -->
             <stream-role-collaborators
               :role-name="role.name"
               :roles="roles"
@@ -175,7 +174,6 @@
               @remove-user="removeUser"
               @cancel-invite="cancelInvite"
             />
-            >>>>>>> 5917e02a056220cec005058f759ad6e6ad48222e
           </v-col>
         </v-row>
         <!-- Leave stream panel -->
@@ -343,6 +341,11 @@ export default vueWithMixins(IsLoggedInMixin).extend({
     })
   },
   methods: {
+    // getRoleCount(role) {
+    //   if (role === 'stream:owner') return this.owners.length || '0'
+    //   if (role === 'stream:contributor') return this.contributors.length || '0'
+    //   if (role === 'stream:reviewer') return this.reviewers.length || '0'
+    // },
     async cancelInvite({ inviteId }) {
       const { streamId } = this
 
@@ -427,10 +430,10 @@ export default vueWithMixins(IsLoggedInMixin).extend({
             }
           }
         })
-        const index = this.stream.collaborators.findIndex((u) => u.id === user.id)
-        if (index !== -1) {
-          this.stream.collaborators.splice(index, 1)
-        }
+        // const index = this.stream.collaborators.findIndex((u) => u.id === user.id)
+        // if (index !== -1) {
+        //   this.stream.collaborators.splice(index, 1)
+        // }
       } catch (e) {
         // console.log(e)
         this.$eventHub.$emit('notification', {
