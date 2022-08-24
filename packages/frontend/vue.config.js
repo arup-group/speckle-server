@@ -22,9 +22,12 @@ const config = {
     config.plugin('lodash-optimization').use(LodashModuleReplacementPlugin)
 
     // Add plugin for injecting env vars
-    config
-      .plugin('speckle-env-vars')
-      .use(webpack.EnvironmentPlugin, [{ SPECKLE_SERVER_VERSION: 'unknown' }])
+    config.plugin('speckle-env-vars').use(webpack.EnvironmentPlugin, [
+      {
+        SPECKLE_SERVER_VERSION: 'unknown',
+        POSTHOG_API_KEY: process.env.POSTHOG_API_KEY
+      }
+    ])
 
     // Setting source map according to build env
     config.devtool(isProdBuild ? false : 'eval-source-map')
