@@ -12,6 +12,7 @@ export default {
       capture_pageview: false,
       loaded(posthog) {
         posthog.identify(AppLocalStorage.get('uuid') || undefined)
+        posthog.debug()
       }
     })
   }
