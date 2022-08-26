@@ -4,8 +4,6 @@ import { posthogApiKey } from '@/config/posthogConfig'
 
 export default {
   install(Vue) {
-    console.log('helllllllllllllllooooooooooooooo')
-    console.log(posthogApiKey)
     Vue.prototype.$posthog = posthog.init(posthogApiKey, {
       // eslint-disable-next-line camelcase
       api_host: 'https://posthog.insights.arup.com',
