@@ -19,7 +19,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build --build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
+          DOCKER_BUILDKIT=1 docker build --secret id=posthog_api_key,env=POSTHOG_API_KEY --build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
           docker save ${{ matrix.package }}:latest -o ${{ matrix.package }}.tar
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
         env:
