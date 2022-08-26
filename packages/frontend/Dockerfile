@@ -6,8 +6,11 @@
 FROM node:16.15-bullseye-slim as build-stage
 
 RUN --mount=type=secret,id=posthog_api_key \
-  export POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key)
+  export POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key) && \
+  echo $POSTHOG_API_KEY && \
+  echo "HELLLLLLLLLLLLO"
 
+ENV POSTHOG_API_KEY=value
 ARG SPECKLE_SERVER_VERSION=custom
  
 

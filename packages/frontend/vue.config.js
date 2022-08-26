@@ -25,7 +25,7 @@ const config = {
     config.plugin('speckle-env-vars').use(webpack.EnvironmentPlugin, [
       {
         SPECKLE_SERVER_VERSION: 'unknown',
-        POSTHOG_API_KEY: process.env.POSTHOG_API_KEY
+        POSTHOG_API_KEY: JSON.stringify(process.env.POSTHOG_API_KEY)
       }
     ])
 
