@@ -10,7 +10,6 @@ RUN --mount=type=secret,id=posthog_api_key \
   echo $POSTHOG_API_KEY && \
   echo "HELLLLLLLLLLLLO"
 
-ENV POSTHOG_API_KEY=value
 ARG SPECKLE_SERVER_VERSION=custom
  
 
@@ -32,7 +31,9 @@ COPY packages/viewer ./packages/viewer/
 COPY packages/frontend ./packages/frontend/
 
 # This way the foreach only builds the frontend and its deps
-RUN yarn workspaces foreach -pt run build
+RUN --mount=type=secret,id=posthog_api_key \
+  export POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key) && \
+  yarn workspaces foreach -pt run build
 
 # production stage
 
