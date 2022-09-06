@@ -46,6 +46,7 @@
     "lodash": "^4.17.21",
     "numeral": "^2.0.6",
     "portal-vue": "^2.1.7",
+    "posthog-js": "^1.29.0",
     "regenerator-runtime": "^0.13.9",
     "subscriptions-transport-ws": "^0.11.0",
     "tween": "^0.9.0",
