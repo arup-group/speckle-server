@@ -36,10 +36,14 @@
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
               <h2>Job number, name and description</h2>
               <job-number-search
-                v-if="requireJobNumberToCreateStreams"
+                v-if="
+                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
+                "
                 ref="input-field"
                 :initial-job-number="jobNumber"
-                :job-number-required="requireJobNumberToCreateStreams"
+                :job-number-required="
+                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
+                "
                 :disabled="stream.role !== 'stream:owner'"
                 @jobObjectSelected="selectedJobNumber"
               ></job-number-search>
@@ -240,6 +244,17 @@ export default {
       `,
       prefetch: true,
       update: (data) => data.serverInfo.requireJobNumberToCreateStreams
+    },
+    requireJobNumberToCreateCommits: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateCommits
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
     }
   },
   data: () => ({
