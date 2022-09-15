@@ -81,6 +81,8 @@ import ListItemActivity from '@/main/components/activity/ListItemActivity.vue'
 import { UserTimelineDocument } from '@/graphql/generated/graphql'
 import { useQuery } from '@vue/apollo-composable'
 import { computed } from 'vue'
+import { AppLocalStorage } from '@/utils/localStorage'
+import { SKIPPABLE_ACTION_TYPES } from '@/main/lib/feed/helpers/activityStream'
 
 export default {
   name: 'FeedTimeline',
@@ -111,7 +113,7 @@ export default {
       const data = timelineResult.value
       if (!data) return []
 
-      const skippableActionTypes = ['stream_invite_sent', 'stream_invite_declined']
+      const skippableActionTypes = SKIPPABLE_ACTION_TYPES
       const groupedTimeline = data.user.timeline.items.reduce(function (prev, curr) {
         if (skippableActionTypes.includes(curr.actionType)) {
           return prev
@@ -196,7 +198,7 @@ export default {
   },
   watch: {
     timeline(val) {
-      if (val.totalCount === 0 && !localStorage.getItem('onboarding')) {
+      if (val.totalCount === 0 && !AppLocalStorage.get('onboarding')) {
         this.$router.push('/onboarding')
       }
     }

@@ -154,7 +154,7 @@ module.exports = {
           if (error.response.status === 409) {
             debug('speckle:valuetrack')('Duplicate usage summary refused')
             captureValueTrackUsage('valuetrack_capture_refused', summary.userId, data)
-          } else debug('speckle:valuetrack')(error)
+          } else debug('speckle:valuetrack')(error.response)
         } else console.log(error)
       })
   }

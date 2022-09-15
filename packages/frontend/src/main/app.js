@@ -2,7 +2,6 @@ import '@/bootstrapper'
 import Vue from 'vue'
 
 import App from '@/main/App.vue'
-import store from '@/main/store'
 import { LocalStorageKeys } from '@/helpers/mainConstants'
 import * as MixpanelManager from '@/mixpanelManager'
 
@@ -11,7 +10,7 @@ import { DefaultApolloClient } from '@vue/apollo-composable'
 import { createProvider, installVueApollo } from '@/config/apolloConfig'
 import {
   checkAccessCodeAndGetTokens,
-  prefetchUserAndSetSuuid
+  prefetchUserAndSetID
 } from '@/plugins/authHelpers'
 
 import router from '@/main/router/index'
@@ -30,6 +29,7 @@ import PerfectScrollbar from 'vue2-perfect-scrollbar'
 import 'vue2-perfect-scrollbar/dist/vue2-perfect-scrollbar.css'
 // adds various helper methods
 import '@/plugins/helpers'
+import { AppLocalStorage } from '@/utils/localStorage'
 
 Vue.use(PerfectScrollbar)
 
@@ -62,15 +62,15 @@ Vue.filter('capitalize', (value) => {
   return value.charAt(0).toUpperCase() + value.slice(1)
 })
 
-const AuthToken = localStorage.getItem(LocalStorageKeys.AuthToken)
-const RefreshToken = localStorage.getItem(LocalStorageKeys.RefreshToken)
+const AuthToken = AppLocalStorage.get(LocalStorageKeys.AuthToken)
+const RefreshToken = AppLocalStorage.get(LocalStorageKeys.RefreshToken)
 
 const apolloProvider = createProvider()
 installVueApollo(apolloProvider)
 
 // TODO: Sort out error handling here, if something goes wrong it just goes into an infinite loop
 if (AuthToken) {
-  prefetchUserAndSetSuuid(apolloProvider.defaultClient)
+  prefetchUserAndSetID(apolloProvider.defaultClient)
     .then(() => {
       postAuthInit()
     })
@@ -84,7 +84,7 @@ if (AuthToken) {
 } else {
   checkAccessCodeAndGetTokens()
     .then(() => {
-      return prefetchUserAndSetSuuid(apolloProvider.defaultClient)
+      return prefetchUserAndSetID(apolloProvider.defaultClient)
     })
     .then(() => {
       postAuthInit()
@@ -104,7 +104,6 @@ function postAuthInit() {
   new Vue({
     router,
     vuetify,
-    store,
     setup() {
       provide(DefaultApolloClient, apolloProvider.defaultClient)
     },

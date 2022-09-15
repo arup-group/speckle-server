@@ -35,7 +35,7 @@ jobs:
           build-args: |
             VUE_APP_GRAPHQL_WS=wss://${{ secrets.P500_SPECKLE_BACKEND }}/graphql
           secrets: |
-            "posthog_api_key=${{ secrets.POSTHOG_API_KEY }}"            
+            "posthog_api_key=${{ secrets.POSTHOG_API_KEY }}"
 
   deploy:
     runs-on: ubuntu-latest
