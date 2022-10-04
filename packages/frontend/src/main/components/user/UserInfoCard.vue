@@ -64,8 +64,6 @@
             <span v-if="isSelf" class="caption">
               id:
               <code>{{ user.id }}</code>
-              , suuid:
-              <code>{{ user.suuid }}</code>
             </span>
             <br />
           </v-col>
@@ -111,6 +109,8 @@
 </template>
 <script>
 import { gql } from '@apollo/client/core'
+import { AppLocalStorage } from '@/utils/localStorage'
+
 export default {
   components: {
     VImageInput: () => import('vuetify-image-input/a-la-carte'),
@@ -133,7 +133,7 @@ export default {
   computed: {
     isSelf() {
       if (!this.user) return false
-      return this.user.id === localStorage.getItem('uuid')
+      return this.user.id === AppLocalStorage.get('uuid')
     }
   },
   methods: {

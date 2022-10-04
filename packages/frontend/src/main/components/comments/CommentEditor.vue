@@ -54,8 +54,6 @@ import { deleteBlob, uploadFiles } from '@/main/lib/common/file-upload/blobStora
 import { JSONContent } from '@tiptap/core'
 import { computed } from 'vue'
 
-// TODO: Styling for adding attachments & rendering them
-
 type FileUploadZoneInstance = InstanceType<typeof FileUploadZone>
 
 export default Vue.extend({
@@ -166,9 +164,7 @@ export default Vue.extend({
       }
     },
     placeholder(): string {
-      return this.addingComment
-        ? 'Your comment... (Enter sends it)'
-        : 'Reply... (Enter sends it)'
+      return 'Press enter to send'
     },
     anyAttachmentsProcessing(): boolean {
       return this.currentFiles.some((a) => !isUploadProcessed(a))

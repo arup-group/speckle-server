@@ -8,6 +8,7 @@ const {
 } = require('apollo-server-express')
 const { authorizeResolver, pubsub } = require('@/modules/shared')
 const { saveActivity } = require('@/modules/activitystream/services')
+const { ActionTypes } = require('@/modules/activitystream/helpers/types')
 
 const {
   createCommitByBranchName,
@@ -175,7 +176,7 @@ module.exports = {
           streamId: args.commit.streamId,
           resourceType: 'commit',
           resourceId: id,
-          actionType: 'commit_create',
+          actionType: ActionTypes.Commit.Create,
           userId: context.userId,
           info: { id, commit: args.commit },
           message: `Commit created on branch ${args.commit.branchName}: ${id} (${args.commit.message})`
@@ -216,7 +217,7 @@ module.exports = {
           streamId: args.commit.streamId,
           resourceType: 'commit',
           resourceId: args.commit.id,
-          actionType: 'commit_update',
+          actionType: ActionTypes.Commit.Update,
           userId: context.userId,
           info: { old: commit, new: args.commit },
           message: `Commit message changed: ${args.commit.id} (${args.commit.message})`
@@ -256,7 +257,7 @@ module.exports = {
         streamId: args.input.streamId,
         resourceType: 'commit',
         resourceId: args.input.commitId,
-        actionType: 'commit_receive',
+        actionType: ActionTypes.Commit.Receive,
         userId: context.userId,
         info: {
           sourceApplication: args.input.sourceApplication,
@@ -288,7 +289,7 @@ module.exports = {
           streamId: args.commit.streamId,
           resourceType: 'commit',
           resourceId: args.commit.id,
-          actionType: 'commit_delete',
+          actionType: ActionTypes.Commit.Delete,
           userId: context.userId,
           info: { commit },
           message: `Commit deleted: ${args.commit.id}`

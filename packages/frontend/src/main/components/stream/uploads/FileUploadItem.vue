@@ -40,6 +40,7 @@
   </v-card>
 </template>
 <script>
+import { AppLocalStorage } from '@/utils/localStorage'
 import gql from 'graphql-tag'
 
 export default {
@@ -99,7 +100,7 @@ export default {
       )
       request.setRequestHeader(
         'Authorization',
-        `Bearer ${localStorage.getItem('AuthToken')}`
+        `Bearer ${AppLocalStorage.get('AuthToken')}`
       )
 
       request.upload.addEventListener(

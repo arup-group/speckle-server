@@ -36,10 +36,14 @@
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
               <h2>Job number, name and description</h2>
               <job-number-search
-                v-if="requireJobNumberToCreateStreams"
+                v-if="
+                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
+                "
                 ref="input-field"
                 :initial-job-number="jobNumber"
-                :job-number-required="requireJobNumberToCreateStreams"
+                :job-number-required="
+                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
+                "
                 :disabled="stream.role !== 'stream:owner'"
                 @jobObjectSelected="selectedJobNumber"
               ></job-number-search>
@@ -59,18 +63,10 @@
                 :disabled="stream.role !== 'stream:owner'"
               />
               <h2>Privacy</h2>
-              <v-switch
-                v-model="isPublic"
-                inset
-                class="mt-5"
-                :label="isPublic ? 'Link Sharing On' : 'Link Sharing Off'"
-                :hint="
-                  isPublic
-                    ? 'Anyone with the link can view this stream. It is also visible on your profile page. Only collaborators can push data to it.'
-                    : 'Only collaborators can access this stream.'
-                "
-                persistent-hint
-                :disabled="stream.role !== 'stream:owner'"
+              <stream-visibility-toggle
+                :disabled="isEditDisabled"
+                :is-public.sync="isPublic"
+                :is-discoverable.sync="isDiscoverable"
               />
               <br />
               <h2>Comments</h2>
@@ -187,12 +183,16 @@ import {
   STANDARD_PORTAL_KEYS,
   buildPortalStateMixin
 } from '@/main/utils/portalStateManager'
+import SectionCard from '@/main/components/common/SectionCard.vue'
+import StreamVisibilityToggle from '@/main/components/stream/editor/StreamVisibilityToggle.vue'
+import JobNumberSearch from '@/main/components/common/JobNumberSearch.vue'
 
 export default {
   name: 'TheSettings',
   components: {
-    SectionCard: () => import('@/main/components/common/SectionCard'),
-    JobNumberSearch: () => import('@/main/components/common/JobNumberSearch')
+    SectionCard,
+    StreamVisibilityToggle,
+    JobNumberSearch
   },
   mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-settings', 1)],
   apollo: {
@@ -205,6 +205,7 @@ export default {
             name
             description
             isPublic
+            isDiscoverable
             allowPublicComments
             role
           }
@@ -223,6 +224,7 @@ export default {
             name: this.name,
             description: this.description,
             isPublic: this.isPublic,
+            isDiscoverable: this.isDiscoverable,
             allowPublicComments: this.allowPublicComments,
             jobNumber: this.jobNumber
           } = stream)
@@ -240,6 +242,17 @@ export default {
       `,
       prefetch: true,
       update: (data) => data.serverInfo.requireJobNumberToCreateStreams
+    },
+    requireJobNumberToCreateCommits: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateCommits
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
     }
   },
   data: () => ({
@@ -253,6 +266,7 @@ export default {
     streamNameConfirm: '',
     description: null,
     isPublic: true,
+    isDiscoverable: false,
     allowPublicComments: true,
     validation: {
       nameRules: [(v) => !!v || 'A stream must have a name!']
@@ -261,14 +275,18 @@ export default {
   computed: {
     canSave() {
       return (
-        this.stream.role === 'stream:owner' &&
+        !this.isEditDisabled &&
         this.valid &&
         (this.name !== this.stream.name ||
           this.description !== this.stream.description ||
           this.isPublic !== this.stream.isPublic ||
           this.allowPublicComments !== this.stream.allowPublicComments ||
+          this.isDiscoverable !== this.stream.isDiscoverable ||
           this.jobNumber !== this.stream.jobNumber)
       )
+    },
+    isEditDisabled() {
+      return this.stream?.role !== 'stream:owner'
     }
   },
   watch: {
@@ -302,6 +320,7 @@ export default {
               description: this.description,
               isPublic: this.isPublic,
               allowPublicComments: this.allowPublicComments,
+              isDiscoverable: this.isDiscoverable,
               jobNumber: this.jobNumber
             }
           }

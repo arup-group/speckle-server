@@ -37,6 +37,7 @@ RUN --mount=type=secret,id=posthog_api_key \
 
 
 FROM openresty/openresty:1.21.4.1-bullseye as production-stage
+ENV FILE_SIZE_LIMIT_MB=100
 COPY --from=build-stage /speckle-server/packages/frontend/dist /usr/share/nginx/html
 RUN rm /etc/nginx/conf.d/default.conf
 

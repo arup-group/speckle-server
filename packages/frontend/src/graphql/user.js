@@ -6,16 +6,15 @@ import { gql } from '@apollo/client/core'
 export const commonUserFieldsFragment = gql`
   fragment CommonUserFields on User {
     id
-    suuid
     email
     name
     bio
     company
     avatar
     verified
+    hasPendingVerification
     profiles
     role
-    suuid
     streams {
       totalCount
     }
@@ -71,6 +70,7 @@ export const profileSelfQuery = gql`
     user {
       ...CommonUserFields
       totalOwnedStreamsFavorites
+      notificationPreferences
     }
   }
 
@@ -115,7 +115,6 @@ export const adminUsersListQuery = gql`
         id
         registeredUser {
           id
-          suuid
           email
           name
           bio
@@ -156,4 +155,39 @@ export const userTimelineQuery = gql`
   }
 
   ${activityMainFieldsFragment}
+`
+
+export const validatePasswordStrengthQuery = gql`
+  query ValidatePasswordStrength($pwd: String!) {
+    userPwdStrength(pwd: $pwd) {
+      score
+      feedback {
+        warning
+        suggestions
+      }
+    }
+  }
+`
+
+export const emailVerificationBannerStateQuery = gql`
+  query EmailVerificationBannerState {
+    user {
+      id
+      email
+      verified
+      hasPendingVerification
+    }
+  }
+`
+
+export const requestVerificationMutation = gql`
+  mutation RequestVerification {
+    requestVerification
+  }
+`
+
+export const updateUserNotificationPreferencesMutation = gql`
+  mutation UpdateUserNotificationPreferences($preferences: JSONObject!) {
+    userNotificationPreferencesUpdate(preferences: $preferences)
+  }
 `
