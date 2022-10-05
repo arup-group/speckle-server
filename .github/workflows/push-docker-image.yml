@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         environment: ['prod', 'hs2', 'staging']
-        package: ['server', 'frontend', 'preview-service', 'webhook-service']
+        package: ['server', 'frontend', 'preview-service', 'webhook-service', 'file-import']
         include:
           - environment: prod
             region: eu-west-1
