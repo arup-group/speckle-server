@@ -71,6 +71,9 @@ jobs:
           - package: 'webhook-service'
             cxName: 'spec-cx-webhook'
             serviceName: 'specklev2-webhook-service'
+          - package: 'file-import-service'
+            cxName: 'spec-cx-file-import'
+            serviceName: 'specklev2-file-import-service'
 
     steps:
       # Download the Docker image tar
