@@ -80,6 +80,8 @@ const VALUETRACK_LIMIT_INTERVAL = {
   // TOKENS: 0 // static
 }
 
+const freeFirstInterval = true
+
 const rateLimitedCache = {}
 
 async function shouldRateLimitNext({ action, source }) {
@@ -150,7 +152,7 @@ async function shouldChargeForValueTrack({ action, source }) {
       checkInterval = 24 * 3600
       break
     case 'minute':
-      checkInterval = 60
+      checkInterval = 60 * 1
       break
   }
   if (limit === undefined || checkInterval === undefined) {
@@ -167,19 +169,22 @@ async function shouldChargeForValueTrack({ action, source }) {
   switch (interval) {
     default:
     case 'month':
-      currentInterval = now.getMonth() + 1
+      currentInterval = now.getMonth()
       break
     case 'day':
       currentInterval = now.getDate()
       break
     case 'minute':
-      currentInterval = now.getMinutes() + 1
+      currentInterval = now.getMinutes()
       break
   }
 
   if (limit === 0) {
     //check if action has occurred within the specified check interval (a minute, a day's, a month's time) and within the same time interval (past minute, past day, past month) -
     //this should correspond to project having been already charged (charged once per interval, ex. once per calendar month)
+    // console.log(`'timestamp', '>', ${checkDate}`)
+    // console.log(`EXTRACT(${interval} FROM timestamp) = ${currentInterval}`)
+
     const [res] = await RatelimitActions()
       .count()
       .where({ action, source })
@@ -187,7 +192,13 @@ async function shouldChargeForValueTrack({ action, source }) {
       .andWhereRaw(`EXTRACT(${interval} FROM timestamp) = ?`, [currentInterval]) //happened within the same time interval (ex same month)
 
     const count = parseInt(res.count)
-    if (count > 0) {
+    if (count === 0 && freeFirstInterval) {
+      debug('speckle:valuetrack')('Project on free trial')
+      await RatelimitActions().insert({ action, source })
+      return false
+    }
+
+    if (count > 1) {
       await RatelimitActions().insert({ action, source })
       return false
     }
