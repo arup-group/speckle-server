@@ -25,7 +25,7 @@ const TMP_RESULTS_PATH = '/tmp/import_result.json'
 
 let shouldExit = false
 
-let TIME_LIMIT = 10 * 60 * 1000
+let TIME_LIMIT = 10 * 60 * 1000 * 3
 
 const providedTimeLimit = parseInt(process.env.FILE_IMPORT_TIME_LIMIT_MIN)
 if (providedTimeLimit) TIME_LIMIT = providedTimeLimit * 60 * 1000
