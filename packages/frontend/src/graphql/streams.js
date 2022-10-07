@@ -162,3 +162,44 @@ export const streamBranchFirstCommitQuery = gql`
     }
   }
 `
+
+export const streamSettingsQuery = gql`
+  query StreamSettings($id: String!) {
+    stream(id: $id) {
+      id
+      name
+      jobNumber
+      description
+      isPublic
+      isDiscoverable
+      allowPublicComments
+      role
+    }
+  }
+`
+
+export const searchStreamsQuery = gql`
+  query SearchStreams($query: String) {
+    streams(query: $query) {
+      totalCount
+      cursor
+      items {
+        id
+        name
+        updatedAt
+      }
+    }
+  }
+`
+
+export const updateStreamSettingsMutation = gql`
+  mutation UpdateStreamSettings($input: StreamUpdateInput!) {
+    streamUpdate(stream: $input)
+  }
+`
+
+export const deleteStreamMutation = gql`
+  mutation DeleteStream($id: String!) {
+    streamDelete(id: $id)
+  }
+`

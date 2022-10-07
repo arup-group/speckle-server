@@ -69,7 +69,7 @@ function createCache(): InMemoryCache {
               }
             },
             streams: {
-              keyArgs: false,
+              keyArgs: ['query'],
               merge: buildAbstractCollectionMergeFunction('StreamCollection', {
                 checkIdentity: true
               })
@@ -79,12 +79,12 @@ function createCache(): InMemoryCache {
         User: {
           fields: {
             timeline: {
-              keyArgs: false,
+              keyArgs: ['after', 'before'],
               merge: buildAbstractCollectionMergeFunction('ActivityCollection')
             },
             commits: {
               keyArgs: false,
-              merge: buildAbstractCollectionMergeFunction('CommitCollectionUser', {
+              merge: buildAbstractCollectionMergeFunction('CommitCollection', {
                 checkIdentity: true
               })
             },
@@ -99,7 +99,7 @@ function createCache(): InMemoryCache {
         Stream: {
           fields: {
             activity: {
-              keyArgs: false,
+              keyArgs: ['after', 'before', 'actionType'],
               merge: buildAbstractCollectionMergeFunction('ActivityCollection')
             },
             commits: {

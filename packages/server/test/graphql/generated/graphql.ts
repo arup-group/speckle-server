@@ -159,7 +159,7 @@ export type BranchCommitsArgs = {
 export type BranchCollection = {
   __typename?: 'BranchCollection';
   cursor?: Maybe<Scalars['String']>;
-  items?: Maybe<Array<Maybe<Branch>>>;
+  items?: Maybe<Array<Branch>>;
   totalCount: Scalars['Int'];
 };
 
@@ -278,6 +278,15 @@ export type Commit = {
   parents?: Maybe<Array<Maybe<Scalars['String']>>>;
   referencedObject: Scalars['String'];
   sourceApplication?: Maybe<Scalars['String']>;
+  /**
+   * Will throw an authorization error if active user isn't authorized to see it, for example,
+   * if a stream isn't public and the user doesn't have the appropriate rights.
+   */
+  stream: Stream;
+  /** @deprecated Use the stream field instead */
+  streamId?: Maybe<Scalars['String']>;
+  /** @deprecated Use the stream field instead */
+  streamName?: Maybe<Scalars['String']>;
   totalChildrenCount?: Maybe<Scalars['Int']>;
 };
 
@@ -293,40 +302,8 @@ export type CommitActivityArgs = {
 export type CommitCollection = {
   __typename?: 'CommitCollection';
   cursor?: Maybe<Scalars['String']>;
-  items?: Maybe<Array<Maybe<Commit>>>;
+  items?: Maybe<Array<Commit>>;
   totalCount: Scalars['Int'];
-};
-
-export type CommitCollectionUser = {
-  __typename?: 'CommitCollectionUser';
-  cursor?: Maybe<Scalars['String']>;
-  items?: Maybe<Array<Maybe<CommitCollectionUserNode>>>;
-  totalCount: Scalars['Int'];
-};
-
-export type CommitCollectionUserNode = {
-  __typename?: 'CommitCollectionUserNode';
-  branchName?: Maybe<Scalars['String']>;
-  /**
-   * The total number of comments for this commit. To actually get the comments, use the comments query and pass in a resource array consisting of of this commit's id.
-   * E.g.,
-   * ```
-   * query{
-   *   comments(streamId:"streamId" resources:[{resourceType: commit, resourceId:"commitId"}] ){
-   *     ...
-   *   }
-   * ```
-   */
-  commentCount: Scalars['Int'];
-  createdAt?: Maybe<Scalars['DateTime']>;
-  id: Scalars['String'];
-  message?: Maybe<Scalars['String']>;
-  parents?: Maybe<Array<Maybe<Scalars['String']>>>;
-  referencedObject: Scalars['String'];
-  sourceApplication?: Maybe<Scalars['String']>;
-  streamId?: Maybe<Scalars['String']>;
-  streamName?: Maybe<Scalars['String']>;
-  totalChildrenCount?: Maybe<Scalars['Int']>;
 };
 
 export type CommitCreateInput = {
@@ -334,7 +311,10 @@ export type CommitCreateInput = {
   message?: InputMaybe<Scalars['String']>;
   objectId: Scalars['String'];
   parents?: InputMaybe<Array<InputMaybe<Scalars['String']>>>;
-  /** **DEPRECATED** Use the `parents` field. */
+  /**
+   * **DEPRECATED** Use the `parents` field.
+   * @deprecated Field no longer supported
+   */
   previousCommitIds?: InputMaybe<Array<InputMaybe<Scalars['String']>>>;
   sourceApplication?: InputMaybe<Scalars['String']>;
   streamId: Scalars['String'];
@@ -359,6 +339,15 @@ export type CommitUpdateInput = {
   /** To move the commit to a different branch, please the name of the branch. */
   newBranchName?: InputMaybe<Scalars['String']>;
   streamId: Scalars['String'];
+};
+
+export type CommitsDeleteInput = {
+  commitIds: Array<Scalars['String']>;
+};
+
+export type CommitsMoveInput = {
+  commitIds: Array<Scalars['String']>;
+  targetBranch: Scalars['String'];
 };
 
 export enum DiscoverableStreamsSortType {
@@ -390,6 +379,12 @@ export type FileUpload = {
   uploadDate: Scalars['DateTime'];
   /** The user's id that uploaded this file. */
   userId: Scalars['String'];
+};
+
+export type Globals = {
+  __typename?: 'Globals';
+  items?: Maybe<Scalars['JSONObject']>;
+  totalCount: Scalars['Int'];
 };
 
 /**
@@ -440,6 +435,10 @@ export type Mutation = {
   commitDelete: Scalars['Boolean'];
   commitReceive: Scalars['Boolean'];
   commitUpdate: Scalars['Boolean'];
+  /** Delete a batch of commits */
+  commitsDelete: Scalars['Boolean'];
+  /** Move a batch of commits to a new branch */
+  commitsMove: Scalars['Boolean'];
   /** Delete a pending invite */
   inviteDelete: Scalars['Boolean'];
   /** Re-send a pending invite */
@@ -590,6 +589,16 @@ export type MutationCommitReceiveArgs = {
 
 export type MutationCommitUpdateArgs = {
   commit: CommitUpdateInput;
+};
+
+
+export type MutationCommitsDeleteArgs = {
+  input: CommitsDeleteInput;
+};
+
+
+export type MutationCommitsMoveArgs = {
+  input: CommitsMoveInput;
 };
 
 
@@ -863,7 +872,7 @@ export type Query = {
   serverStats: ServerStats;
   /**
    * Returns a specific stream. Will throw an authorization error if active user isn't authorized
-   * to see it.
+   * to see it, for example, if a stream isn't public and the user doesn't have the appropriate rights.
    */
   stream?: Maybe<Stream>;
   /** Get authed user's stream access request */
@@ -875,7 +884,10 @@ export type Query = {
   streamInvite?: Maybe<PendingStreamCollaborator>;
   /** Get all invitations to streams that the active user has */
   streamInvites: Array<PendingStreamCollaborator>;
-  /** All the streams of the current user, pass in the `query` parameter to search by name, description or ID. */
+  /**
+   * Returns all streams that the active user is a collaborator on.
+   * Pass in the `query` parameter to search by name, description or ID.
+   */
   streams?: Maybe<StreamCollection>;
   /** Gets the profile of a user. If no id argument is provided, will return the current authenticated user's profile (as extracted from the authorization header). */
   user?: Maybe<User>;
@@ -1052,9 +1064,15 @@ export type ServerInfo = {
   blobSizeLimitBytes: Scalars['Int'];
   canonicalUrl?: Maybe<Scalars['String']>;
   company?: Maybe<Scalars['String']>;
+  createDefaultGlobals?: Maybe<Scalars['Boolean']>;
+  defaultGlobals?: Maybe<Scalars['JSONObject']>;
   description?: Maybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: Maybe<Scalars['Boolean']>;
   inviteOnly?: Maybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: Maybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: Maybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
   roles: Array<Maybe<Role>>;
   scopes: Array<Maybe<Scope>>;
   termsOfService?: Maybe<Scalars['String']>;
@@ -1064,9 +1082,16 @@ export type ServerInfo = {
 export type ServerInfoUpdateInput = {
   adminContact?: InputMaybe<Scalars['String']>;
   company?: InputMaybe<Scalars['String']>;
+  createDefaultGlobals?: InputMaybe<Scalars['Boolean']>;
+  defaultGlobals?: InputMaybe<Scalars['JSONObject']>;
   description?: InputMaybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: InputMaybe<Scalars['Boolean']>;
+  enforceJobNumberRequirement?: InputMaybe<Scalars['Boolean']>;
   inviteOnly?: InputMaybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: InputMaybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>;
   termsOfService?: InputMaybe<Scalars['String']>;
 };
 
@@ -1151,6 +1176,7 @@ export type Stream = {
   fileUpload?: Maybe<FileUpload>;
   /** Returns a list of all the file uploads for this stream. */
   fileUploads?: Maybe<Array<Maybe<FileUpload>>>;
+  globals?: Maybe<Globals>;
   id: Scalars['String'];
   /**
    * Whether the stream (if public) can be found on public stream exploration pages
@@ -1159,6 +1185,7 @@ export type Stream = {
   isDiscoverable: Scalars['Boolean'];
   /** Whether the stream can be viewed by non-contributors */
   isPublic: Scalars['Boolean'];
+  jobNumber?: Maybe<Scalars['String']>;
   name: Scalars['String'];
   object?: Maybe<Object>;
   /** Pending stream access requests */
@@ -1267,6 +1294,8 @@ export type StreamCreateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   /** Optionally specify user IDs of users that you want to invite to be contributors to this stream */
   withContributors?: InputMaybe<Array<Scalars['String']>>;
@@ -1303,6 +1332,8 @@ export type StreamUpdateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
 };
 
@@ -1432,7 +1463,11 @@ export type User = {
   authorizedApps?: Maybe<Array<Maybe<ServerAppListItem>>>;
   avatar?: Maybe<Scalars['String']>;
   bio?: Maybe<Scalars['String']>;
-  commits?: Maybe<CommitCollectionUser>;
+  /**
+   * Get commits authored by the user. If requested for another user, then only commits
+   * from public streams will be returned.
+   */
+  commits?: Maybe<CommitCollection>;
   company?: Maybe<Scalars['String']>;
   /** Returns the apps you have created. */
   createdApps?: Maybe<Array<Maybe<ServerApp>>>;
@@ -1441,7 +1476,10 @@ export type User = {
    * and the user isn't an admin
    */
   email?: Maybe<Scalars['String']>;
-  /** All the streams that a user has favorited */
+  /**
+   * All the streams that a active user has favorited.
+   * Note: You can't use this to retrieve another user's favorite streams.
+   */
   favoriteStreams?: Maybe<StreamCollection>;
   /** Whether the user has a pending/active email verification token */
   hasPendingVerification?: Maybe<Scalars['Boolean']>;
@@ -1450,7 +1488,10 @@ export type User = {
   notificationPreferences: Scalars['JSONObject'];
   profiles?: Maybe<Scalars['JSONObject']>;
   role?: Maybe<Scalars['String']>;
-  /** All the streams that a user has access to. */
+  /**
+   * Returns all streams that the user is a collaborator on. If requested for a user, who isn't the
+   * authenticated user, then this will only return discoverable streams.
+   */
   streams?: Maybe<StreamCollection>;
   timeline?: Maybe<ActivityCollection>;
   /** Total amount of favorites attached to streams owned by the user */
@@ -1662,6 +1703,30 @@ export type GetCommentsQueryVariables = Exact<{
 
 export type GetCommentsQuery = { __typename?: 'Query', comments?: { __typename?: 'CommentCollection', totalCount: number, cursor?: string | null, items: Array<{ __typename?: 'Comment', id: string, text: { __typename?: 'SmartTextEditorValue', doc?: Record<string, unknown> | null, attachments?: Array<{ __typename?: 'BlobMetadata', id: string, fileName: string, streamId: string }> | null }, replies?: { __typename?: 'CommentCollection', items: Array<{ __typename?: 'Comment', id: string, text: { __typename?: 'SmartTextEditorValue', doc?: Record<string, unknown> | null, attachments?: Array<{ __typename?: 'BlobMetadata', id: string, fileName: string, streamId: string }> | null } }> } | null }> } | null };
 
+export type ReadStreamBranchCommitsQueryVariables = Exact<{
+  streamId: Scalars['String'];
+  branchName: Scalars['String'];
+  cursor?: InputMaybe<Scalars['String']>;
+  limit?: Scalars['Int'];
+}>;
+
+
+export type ReadStreamBranchCommitsQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, name: string, role?: string | null, branch?: { __typename?: 'Branch', id: string, name: string, description?: string | null, commits?: { __typename?: 'CommitCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Commit', id: string, authorName?: string | null, authorId?: string | null, authorAvatar?: string | null, sourceApplication?: string | null, message?: string | null, referencedObject: string, createdAt?: string | null, commentCount: number }> | null } | null } | null } | null };
+
+export type MoveCommitsMutationVariables = Exact<{
+  input: CommitsMoveInput;
+}>;
+
+
+export type MoveCommitsMutation = { __typename?: 'Mutation', commitsMove: boolean };
+
+export type DeleteCommitsMutationVariables = Exact<{
+  input: CommitsDeleteInput;
+}>;
+
+
+export type DeleteCommitsMutation = { __typename?: 'Mutation', commitsDelete: boolean };
+
 export type CreateServerInviteMutationVariables = Exact<{
   input: ServerInviteCreateInput;
 }>;
@@ -1743,7 +1808,7 @@ export type GetStreamPendingCollaboratorsQueryVariables = Exact<{
 
 export type GetStreamPendingCollaboratorsQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, pendingCollaborators?: Array<{ __typename?: 'PendingStreamCollaborator', inviteId: string, title: string, token?: string | null, user?: { __typename?: 'LimitedUser', id: string, name?: string | null } | null }> | null } | null };
 
-export type BasicStreamFieldsFragment = { __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string };
+export type BasicStreamFieldsFragment = { __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string };
 
 export type LeaveStreamMutationVariables = Exact<{
   streamId: Scalars['String'];
@@ -1771,7 +1836,7 @@ export type ReadStreamQueryVariables = Exact<{
 }>;
 
 
-export type ReadStreamQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string } | null };
+export type ReadStreamQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string } | null };
 
 export type ReadDiscoverableStreamsQueryVariables = Exact<{
   limit?: Scalars['Int'];
@@ -1780,7 +1845,16 @@ export type ReadDiscoverableStreamsQueryVariables = Exact<{
 }>;
 
 
-export type ReadDiscoverableStreamsQuery = { __typename?: 'Query', discoverableStreams?: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', favoritesCount: number, id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } | null };
+export type ReadDiscoverableStreamsQuery = { __typename?: 'Query', discoverableStreams?: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', favoritesCount: number, id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } | null };
+
+export type GetUserStreamsQueryVariables = Exact<{
+  userId?: InputMaybe<Scalars['String']>;
+  limit?: Scalars['Int'];
+  cursor?: InputMaybe<Scalars['String']>;
+}>;
+
+
+export type GetUserStreamsQuery = { __typename?: 'Query', user?: { __typename?: 'User', streams?: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } | null } | null };
 
 export type GetAdminUsersQueryVariables = Exact<{
   limit?: Scalars['Int'];

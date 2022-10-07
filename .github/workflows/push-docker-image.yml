@@ -12,7 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: ['server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -42,7 +49,14 @@ jobs:
     strategy:
       matrix:
         environment: ['prod', 'hs2', 'staging']
-        package: ['server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
         include:
           - environment: prod
             region: eu-west-1
