@@ -1,7 +1,11 @@
 'use strict'
 const knex = require('@/db/knex')
 const debug = require('debug')
-const { captureUsageSummary } = require('../../../logging/valueTrackHelper')
+const {
+  captureUsageSummary,
+  currentTimeInterval
+} = require('../../../logging/valueTrackHelper')
+const { captureValueTrackUsage } = require('../../../logging/posthogHelper')
 const { getUserById } = require('./users')
 
 const RatelimitActions = () => knex('ratelimit_actions')
@@ -80,7 +84,7 @@ const VALUETRACK_LIMIT_INTERVAL = {
   // TOKENS: 0 // static
 }
 
-const freeFirstInterval = true
+const VALUETRACK_FREE_FIRST_LIMIT_INTERVAL = true
 
 const rateLimitedCache = {}
 
@@ -137,7 +141,7 @@ async function shouldRateLimitNextByProject({ action, source }) {
   return shouldRateLimit
 }
 
-async function shouldChargeForValueTrack({ action, source }) {
+async function shouldChargeForValueTrack({ action, source, userId }) {
   if (!source) return false
 
   const limit = VALUETRACK_LIMITS[action]
@@ -182,9 +186,6 @@ async function shouldChargeForValueTrack({ action, source }) {
   if (limit === 0) {
     //check if action has occurred within the specified check interval (a minute, a day's, a month's time) and within the same time interval (past minute, past day, past month) -
     //this should correspond to project having been already charged (charged once per interval, ex. once per calendar month)
-    // console.log(`'timestamp', '>', ${checkDate}`)
-    // console.log(`EXTRACT(${interval} FROM timestamp) = ${currentInterval}`)
-
     const [res] = await RatelimitActions()
       .count()
       .where({ action, source })
@@ -192,9 +193,15 @@ async function shouldChargeForValueTrack({ action, source }) {
       .andWhereRaw(`EXTRACT(${interval} FROM timestamp) = ?`, [currentInterval]) //happened within the same time interval (ex same month)
 
     const count = parseInt(res.count)
-    if (count === 0 && freeFirstInterval) {
-      debug('speckle:valuetrack')('Project on free trial')
+    if (count === 0 && VALUETRACK_FREE_FIRST_LIMIT_INTERVAL) {
       await RatelimitActions().insert({ action, source })
+      debug('speckle:valuetrack')('Project on free trial')
+      const timeInterval = currentTimeInterval()
+      captureValueTrackUsage('valuetrack_capture_free_trial', userId, {
+        jobNumber: source,
+        trialStartDateTime: timeInterval.usageStartDateTime, //start of current interval
+        trialEndDateTime: timeInterval.usageEndDateTime //end of current interval
+      })
       return false
     }
 
@@ -263,7 +270,7 @@ module.exports = {
   async sendProjectInfoToValueTrack({ action, source, userId }) {
     const rateLimitKey = `${action} ${source}`
 
-    const promise = await shouldChargeForValueTrack({ action, source }).then(
+    const promise = await shouldChargeForValueTrack({ action, source, userId }).then(
       async (shouldCharge) => {
         if (shouldCharge) {
           rateLimitedCache[rateLimitKey] = true

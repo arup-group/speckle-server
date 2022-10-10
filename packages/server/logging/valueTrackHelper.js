@@ -102,6 +102,12 @@ const endOfCurrentInterval = () => {
 }
 
 module.exports = {
+  currentTimeInterval() {
+    return {
+      usageStartDateTime: startOfCurrentInterval(),
+      usageEndDateTime: endOfCurrentInterval()
+    }
+  },
   captureUsageEvent(event) {
     const data = JSON.stringify({
       eventDateTime: eventDateTime(),

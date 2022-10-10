@@ -476,7 +476,7 @@ export default defineComponent({
     }
   },
   methods: {
-    selectedJobNumber(event) {
+    selectedJobNumber(event: { JobCode: Nullable<string> }) {
       if (event) {
         this.model.jobNumber = event.JobCode
       }
