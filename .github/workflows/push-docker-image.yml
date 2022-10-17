@@ -41,11 +41,16 @@ jobs:
       url: ${{ matrix.url }}
     strategy:
       matrix:
-        environment: ['prod', 'hs2', 'staging']
+        environment: ['prod', 'hs2', 'staging', 'hk']
         package: ['server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
         include:
           - environment: prod
             region: eu-west-1
+            accessKey: AWS_ACCESS_KEY_ID
+            secretAccessKey: AWS_SECRET_ACCESS_KEY
+            url: https://v2.speckle.arup.com
+          - environment: hk
+            region: ap-east-1
             accessKey: AWS_ACCESS_KEY_ID
             secretAccessKey: AWS_SECRET_ACCESS_KEY
             url: https://v2.speckle.arup.com
