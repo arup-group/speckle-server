@@ -185,6 +185,24 @@ async function shouldChargeForValueTrack({ action, source, userId }) {
   }
 
   if (limit === 0) {
+    if (VALUETRACK_FREE_FIRST_LIMIT_INTERVAL) {
+      const [resAny] = await RatelimitActions().count().where({ action, source })
+      const countAny = parseInt(resAny.count)
+
+      if (countAny === 0) {
+        await RatelimitActions().insert({ action, source })
+        debug('speckle:valuetrack')('Project on FREE TRIAL')
+        const timeInterval = currentTimeInterval()
+        const serverInfo = await getServerInfo()
+        captureValueTrackUsage('valuetrack_capture_free_trial', userId, {
+          jobNumber: source,
+          trialStartDateTime: timeInterval.usageStartDateTime, //start of current interval
+          trialEndDateTime: timeInterval.usageEndDateTime, //end of current interval
+          server: serverInfo.canonicalUrl
+        })
+      }
+    }
+
     //check if action has occurred within the specified check interval (a minute, a day's, a month's time) and within the same time interval (past minute, past day, past month) -
     //this should correspond to project having been already charged (charged once per interval, ex. once per calendar month)
     const [res] = await RatelimitActions()
@@ -194,25 +212,17 @@ async function shouldChargeForValueTrack({ action, source, userId }) {
       .andWhereRaw(`EXTRACT(${interval} FROM timestamp) = ?`, [currentInterval]) //happened within the same time interval (ex same month)
 
     const count = parseInt(res.count)
-    if (count === 0 && VALUETRACK_FREE_FIRST_LIMIT_INTERVAL) {
-      await RatelimitActions().insert({ action, source })
-      debug('speckle:valuetrack')('Project on FREE TRIAL')
-      const timeInterval = currentTimeInterval()
-      const serverInfo = await getServerInfo()
-      captureValueTrackUsage('valuetrack_capture_free_trial', userId, {
-        jobNumber: source,
-        trialStartDateTime: timeInterval.usageStartDateTime, //start of current interval
-        trialEndDateTime: timeInterval.usageEndDateTime, //end of current interval
-        server: serverInfo.canonicalUrl
-      })
-      return false
-    }
-
-    if (count > 1) {
+    if (count > 0) {
       await RatelimitActions().insert({ action, source })
       return false
     }
   }
+
+  // if (count > 1) {
+  //   await RatelimitActions().insert({ action, source })
+  //   return false
+  // }
+  // }
 
   const [res] = await RatelimitActions()
     .count()
