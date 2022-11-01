@@ -7,6 +7,7 @@ const {
 } = require('../../../logging/valueTrackHelper')
 const { captureValueTrackUsage } = require('../../../logging/posthogHelper')
 const { getUserById } = require('./users')
+const { getServerInfo } = require('@/modules/core/services/generic')
 
 const RatelimitActions = () => knex('ratelimit_actions')
 const prometheusClient = require('prom-client')
@@ -173,7 +174,7 @@ async function shouldChargeForValueTrack({ action, source, userId }) {
   switch (interval) {
     default:
     case 'month':
-      currentInterval = now.getMonth()
+      currentInterval = now.getMonth() + 1
       break
     case 'day':
       currentInterval = now.getDate()
@@ -195,12 +196,14 @@ async function shouldChargeForValueTrack({ action, source, userId }) {
     const count = parseInt(res.count)
     if (count === 0 && VALUETRACK_FREE_FIRST_LIMIT_INTERVAL) {
       await RatelimitActions().insert({ action, source })
-      debug('speckle:valuetrack')('Project on free trial')
+      debug('speckle:valuetrack')('Project on FREE TRIAL')
       const timeInterval = currentTimeInterval()
+      const serverInfo = await getServerInfo()
       captureValueTrackUsage('valuetrack_capture_free_trial', userId, {
         jobNumber: source,
         trialStartDateTime: timeInterval.usageStartDateTime, //start of current interval
-        trialEndDateTime: timeInterval.usageEndDateTime //end of current interval
+        trialEndDateTime: timeInterval.usageEndDateTime, //end of current interval
+        server: serverInfo.canonicalUrl
       })
       return false
     }
