@@ -1,4 +1,4 @@
-<template lang="html">
+<template>
   <div style="height: 100vh; position: relative" class="speckle-viewer transparent">
     <div
       id="rendererparent"
@@ -52,6 +52,7 @@ export default {
     // - juggle the container div out of this component's dom when the component is managed out by vue
     // - juggle the container div back in of this component's dom when it's back.
     this.$posthog.capture('viewer-action', { type: 'action', name: 'load' })
+    console.log('viewer loaded')
     this.$mixpanel.track('Viewer Action', { type: 'action', name: 'load' })
 
     if (!this.viewer || !this.viewerContainer || !this.isViewerInitializedPromise) {

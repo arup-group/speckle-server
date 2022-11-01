@@ -21,11 +21,7 @@ export const commonStreamFieldsFragment = gql`
     updatedAt
     commentCount
     collaborators {
-      id
-      name
-      company
-      avatar
-      role
+      ...StreamCollaboratorFields
     }
     commits(limit: 1) {
       totalCount
@@ -36,6 +32,8 @@ export const commonStreamFieldsFragment = gql`
     favoritedDate
     favoritesCount
   }
+
+  ${streamCollaboratorFieldsFragment}
 `
 
 /**
@@ -202,4 +200,19 @@ export const deleteStreamMutation = gql`
   mutation DeleteStream($id: String!) {
     streamDelete(id: $id)
   }
+`
+
+export const shareableStreamQuery = gql`
+  query ShareableStream($id: String!) {
+    stream(id: $id) {
+      id
+      isPublic
+      role
+      collaborators {
+        ...StreamCollaboratorFields
+      }
+    }
+  }
+
+  ${streamCollaboratorFieldsFragment}
 `

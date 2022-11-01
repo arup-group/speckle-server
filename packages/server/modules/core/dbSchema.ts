@@ -279,4 +279,14 @@ export const ScheduledTasks = buildTableHelper('scheduled_tasks', [
   'lockExpiresAt'
 ])
 
+export const Objects = buildTableHelper('objects', [
+  'id',
+  'speckleType',
+  'totalChildrenCount',
+  'totalChildrenCountByDepth',
+  'createdAt',
+  'data',
+  'streamId'
+])
+
 export { knex }
