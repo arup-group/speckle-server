@@ -67,7 +67,7 @@ jobs:
             region: ap-east-1
             accessKey: AWS_ACCESS_KEY_ID
             secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://v2.speckle.arup.com
+            url: https://hk.speckle.arup.com
           - environment: hs2
             region: eu-west-2
             accessKey: AWS_ACCESS_KEY_ID
