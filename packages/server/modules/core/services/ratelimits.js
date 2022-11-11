@@ -325,7 +325,7 @@ async function sendProjectInfoToValueTrack({ action, source, userId }) {
 
 async function rejectsRequestWithRatelimitStatusIfNeeded({ action, req, res }) {
   const source = req.context.userId || req.context.ip
-  if (!(await this.respectsLimits({ action, source })))
+  if (!(await respectsLimits({ action, source })))
     return res.status(429).set('X-Speckle-Meditation', 'https://http.cat/429').send({
       err: 'You are sending too many requests. You have been rate limited. Please try again later.'
     })
