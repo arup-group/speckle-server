@@ -1,8 +1,7 @@
 const { authorizeResolver, pubsub } = require('@/modules/shared')
 const {
   ForbiddenError: ApolloForbiddenError,
-  ApolloError,
-  withFilter
+  ApolloError
 } = require('apollo-server-express')
 const { ForbiddenError } = require('@/modules/shared/errors')
 const { getStream } = require('@/modules/core/services/streams')
@@ -26,6 +25,11 @@ const {
 const {
   ensureCommentSchema
 } = require('@/modules/comments/services/commentTextService')
+const { withFilter } = require('graphql-subscriptions')
+const { has } = require('lodash')
+const {
+  documentToBasicString
+} = require('@/modules/core/services/richTextEditorService')
 
 const authorizeStreamAccess = async ({
   streamId,
@@ -52,6 +56,7 @@ const authorizeStreamAccess = async ({
   return stream
 }
 
+/** @type {import('@/modules/core/graph/generated/graphql').Resolvers} */
 module.exports = {
   Query: {
     async comment(parent, args, context) {
@@ -93,6 +98,19 @@ module.exports = {
     text(parent) {
       const commentText = parent?.text || ''
       return ensureCommentSchema(commentText)
+    },
+
+    rawText(parent) {
+      const { doc } = ensureCommentSchema(parent.text || '')
+      return documentToBasicString(doc)
+    },
+
+    /**
+     * Resolve resources, if they weren't already preloaded
+     */
+    async resources(parent, _args, ctx) {
+      if (has(parent, 'resources')) return parent.resources
+      return await ctx.loaders.comments.getResources.load(parent.id)
     }
   },
   Stream: {
@@ -103,14 +121,6 @@ module.exports = {
     }
   },
   Commit: {
-    async commentCount(parent, args, context) {
-      if (context.role === Roles.Server.ArchivedUser)
-        throw new ApolloForbiddenError('You are not authorized.')
-      return await getResourceCommentCount({ resourceId: parent.id })
-    }
-  },
-  CommitCollectionUserNode: {
-    // urgh, i think we tripped our gql schemas in there a bit
     async commentCount(parent, args, context) {
       if (context.role === Roles.Server.ArchivedUser)
         throw new ApolloForbiddenError('You are not authorized.')
@@ -147,7 +157,8 @@ module.exports = {
       await pubsub.publish('VIEWER_ACTIVITY', {
         userViewerActivity: args.data,
         streamId: args.streamId,
-        resourceId: args.resourceId
+        resourceId: args.resourceId,
+        authorId: context.userId
       })
       return true
     },
@@ -339,6 +350,11 @@ module.exports = {
 
           if (!stream.allowPublicComments && !stream.role)
             throw new ApolloForbiddenError('You are not authorized.')
+
+          // dont report users activity to himself
+          if (context.userId && context.userId === payload.authorId) {
+            return false
+          }
 
           return (
             payload.streamId === variables.streamId &&

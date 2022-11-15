@@ -1,20 +1,21 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
 // NOTE: any disabling temporary, most of the filtering stuff will go away
 
-import { GetReactiveVarType, Nullable } from '@/helpers/typeHelpers'
+import { Nullable } from '@/helpers/typeHelpers'
 import { setupNewViewerInjection } from '@/main/lib/viewer/core/composables/viewer'
-import { makeVar, TypePolicies } from '@apollo/client/cache'
 import {
   DefaultViewerParams,
   Viewer,
   SelectionEvent,
   PropertyInfo,
-  FilteringState,
   NumericPropertyInfo
 } from '@speckle/viewer'
-import emojis from '@/main/store/emojis'
 import { cloneDeep } from 'lodash'
 import { computed, ComputedRef, inject, InjectionKey, provide, Ref } from 'vue'
+import {
+  commitObjectViewerState,
+  StateType
+} from '@/main/lib/viewer/commit-object-viewer/stateManagerCore'
 
 const ViewerStreamIdKey: InjectionKey<Ref<string>> = Symbol(
   'COMMIT_OBJECT_VIEWER_STREAMID'
@@ -40,29 +41,6 @@ type GlobalViewerData = {
  */
 let globalViewerData: Nullable<GlobalViewerData> = null
 
-/**
- * Queryable Apollo Client state
- */
-const commitObjectViewerState = makeVar({
-  viewerBusy: false,
-  selectedCommentMetaData: null as Nullable<{
-    id: number
-    selectionLocation: Record<string, unknown>
-  }>,
-  addingComment: false,
-  preventCommentCollapse: false,
-  commentReactions: ['👍', '👎', '✏️', '❔', '✔️', '❌'],
-  emojis,
-  // New viewer & filter vars
-  currentFilterState: null as Nullable<FilteringState>,
-  selectedObjects: [] as UnknownObject[],
-  objectProperties: [] as PropertyInfo[],
-  localFilterPropKey: null as Nullable<string>,
-  sectionBox: false
-})
-
-export type StateType = GetReactiveVarType<typeof commitObjectViewerState>
-
 export type LocalFilterState = {
   hiddenIds?: string[]
   isolatedIds?: string[]
@@ -70,22 +48,6 @@ export type LocalFilterState = {
   passMin?: number | null
   passMax?: number | null
   sectionBox?: number[]
-}
-
-/**
- * Merge (through _.merge) these with the rest of your Apollo Client `typePolicies` to set up
- * commit object viewer state management
- */
-export const statePolicies: TypePolicies = {
-  Query: {
-    fields: {
-      commitObjectViewerState: {
-        read() {
-          return commitObjectViewerState()
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -282,19 +244,22 @@ export function loadObjectProperties() {
 }
 
 export async function handleViewerSelection(selectionInfo: SelectionEvent) {
-  if (!selectionInfo) {
+  const state = { ...commitObjectViewerState() }
+  const firstVisibleHit = selectionInfo
+    ? getFirstVisibleSelectionHit(selectionInfo)
+    : null
+
+  if (!selectionInfo || !firstVisibleHit) {
     updateState({ selectedObjects: [] })
     await getInitializedViewer().resetSelection()
     return
   }
 
-  const state = { ...commitObjectViewerState() }
-
   if (selectionInfo.multiple) {
-    if (!state.selectedObjects.includes(selectionInfo.userData))
-      state.selectedObjects = [...state.selectedObjects, selectionInfo.userData]
+    if (!state.selectedObjects.includes(firstVisibleHit.object))
+      state.selectedObjects = [...state.selectedObjects, firstVisibleHit.object]
   } else {
-    state.selectedObjects = [selectionInfo.userData]
+    state.selectedObjects = [firstVisibleHit.object]
   }
 
   getInitializedViewer().selectObjects(
@@ -309,7 +274,34 @@ export async function handleViewerDoubleClick(selectionInfo: SelectionEvent) {
     return
   }
 
-  await getInitializedViewer().zoom([selectionInfo.userData.id as string])
+  const firstVisibleHit = getFirstVisibleSelectionHit(selectionInfo)
+  if (!firstVisibleHit) return
+
+  await getInitializedViewer().zoom([firstVisibleHit.object.id as string])
+}
+
+function getFirstVisibleSelectionHit({ hits }: SelectionEvent) {
+  const { currentFilterState } = { ...commitObjectViewerState() }
+  const hasHiddenObjects =
+    !!currentFilterState?.hiddenObjects &&
+    currentFilterState?.hiddenObjects.length !== 0
+  const hasIsolatedObjects =
+    !!currentFilterState?.isolatedObjects &&
+    currentFilterState?.isolatedObjects.length !== 0
+
+  for (const hit of hits) {
+    if (hasHiddenObjects) {
+      if (!currentFilterState?.hiddenObjects?.includes(hit.object.id as string)) {
+        return hit
+      }
+    } else if (hasIsolatedObjects) {
+      if (currentFilterState.isolatedObjects?.includes(hit.object.id as string))
+        return hit
+    } else {
+      return hit
+    }
+  }
+  return null
 }
 
 export async function clearSelectionDisplay() {

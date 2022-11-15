@@ -46,15 +46,17 @@ export enum ViewerEvent {
   UnloadComplete = 'unload-complete',
   UnloadAllComplete = 'unload-all-complete',
   Busy = 'busy',
-  SectionBoxChanged = 'section-box-changed'
+  SectionBoxChanged = 'section-box-changed',
+  SectionBoxUpdated = 'section-box-updated'
 }
 
 export type SelectionEvent = {
-  guid?: string
-  userData: Record<string, unknown>
-  location: Vector3
-  selectionCenter: Vector3
   multiple: boolean
+  hits: Array<{
+    guid?: string
+    object: Record<string, unknown>
+    point: Vector3
+  }>
 }
 
 export interface LightConfiguration {
@@ -116,7 +118,7 @@ export interface IViewer {
   init(): Promise<void>
   resize(): void
   on(eventType: ViewerEvent, handler: (arg) => void)
-
+  requestRender(): void
   setSectionBox(
     box?: {
       min: { x: number; y: number; z: number }

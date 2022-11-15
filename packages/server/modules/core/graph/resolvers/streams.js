@@ -1,10 +1,6 @@
 'use strict'
-const {
-  ApolloError,
-  ForbiddenError,
-  UserInputError,
-  withFilter
-} = require('apollo-server-express')
+const { ApolloError, ForbiddenError, UserInputError } = require('apollo-server-express')
+const { withFilter } = require('graphql-subscriptions')
 
 const {
   createStream,
@@ -12,8 +8,6 @@ const {
   getStreams,
   updateStream,
   deleteStream,
-  getUserStreams,
-  getUserStreamsCount,
   getStreamUsers,
   favoriteStream,
   getFavoriteStreamsCollection,
@@ -24,10 +18,10 @@ const {
 
 const {
   authorizeResolver,
-  validateScopes,
-  validateServerRole,
   pubsub,
-  StreamPubsubEvents
+  StreamPubsubEvents,
+  validateScopes,
+  validateServerRole
 } = require(`@/modules/shared`)
 const { saveActivity } = require(`@/modules/activitystream/services`)
 const { ActionTypes } = require('@/modules/activitystream/helpers/types')
@@ -46,14 +40,17 @@ const { removePrivateFields } = require('@/modules/core/helpers/userHelper')
 const {
   removeStreamCollaborator,
   addOrUpdateStreamCollaborator,
-  validateStreamAccess
+  isStreamCollaborator
 } = require('@/modules/core/services/streams/streamAccessService')
 const { Roles } = require('@/modules/core/helpers/mainConstants')
-const { StreamInvalidAccessError } = require('@/modules/core/errors/stream')
 const {
   getDiscoverableStreams
 } = require('@/modules/core/services/streams/discoverableStreams')
 const { has } = require('lodash')
+const {
+  getUserStreamsCount,
+  getUserStreams
+} = require('@/modules/core/repositories/streams')
 
 // subscription events
 const USER_STREAM_ADDED = StreamPubsubEvents.UserStreamAdded
@@ -102,17 +99,29 @@ const _deleteStream = async (parent, args, context) => {
   return true
 }
 
+const getUserStreamsCore = async (forOtherUser, parent, args) => {
+  const totalCount = await getUserStreamsCount({ userId: parent.id, forOtherUser })
+
+  const { cursor, streams } = await getUserStreams({
+    userId: parent.id,
+    limit: args.limit,
+    cursor: args.cursor,
+    forOtherUser
+  })
+
+  return { totalCount, cursor, items: streams }
+}
+
 /**
  * @type {import('@/modules/core/graph/generated/graphql').Resolvers}
  */
 module.exports = {
   Query: {
-    async stream(parent, args, context) {
+    async stream(_, args, context) {
       const stream = await getStream({ streamId: args.id, userId: context.userId })
       if (!stream) throw new ApolloError('Stream not found')
 
-      if (!stream.isPublic && context.auth === false)
-        throw new ForbiddenError('You are not authorized.')
+      await authorizeResolver(context.userId, args.id, 'stream:reviewer')
 
       const info = await getServerInfo()
       const loggedInUsersOnly = info.loggedInUsersOnly
@@ -131,12 +140,8 @@ module.exports = {
     },
 
     async streams(parent, args, context) {
-      if (args.limit && args.limit > 50)
-        throw new UserInputError('Cannot return more than 50 items at a time.')
-
       const totalCount = await getUserStreamsCount({
         userId: context.userId,
-        publicOnly: false,
         searchQuery: args.query
       })
 
@@ -144,7 +149,6 @@ module.exports = {
         userId: context.userId,
         limit: args.limit,
         cursor: args.cursor,
-        publicOnly: false,
         searchQuery: args.query
       })
       return { totalCount, cursor, items: streams }
@@ -209,20 +213,9 @@ module.exports = {
   },
   User: {
     async streams(parent, args, context) {
-      if (args.limit && args.limit > 50)
-        throw new UserInputError('Cannot return more than 50 items.')
       // Return only the user's public streams if parent.id !== context.userId
-      const publicOnly = parent.id !== context.userId
-      const totalCount = await getUserStreamsCount({ userId: parent.id, publicOnly })
-
-      const { cursor, streams } = await getUserStreams({
-        userId: parent.id,
-        limit: args.limit,
-        cursor: args.cursor,
-        publicOnly
-      })
-
-      return { totalCount, cursor, items: streams }
+      const forOtherUser = parent.id !== context.userId
+      return await getUserStreamsCore(forOtherUser, parent, args)
     },
 
     async favoriteStreams(parent, args, context) {
@@ -238,11 +231,18 @@ module.exports = {
 
     async totalOwnedStreamsFavorites(parent, _args, ctx) {
       const { id: userId } = parent
-
       return await getOwnedFavoritesCount({ ctx, userId })
     }
   },
-
+  LimitedUser: {
+    async streams(parent, args) {
+      return await getUserStreamsCore(true, parent, args)
+    },
+    async totalOwnedStreamsFavorites(parent, _args, ctx) {
+      const { id: userId } = parent
+      return await getOwnedFavoritesCount({ ctx, userId })
+    }
+  },
   Mutation: {
     async streamCreate(parent, args, context) {
       const info = await getServerInfo()
@@ -371,15 +371,10 @@ module.exports = {
       }
 
       // We only allow changing roles, not adding access - for that the user must use stream invites
-      let isCollaboratorAlready = false
-      try {
-        await validateStreamAccess(params.userId, params.streamId, smallestStreamRole)
-        isCollaboratorAlready = true
-      } catch (e) {
-        if (!(e instanceof StreamInvalidAccessError)) {
-          throw e
-        }
-      }
+      const isCollaboratorAlready = await isStreamCollaborator(
+        params.userId,
+        params.streamId
+      )
       if (!isCollaboratorAlready) {
         throw new ForbiddenError(
           "Cannot grant permissions to users who aren't collaborators already - invite the user to the stream first"

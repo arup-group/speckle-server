@@ -1,6 +1,7 @@
 const axios = require('axios')
 const debug = require('debug')
 const { captureValueTrackUsage } = require('./posthogHelper')
+const { getServerInfo } = require('@/modules/core/services/generic')
 
 const headers = {
   'Content-Type': 'application/json',
@@ -102,6 +103,12 @@ const endOfCurrentInterval = () => {
 }
 
 module.exports = {
+  currentTimeInterval() {
+    return {
+      usageStartDateTime: startOfCurrentInterval(),
+      usageEndDateTime: endOfCurrentInterval()
+    }
+  },
   captureUsageEvent(event) {
     const data = JSON.stringify({
       eventDateTime: eventDateTime(),
@@ -139,12 +146,14 @@ module.exports = {
       userName: summary.userName,
       narrative: `Speckle ${dateTime.split('-').slice(0, -1).join('-')}` //Speckle-YYYY-MM
     }
+    const serverInfo = await getServerInfo()
     axios
       .post(`${process.env.VALUETRACK_API_URL}/UsageSummary`, JSON.stringify(data), {
         headers
       })
       .then(function (response) {
         if (response.status === 201) {
+          data['server'] = serverInfo.canonicalUrl
           debug('speckle:valuetrack')('Sent usage summary (with cost!) to ValueTrack')
           captureValueTrackUsage('valuetrack_capture', summary.userId, data)
         } else console.log(response.data)

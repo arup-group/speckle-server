@@ -21,15 +21,12 @@
         </v-list-item-content>
       </v-list-item>
       <div class="caption px-3 my-4">
-        <perfect-scrollbar
-          style="max-height: 100px"
-          :options="{ suppressScrollX: true }"
-        >
+        <div class="simple-scrollbar" style="max-height: 100px; overflow-y: auto">
           <span v-if="stream && stream.description">
             {{ stream.description }}
           </span>
           <span v-else class="font-italic">No description provided</span>
-        </perfect-scrollbar>
+        </div>
         <router-link
           v-if="stream.role === 'stream:owner'"
           :to="`/streams/${$route.params.streamId}/settings`"
@@ -226,6 +223,7 @@ import {
   STANDARD_PORTAL_KEYS,
   buildPortalStateMixin
 } from '@/main/utils/portalStateManager'
+import { StreamEvents } from '@/main/lib/core/helpers/eventHubHelper'
 
 export default {
   components: {
@@ -336,7 +334,7 @@ export default {
   },
   mounted() {
     this.branchMenuOpen = this.$route.name.toLowerCase().includes('branch')
-    this.$eventHub.$on('branch-refresh', async () => {
+    this.$eventHub.$on(StreamEvents.RefetchBranches, async () => {
       await this.refetchBranches()
     })
     this.$eventHub.$on('show-new-branch-dialog', () => {

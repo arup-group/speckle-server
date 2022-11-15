@@ -99,13 +99,15 @@ export class FilteringManager {
   public unIsolateObjects(
     objectIds: string[],
     stateKey: string = null,
-    includeDescendants = true
+    includeDescendants = true,
+    ghost = true
   ): FilteringState {
     return this.setVisibilityState(
       objectIds,
       stateKey,
       Command.UNISOLATE,
-      includeDescendants
+      includeDescendants,
+      ghost
     )
   }
 
@@ -236,6 +238,7 @@ export class FilteringManager {
     this.ColorNumericFilterState.colorGroups = colorGroups
     this.ColorNumericFilterState.nonMatchingRvs = nonMatchingRvs
     this.ColorNumericFilterState.ghost = ghost
+    this.ColorNumericFilterState.matchingIds = matchingIds
     return this.setFilters()
   }
 
@@ -297,19 +300,37 @@ export class FilteringManager {
   }
 
   private populateGenericState(objectIds, state) {
-    const ids = [...objectIds, ...this.getDescendantIds(objectIds)]
+    let ids = [...objectIds, ...this.getDescendantIds(objectIds)]
+    /** There's a log of duplicate ids coming in from 'getDescendantIds'. We remove them
+     *  to avoid the large redundancy they incurr otherwise.
+     */
+    ids = [...Array.from(new Set(ids.map((value) => value)))]
     state.rvs = []
-    state.ids = ids
+    state.ids = []
+    const nodes = []
     if (ids.length !== 0) {
+      /** This walk still takes longer than we'd like */
       WorldTree.getInstance().walk((node: TreeNode) => {
-        if (!node.model.atomic) return true
-        if (!node.model.raw) return true
         if (ids.indexOf(node.model.raw.id) !== -1) {
-          state.rvs.push(...WorldTree.getRenderTree().getRenderViewsForNode(node, node))
+          nodes.push(node)
         }
         return true
       })
+      for (let k = 0; k < nodes.length; k++) {
+        /** There's also quite a lot of redundancy here as well. The nodes coming are
+         * hierarchical and we end up getting the same render views more than once.
+         */
+        const rvs = WorldTree.getRenderTree().getRenderViewNodesForNode(
+          nodes[k],
+          nodes[k]
+        )
+        if (rvs) {
+          state.rvs.push(...rvs.map((e) => e.model.renderView))
+          state.ids.push(...rvs.map((e) => e.model.raw.id))
+        }
+      }
     }
+
     return this.setFilters()
   }
 
@@ -375,6 +396,8 @@ export class FilteringManager {
       returnState.passMax =
         this.ColorNumericFilterState.currentProp.passMax ||
         this.ColorNumericFilterState.currentProp.max
+
+      returnState.isolatedObjects = this.ColorNumericFilterState.matchingIds
     }
 
     const isShowHide =
@@ -413,12 +436,6 @@ export class FilteringManager {
       })
     }
 
-    if (this.SelectionState.rvs.length !== 0) {
-      this.Renderer.applyFilter(this.SelectionState.rvs, {
-        filterType: FilterMaterialType.SELECT
-      })
-    }
-
     if (this.HighlightState.rvs.length !== 0) {
       this.Renderer.applyFilter(this.HighlightState.rvs, {
         filterType: this.HighlightState.ghost
@@ -427,8 +444,14 @@ export class FilteringManager {
       })
     }
 
+    if (this.SelectionState.rvs.length !== 0) {
+      this.Renderer.applyFilter(this.SelectionState.rvs, {
+        filterType: FilterMaterialType.SELECT
+      })
+    }
+
     this.Renderer.endFilter()
-    this.Renderer.viewer.needsRender = true
+    this.Renderer.viewer.requestRender()
     return returnState
   }
 
@@ -500,6 +523,7 @@ class ColorNumericFilterState {
   public nonMatchingRvs: NodeRenderView[]
   public colorGroups: ValueGroupColorItemNumericProps[]
   public ghost = true
+  public matchingIds: string[]
 }
 
 type ValueGroupColorItemNumericProps = {

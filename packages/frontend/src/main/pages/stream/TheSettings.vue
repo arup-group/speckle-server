@@ -20,7 +20,7 @@
       </div>
     </portal>
     <v-row v-if="stream">
-      <v-col v-if="stream.role !== 'stream:owner'" cols="12">
+      <v-col v-if="isEditNotAuthorized" cols="12">
         <v-alert type="warning">
           Your permission level ({{ stream.role ? stream.role : 'none' }}) is not high
           enough to edit this stream's details.
@@ -40,7 +40,7 @@
                   requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
                 "
                 ref="input-field"
-                :initial-job-number="jobNumber"
+                :initial-job-number="stream.jobNumber"
                 :job-number-required="
                   requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
                 "
@@ -48,44 +48,44 @@
                 @jobObjectSelected="selectedJobNumber"
               ></job-number-search>
               <v-text-field
-                v-model="name"
+                v-model="model.name"
                 :rules="validation.nameRules"
                 label="Name"
                 hint="The name of this stream."
                 class="mt-5"
-                :disabled="stream.role !== 'stream:owner'"
+                :disabled="isEditDisabled"
               />
               <v-text-field
-                v-model="description"
+                v-model="model.description"
                 label="Description"
                 hint="The description of this stream."
                 class="mt-5"
-                :disabled="stream.role !== 'stream:owner'"
+                :disabled="isEditDisabled"
               />
               <h2>Privacy</h2>
               <stream-visibility-toggle
                 :disabled="isEditDisabled"
-                :is-public.sync="isPublic"
-                :is-discoverable.sync="isDiscoverable"
+                :is-public.sync="model.isPublic"
+                :is-discoverable.sync="model.isDiscoverable"
               />
               <br />
               <h2>Comments</h2>
               <v-switch
-                v-model="allowPublicComments"
+                v-model="model.allowPublicComments"
                 inset
                 class="mt-5"
                 :label="
-                  allowPublicComments
+                  model.allowPublicComments
                     ? 'Anyone can comment'
                     : 'Only collaborators can comment'
                 "
                 :hint="
-                  allowPublicComments
+                  model.allowPublicComments
                     ? 'Any signed in user can leave a comment; the stream needs to be public.'
                     : 'Only collaborators can comment.'
                 "
                 persistent-hint
-                :disabled="stream.role !== 'stream:owner'"
+                :disabled="isEditDisabled"
               />
             </v-form>
           </v-card-text>
@@ -103,7 +103,7 @@
           </v-card-actions>
         </section-card>
       </v-col>
-      <v-col cols="12">
+      <v-col v-if="!isEditNotAuthorized" cols="12">
         <section-card :expand="true">
           <template #header>Danger Zone</template>
 
@@ -114,7 +114,7 @@
                 fab
                 dark
                 small
-                :disabled="stream.role !== 'stream:owner'"
+                :disabled="isEditDisabled"
                 @click="deleteDialog = true"
               >
                 <v-icon>mdi-delete-forever</v-icon>
@@ -159,7 +159,6 @@
               ></v-text-field>
             </v-card-text>
             <v-card-actions>
-              <!-- <v-btn text color="primary" @click="deleteDialog = false">Cancel</v-btn> -->
               <v-btn
                 block
                 class="mr-3"
@@ -177,60 +176,292 @@
   </v-container>
 </template>
 
-<script>
-import { gql } from '@apollo/client/core'
-import {
-  STANDARD_PORTAL_KEYS,
-  buildPortalStateMixin
-} from '@/main/utils/portalStateManager'
+<script lang="ts">
+import { STANDARD_PORTAL_KEYS, usePortalState } from '@/main/utils/portalStateManager'
 import SectionCard from '@/main/components/common/SectionCard.vue'
 import StreamVisibilityToggle from '@/main/components/stream/editor/StreamVisibilityToggle.vue'
 import JobNumberSearch from '@/main/components/common/JobNumberSearch.vue'
+import { required } from '@/main/lib/common/vuetify/validators'
+import { computed, defineComponent, ref, watch } from 'vue'
+import { Nullable } from '@/helpers/typeHelpers'
+import {
+  StreamSettingsDocument,
+  StreamSettingsQuery,
+  UpdateStreamSettingsDocument,
+  DeleteStreamDocument
+} from '@/graphql/generated/graphql'
+import { useApolloClient, useQuery } from '@vue/apollo-composable'
+import { useRoute, useRouter } from '@/main/lib/core/composables/router'
+import type { Get } from 'type-fest'
+import { debounce } from 'lodash'
+import { Roles } from '@/helpers/mainConstants'
+import { useMixpanel } from '@/main/lib/core/composables/core'
+import { useGlobalToast } from '@/main/lib/core/composables/notifications'
+import {
+  convertThrowIntoFetchResult,
+  getCacheId,
+  getFirstErrorMessage,
+  updateCacheByFilter
+} from '@/main/lib/common/apollo/helpers/apolloOperationHelper'
+import { gql } from '@apollo/client/core'
 
-export default {
+type ModelType = {
+  name: string
+  jobNumber: Nullable<string>
+  description: Nullable<string>
+  isPublic: boolean
+  isDiscoverable: boolean
+  allowPublicComments: boolean
+}
+
+type StreamType = Get<StreamSettingsQuery, 'stream'>
+
+export default defineComponent({
   name: 'TheSettings',
   components: {
     SectionCard,
     StreamVisibilityToggle,
     JobNumberSearch
   },
-  mixins: [buildPortalStateMixin([STANDARD_PORTAL_KEYS.Toolbar], 'stream-settings', 1)],
+  setup() {
+    const router = useRouter()
+    const route = useRoute()
+    const mixpanel = useMixpanel()
+    const apollo = useApolloClient().client
+    const { triggerNotification } = useGlobalToast()
+
+    const { canRenderToolbarPortal } = usePortalState(
+      [STANDARD_PORTAL_KEYS.Toolbar],
+      'stream-settings',
+      1
+    )
+
+    const buildModelFromStream = (stream: StreamType): ModelType => {
+      if (!stream)
+        return {
+          name: '',
+          description: null,
+          isPublic: true,
+          isDiscoverable: false,
+          allowPublicComments: true,
+          jobNumber: ''
+        }
+
+      return {
+        name: stream.name,
+        jobNumber: stream.jobNumber,
+        description: stream.description || '',
+        isPublic: stream.isPublic,
+        isDiscoverable: stream.isDiscoverable,
+        allowPublicComments: stream.allowPublicComments
+      }
+    }
+
+    const save = async () => {
+      if (!stream.value || !canSave.value) return
+
+      const streamId = stream.value.id
+      loading.value = true
+      mixpanel.track('Stream Action', { type: 'action', name: 'update' })
+
+      const result = await apollo
+        .mutate({
+          mutation: UpdateStreamSettingsDocument,
+          variables: {
+            input: {
+              id: streamId,
+              ...model.value
+            }
+          },
+          update: (cache, { data }) => {
+            if (!data?.streamUpdate) return
+
+            updateCacheByFilter(
+              cache,
+              {
+                query: {
+                  query: StreamSettingsDocument,
+                  variables: { id: streamId }
+                }
+              },
+              (res) => {
+                if (!res.stream) return
+
+                return {
+                  ...res,
+                  stream: {
+                    ...res.stream,
+                    ...model.value
+                  }
+                }
+              }
+            )
+          }
+        })
+        .catch(convertThrowIntoFetchResult)
+
+      if (result.data?.streamUpdate) {
+        triggerNotification({ text: 'Stream updated' })
+      } else {
+        triggerNotification({
+          text: getFirstErrorMessage(result.errors),
+          type: 'error'
+        })
+      }
+
+      loading.value = false
+    }
+
+    const deleteStream = async () => {
+      if (!stream.value || isEditDisabled.value) return
+
+      mixpanel.track('Stream Action', { type: 'action', name: 'delete' })
+      loading.value = true
+      const streamId = stream.value.id
+
+      const result = await apollo
+        .mutate({
+          mutation: DeleteStreamDocument,
+          variables: {
+            id: streamId
+          },
+          update: (cache, { data }) => {
+            if (!data?.streamDelete) return
+
+            cache.evict({
+              id: getCacheId('Stream', streamId)
+            })
+          }
+        })
+        .catch(convertThrowIntoFetchResult)
+
+      if (result.data?.streamDelete) {
+        triggerNotification({
+          text: 'Stream deleted.'
+        })
+      } else {
+        triggerNotification({
+          text: getFirstErrorMessage(result.errors),
+          type: 'error'
+        })
+      }
+
+      loading.value = false
+      deleteDialog.value = false
+      router.push({ path: '/streams?refresh=true' })
+    }
+
+    const model = ref<ModelType>({
+      name: '',
+      jobNumber: '',
+      description: null,
+      isPublic: true,
+      isDiscoverable: false,
+      allowPublicComments: true
+    })
+    const snackbar = ref(false)
+    const loading = ref(false)
+    const valid = ref(false)
+    const deleteDialog = ref(false)
+    const streamNameConfirm = ref('')
+    const validation = {
+      nameRules: [required('A stream must have a name!')]
+    }
+
+    const { result: streamSettingsResult } = useQuery(StreamSettingsDocument, () => ({
+      id: route.params.streamId as string
+    }))
+
+    const stream = computed(
+      (): StreamType => streamSettingsResult.value?.stream || null
+    )
+    const oldModel = computed(() => buildModelFromStream(stream.value))
+    const isEditNotAuthorized = computed(
+      () => stream.value?.role !== Roles.Stream.Owner
+    )
+    const isEditDisabled = computed(() => isEditNotAuthorized.value || loading.value)
+    const changesExist = computed(() => {
+      const keys = Object.keys(model.value) as Array<keyof ModelType>
+      console.log(keys)
+      for (const key of keys) {
+        const oldVal = oldModel.value[key]
+        const newVal = model.value[key]
+
+        if (oldVal !== newVal) return true
+      }
+
+      return false
+    })
+    const canSave = computed(
+      () => !isEditDisabled.value && valid.value && changesExist.value
+    )
+
+    // re-init form when stream refreshed
+    watch(
+      stream,
+      (newStream) => {
+        model.value = buildModelFromStream(newStream)
+      },
+      { immediate: true }
+    )
+
+    // if public comments enabled, enable isPublic as well
+    watch(
+      () => model.value.allowPublicComments,
+      (allowComments) => {
+        if (allowComments && !model.value.isPublic) model.value.isPublic = true
+      }
+    )
+
+    // if isPublic disabled, disabled allowPublicComments as well
+    watch(
+      () => model.value.isPublic,
+      (isPublic) => {
+        if (!isPublic && model.value.allowPublicComments)
+          model.value.allowPublicComments = false
+      }
+    )
+
+    // auto-save
+    watch(
+      model,
+      debounce(() => {
+        save()
+      }, 1000),
+      { deep: true }
+    )
+
+    return {
+      canRenderToolbarPortal,
+      stream,
+      model,
+      buildModelFromStream,
+      snackbar,
+      loading,
+      valid,
+      deleteDialog,
+      streamNameConfirm,
+      validation,
+      changesExist,
+      oldModel,
+      canSave,
+      isEditNotAuthorized,
+      isEditDisabled,
+      save,
+      deleteStream
+    }
+  },
   apollo: {
-    stream: {
+    requireJobNumberToCreateCommits: {
       query: gql`
-        query Stream($id: String!) {
-          stream(id: $id) {
-            id
-            jobNumber
-            name
-            description
-            isPublic
-            isDiscoverable
-            allowPublicComments
-            role
+        query {
+          serverInfo {
+            requireJobNumberToCreateCommits
           }
         }
       `,
-      variables() {
-        return {
-          id: this.$route.params.streamId
-        }
-      },
-
-      update(data) {
-        const stream = data.stream
-        if (stream)
-          ({
-            name: this.name,
-            description: this.description,
-            isPublic: this.isPublic,
-            isDiscoverable: this.isDiscoverable,
-            allowPublicComments: this.allowPublicComments,
-            jobNumber: this.jobNumber
-          } = stream)
-
-        return stream
-      }
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
     },
     requireJobNumberToCreateStreams: {
       query: gql`
@@ -242,126 +473,14 @@ export default {
       `,
       prefetch: true,
       update: (data) => data.serverInfo.requireJobNumberToCreateStreams
-    },
-    requireJobNumberToCreateCommits: {
-      query: gql`
-        query {
-          serverInfo {
-            requireJobNumberToCreateCommits
-          }
-        }
-      `,
-      prefetch: true,
-      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
-    }
-  },
-  data: () => ({
-    snackbar: false,
-    loading: false,
-    loadingDelete: false,
-    valid: false,
-    name: null,
-    jobNumber: null,
-    deleteDialog: false,
-    streamNameConfirm: '',
-    description: null,
-    isPublic: true,
-    isDiscoverable: false,
-    allowPublicComments: true,
-    validation: {
-      nameRules: [(v) => !!v || 'A stream must have a name!']
-    }
-  }),
-  computed: {
-    canSave() {
-      return (
-        !this.isEditDisabled &&
-        this.valid &&
-        (this.name !== this.stream.name ||
-          this.description !== this.stream.description ||
-          this.isPublic !== this.stream.isPublic ||
-          this.allowPublicComments !== this.stream.allowPublicComments ||
-          this.isDiscoverable !== this.stream.isDiscoverable ||
-          this.jobNumber !== this.stream.jobNumber)
-      )
-    },
-    isEditDisabled() {
-      return this.stream?.role !== 'stream:owner'
-    }
-  },
-  watch: {
-    allowPublicComments(newVal) {
-      if (newVal && !this.isPublic) this.isPublic = true
-    },
-    isPublic(newVal) {
-      if (!newVal && this.allowPublicComments) this.allowPublicComments = false
     }
   },
   methods: {
-    selectedJobNumber(event) {
+    selectedJobNumber(event: { JobCode: Nullable<string> }) {
       if (event) {
-        this.jobNumber = event.JobCode
+        this.model.jobNumber = event.JobCode
       }
-    },
-    async save() {
-      this.loading = true
-      this.$mixpanel.track('Stream Action', { type: 'action', name: 'update' })
-      try {
-        await this.$apollo.mutate({
-          mutation: gql`
-            mutation editDescription($input: StreamUpdateInput!) {
-              streamUpdate(stream: $input)
-            }
-          `,
-          variables: {
-            input: {
-              id: this.stream.id,
-              name: this.name,
-              description: this.description,
-              isPublic: this.isPublic,
-              allowPublicComments: this.allowPublicComments,
-              isDiscoverable: this.isDiscoverable,
-              jobNumber: this.jobNumber
-            }
-          }
-        })
-        this.$eventHub.$emit('notification', {
-          text: 'Stream updated.'
-        })
-      } catch (e) {
-        this.$eventHub.$emit('notification', {
-          text: e.message
-        })
-      }
-
-      this.$apollo.queries.stream.refetch()
-      this.loading = false
-    },
-    async deleteStream() {
-      this.$mixpanel.track('Stream Action', { type: 'action', name: 'delete' })
-      this.loadingDelete = true
-      try {
-        await this.$apollo.mutate({
-          mutation: gql`
-            mutation deleteStream($id: String!) {
-              streamDelete(id: $id)
-            }
-          `,
-          variables: {
-            id: this.stream.id
-          }
-        })
-        this.$eventHub.$emit('notification', {
-          text: 'Stream deleted.'
-        })
-      } catch (e) {
-        this.$eventHub.$emit('notification', {
-          text: e.message
-        })
-      }
-      this.deleteDialog = false
-      this.$router.push({ path: '/streams?refresh=true' })
     }
   }
-}
+})
 </script>

@@ -16,7 +16,7 @@ export default class Sandbox {
   private viewsFolder!: FolderApi
   private streams: { [url: string]: Array<unknown> } = {}
   private properties: PropertyInfo[]
-  private selectionList: SelectionEvent[] = null
+  private selectionList: SelectionEvent[]
 
   public static urlParams = {
     url: 'https://latest.speckle.dev/streams/c43ac05d04/commits/ec724cfbeb'
@@ -30,15 +30,41 @@ export default class Sandbox {
     tonemapping: 4 //'ACESFilmicToneMapping'
   }
 
+  public static pipelineParams = {
+    pipelineOutput: 8,
+    accumulationFrames: 16,
+    dynamicAoEnabled: true,
+    dynamicAoParams: {
+      intensity: 1.5,
+      scale: 0,
+      kernelRadius: 5,
+      bias: 0.2,
+      normalsType: 2,
+      blurEnabled: true,
+      blurRadius: 2,
+      blurStdDev: 4,
+      blurDepthCutoff: 0.007
+    },
+    staticAoEnabled: true,
+    staticAoParams: {
+      intensity: 1,
+      kernelRadius: 30, // Screen space
+      kernelSize: 16,
+      bias: 0.01,
+      minDistance: 0,
+      maxDistance: 0.008
+    }
+  }
+
   public static lightParams: SunLightConfiguration = {
     enabled: true,
     castShadow: true,
     intensity: 5,
     color: 0xffffff,
-    elevation: 1.33,
     azimuth: 0.75,
+    elevation: 1.33,
     radius: 0,
-    indirectLightIntensity: 1.85
+    indirectLightIntensity: 1.2
   }
 
   public static filterParams = {
@@ -172,7 +198,7 @@ export default class Sandbox {
     })
     toggleSectionBox.on('click', () => {
       this.viewer.setSectionBoxFromObjects(
-        this.selectionList.map((val) => val.userData.id) as string[]
+        this.selectionList.map((val) => val.hits[0].object.id) as string[]
       )
       this.viewer.toggleSectionBox()
     })
@@ -189,7 +215,7 @@ export default class Sandbox {
     })
     zoomExtents.on('click', () => {
       this.viewer.zoom(
-        this.selectionList.map((val) => val.userData.id) as string[],
+        this.selectionList.map((val) => val.hits[0].object.id) as string[],
         undefined,
         true
       )
@@ -239,6 +265,7 @@ export default class Sandbox {
         })
       for (let i = 0; i < 24; i++) {
         this.viewer.setView({ azimuth: Math.PI / 12, polar: 0 }, false)
+        this.viewer.getRenderer().resetPipeline(true)
         await waitForAnimation(1000)
       }
     })
@@ -311,6 +338,30 @@ export default class Sandbox {
       })
 
     postFolder
+      .addInput({ near: 0.01 }, 'near', {
+        min: 0,
+        max: 2,
+        step: 0.001
+      })
+      .on('change', (ev) => {
+        this.viewer.cameraHandler.activeCam.camera.near = ev.value
+        this.viewer.cameraHandler.activeCam.camera.updateProjectionMatrix()
+        this.viewer.requestRender()
+      })
+
+    postFolder
+      .addInput({ far: 10 }, 'far', {
+        min: 0,
+        max: 10000,
+        step: 1
+      })
+      .on('change', (ev) => {
+        this.viewer.cameraHandler.activeCam.camera.far = ev.value
+        this.viewer.cameraHandler.activeCam.camera.updateProjectionMatrix()
+        this.viewer.requestRender()
+      })
+
+    postFolder
       .addInput(Sandbox.sceneParams, 'tonemapping', {
         options: {
           Linear: 1,
@@ -319,6 +370,185 @@ export default class Sandbox {
       })
       .on('change', () => {
         this.viewer.getRenderer().renderer.toneMapping = Sandbox.sceneParams.tonemapping
+        this.viewer.requestRender()
+      })
+
+    const pipelineFolder = this.tabs.pages[1].addFolder({
+      title: 'Pipeline',
+      expanded: true
+    })
+    pipelineFolder
+      .addInput(Sandbox.pipelineParams, 'pipelineOutput', {
+        options: {
+          DEPTH_RGBA: 0,
+          DEPTH: 1,
+          COLOR: 2,
+          GEOMETRY_NORMALS: 3,
+          RECONSTRUCTED_NORMALS: 4,
+          DYNAMIC_AO: 5,
+          DYNAMIC_AO_BLURED: 6,
+          PROGRESSIVE_AO: 7,
+          FINAL: 8
+        }
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    pipelineFolder
+      .addInput(Sandbox.pipelineParams, 'accumulationFrames', {
+        min: 1,
+        max: 128,
+        step: 1
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    const dynamicAoFolder = pipelineFolder.addFolder({
+      title: 'Dynamic AO',
+      expanded: true
+    })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'intensity', { min: 0, max: 5 })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'kernelRadius', {
+        min: 0,
+        max: 500
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'bias', {
+        min: -1,
+        max: 1
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'normalsType', {
+        options: {
+          DEFAULT: 0,
+          ADVANCED: 1,
+          ACCURATE: 2
+        }
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'blurEnabled', {})
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'blurRadius', {
+        min: 0,
+        max: 10
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    dynamicAoFolder
+      .addInput(Sandbox.pipelineParams.dynamicAoParams, 'blurDepthCutoff', {
+        min: 0,
+        max: 1,
+        step: 0.00001
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    const staticAoFolder = pipelineFolder.addFolder({
+      title: 'Static AO',
+      expanded: true
+    })
+    // staticAoFolder
+    //   .addInput(Sandbox.pipelineParams, 'staticAoEnabled', {})
+    //   .on('change', () => {
+    //     this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+    //     this.viewer.requestRender()
+    //   })
+    staticAoFolder
+      .addInput(Sandbox.pipelineParams.staticAoParams, 'intensity', {
+        min: 0,
+        max: 5,
+        step: 0.01
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+    // staticAoFolder
+    //   .addInput(Sandbox.pipelineParams.staticAoParams, 'minDistance', {
+    //     min: 0,
+    //     max: 100,
+    //     step: 0.000001
+    //   })
+    //   .on('change', () => {
+    //     this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+    //     this.viewer.requestRender()
+    //   })
+
+    // staticAoFolder
+    //   .addInput(Sandbox.pipelineParams.staticAoParams, 'maxDistance', {
+    //     min: 0,
+    //     max: 100,
+    //     step: 0.000001
+    //   })
+    //   .on('change', () => {
+    //     this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+    //     this.viewer.requestRender()
+    //   })
+    staticAoFolder
+      .addInput(Sandbox.pipelineParams.staticAoParams, 'kernelRadius', {
+        min: 0,
+        max: 1000
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    staticAoFolder
+      .addInput(Sandbox.pipelineParams.staticAoParams, 'bias', {
+        min: -1,
+        max: 1,
+        step: 0.0001
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
+        this.viewer.requestRender()
+      })
+
+    staticAoFolder
+      .addInput(Sandbox.pipelineParams.staticAoParams, 'kernelSize', {
+        min: 1,
+        max: 128,
+        step: 1
+      })
+      .on('change', () => {
+        this.viewer.getRenderer().pipelineOptions = Sandbox.pipelineParams
         this.viewer.requestRender()
       })
 

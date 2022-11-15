@@ -1,8 +1,13 @@
 'use strict'
 const knex = require('@/db/knex')
 const debug = require('debug')
-const { captureUsageSummary } = require('../../../logging/valueTrackHelper')
+const {
+  captureUsageSummary,
+  currentTimeInterval
+} = require('../../../logging/valueTrackHelper')
+const { captureValueTrackUsage } = require('../../../logging/posthogHelper')
 const { getUserById } = require('./users')
+const { getServerInfo } = require('@/modules/core/services/generic')
 
 const RatelimitActions = () => knex('ratelimit_actions')
 const prometheusClient = require('prom-client')
@@ -28,7 +33,13 @@ const LIMITS = {
   BRANCHES: parseInt(process.env.LIMIT_BRANCHES) || 1000, // per stream
   TOKENS: parseInt(process.env.LIMIT_TOKENS) || 1000, // per user
   ACTIVE_SUBSCRIPTIONS: parseInt(process.env.LIMIT_ACTIVE_SUBSCRIPTIONS) || 100, // per user
-  ACTIVE_CONNECTIONS: parseInt(process.env.LIMIT_ACTIVE_CONNECTIONS) || 100 // per source ip
+  ACTIVE_CONNECTIONS: parseInt(process.env.LIMIT_ACTIVE_CONNECTIONS) || 100, // per source ip
+
+  'POST /api/getobjects/:streamId': 200, // for 1 minute
+  'POST /api/diff/:streamId': 200, // for 1 minute
+  'POST /objects/:streamId': 200, // for 1 minute
+  'GET /objects/:streamId/:objectId': 200, // for 1 minute
+  'GET /objects/:streamId/:objectId/single': 200 // for 1 minute
 }
 
 const LIMIT_INTERVAL = {
@@ -45,7 +56,13 @@ const LIMIT_INTERVAL = {
   BRANCHES: 0,
   TOKENS: 0,
   ACTIVE_SUBSCRIPTIONS: 0,
-  ACTIVE_CONNECTIONS: 0
+  ACTIVE_CONNECTIONS: 0,
+
+  'POST /api/getobjects/:streamId': 60,
+  'POST /api/diff/:streamId': 60,
+  'POST /objects/:streamId': 60,
+  'GET /objects/:streamId/:objectId': 60,
+  'GET /objects/:streamId/:objectId/single': 60
 }
 
 const PROJECT_LIMITS = {
@@ -79,6 +96,8 @@ const VALUETRACK_LIMIT_INTERVAL = {
   // WEBHOOKS: 28 * 24 * 3600, // per MONTH
   // TOKENS: 0 // static
 }
+
+const VALUETRACK_FREE_FIRST_LIMIT_INTERVAL = true
 
 const rateLimitedCache = {}
 
@@ -135,7 +154,7 @@ async function shouldRateLimitNextByProject({ action, source }) {
   return shouldRateLimit
 }
 
-async function shouldChargeForValueTrack({ action, source }) {
+async function shouldChargeForValueTrack({ action, source, userId }) {
   if (!source) return false
 
   const limit = VALUETRACK_LIMITS[action]
@@ -150,7 +169,7 @@ async function shouldChargeForValueTrack({ action, source }) {
       checkInterval = 24 * 3600
       break
     case 'minute':
-      checkInterval = 60
+      checkInterval = 60 * 1
       break
   }
   if (limit === undefined || checkInterval === undefined) {
@@ -173,11 +192,29 @@ async function shouldChargeForValueTrack({ action, source }) {
       currentInterval = now.getDate()
       break
     case 'minute':
-      currentInterval = now.getMinutes() + 1
+      currentInterval = now.getMinutes()
       break
   }
 
   if (limit === 0) {
+    if (VALUETRACK_FREE_FIRST_LIMIT_INTERVAL) {
+      const [resAny] = await RatelimitActions().count().where({ action, source })
+      const countAny = parseInt(resAny.count)
+
+      if (countAny === 0) {
+        await RatelimitActions().insert({ action, source })
+        debug('speckle:valuetrack')('Project on FREE TRIAL')
+        const timeInterval = currentTimeInterval()
+        const serverInfo = await getServerInfo()
+        captureValueTrackUsage('valuetrack_capture_free_trial', userId, {
+          jobNumber: source,
+          trialStartDateTime: timeInterval.usageStartDateTime, //start of current interval
+          trialEndDateTime: timeInterval.usageEndDateTime, //end of current interval
+          server: serverInfo.canonicalUrl
+        })
+      }
+    }
+
     //check if action has occurred within the specified check interval (a minute, a day's, a month's time) and within the same time interval (past minute, past day, past month) -
     //this should correspond to project having been already charged (charged once per interval, ex. once per calendar month)
     const [res] = await RatelimitActions()
@@ -192,6 +229,12 @@ async function shouldChargeForValueTrack({ action, source }) {
       return false
     }
   }
+
+  // if (count > 1) {
+  //   await RatelimitActions().insert({ action, source })
+  //   return false
+  // }
+  // }
 
   const [res] = await RatelimitActions()
     .count()
@@ -209,6 +252,86 @@ async function shouldChargeForValueTrack({ action, source }) {
   return shouldCaptureForValueTrack
 }
 
+// returns true if the action is fine, false if it should be blocked because of exceeding limit
+async function respectsLimits({ action, source }) {
+  const rateLimitKey = `${action} ${source}`
+  const promise = shouldRateLimitNext({ action, source }).then((shouldRateLimit) => {
+    if (shouldRateLimit) rateLimitedCache[rateLimitKey] = true
+    else delete rateLimitedCache[rateLimitKey]
+  })
+  if (rateLimitedCache[rateLimitKey]) {
+    await promise
+  }
+
+  if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
+  return !rateLimitedCache[rateLimitKey]
+}
+
+// returns true if the action is fine, false if it should be blocked because of exceeding limit
+async function respectsLimitsByProject({ action, source }) {
+  const rateLimitKey = `${action} ${source}`
+  const promise = shouldRateLimitNextByProject({ action, source }).then(
+    (shouldRateLimit) => {
+      if (shouldRateLimit) {
+        rateLimitedCache[rateLimitKey] = true
+      } else {
+        delete rateLimitedCache[rateLimitKey]
+      }
+    }
+  )
+  if (rateLimitedCache[rateLimitKey]) {
+    await promise
+  }
+
+  if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
+  return !rateLimitedCache[rateLimitKey]
+}
+
+async function sendProjectInfoToValueTrack({ action, source, userId }) {
+  const rateLimitKey = `${action} ${source}`
+
+  const promise = await shouldChargeForValueTrack({ action, source, userId }).then(
+    async (shouldCharge) => {
+      if (shouldCharge) {
+        rateLimitedCache[rateLimitKey] = true
+
+        if (source) {
+          const user = await getUserById({ userId })
+          const vtData = {
+            jobNumber: source,
+            userId,
+            userName: user.name
+          }
+          debug('speckle:valuetrack')(
+            'Project should be charged - will send usage summary (with cost!) to VT'
+          )
+          captureUsageSummary(vtData) //only track usage with VT if JN is provided (ex. in case mandatory JN is not being enforced)
+        }
+      } else {
+        debug('speckle:valuetrack')(
+          'Project should NOT be charged - no usage summary sent to VT'
+        )
+        delete rateLimitedCache[rateLimitKey]
+      }
+    }
+  )
+  if (rateLimitedCache[rateLimitKey]) {
+    await promise
+  }
+
+  if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
+  return !rateLimitedCache[rateLimitKey]
+}
+
+async function rejectsRequestWithRatelimitStatusIfNeeded({ action, req, res }) {
+  const source = req.context.userId || req.context.ip
+  if (!(await respectsLimits({ action, source })))
+    return res.status(429).set('X-Speckle-Meditation', 'https://http.cat/429').send({
+      err: 'You are sending too many requests. You have been rate limited. Please try again later.'
+    })
+}
+
+
 module.exports = {
   LIMITS,
   LIMIT_INTERVAL,
@@ -216,72 +339,8 @@ module.exports = {
   PROJECT_LIMIT_INTERVAL,
   VALUETRACK_LIMITS,
   VALUETRACK_LIMIT_INTERVAL,
-  // returns true if the action is fine, false if it should be blocked because of exceeding limit
-  async respectsLimits({ action, source }) {
-    const rateLimitKey = `${action} ${source}`
-    const promise = shouldRateLimitNext({ action, source }).then((shouldRateLimit) => {
-      if (shouldRateLimit) rateLimitedCache[rateLimitKey] = true
-      else delete rateLimitedCache[rateLimitKey]
-    })
-    if (rateLimitedCache[rateLimitKey]) {
-      await promise
-    }
-
-    if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
-    return !rateLimitedCache[rateLimitKey]
-  },
-  // returns true if the action is fine, false if it should be blocked because of exceeding limit
-  async respectsLimitsByProject({ action, source }) {
-    const rateLimitKey = `${action} ${source}`
-    const promise = shouldRateLimitNextByProject({ action, source }).then(
-      (shouldRateLimit) => {
-        if (shouldRateLimit) {
-          rateLimitedCache[rateLimitKey] = true
-        } else {
-          delete rateLimitedCache[rateLimitKey]
-        }
-      }
-    )
-    if (rateLimitedCache[rateLimitKey]) {
-      await promise
-    }
-
-    if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
-    return !rateLimitedCache[rateLimitKey]
-  },
-  async sendProjectInfoToValueTrack({ action, source, userId }) {
-    const rateLimitKey = `${action} ${source}`
-
-    const promise = await shouldChargeForValueTrack({ action, source }).then(
-      async (shouldCharge) => {
-        if (shouldCharge) {
-          rateLimitedCache[rateLimitKey] = true
-
-          if (source) {
-            const user = await getUserById({ userId })
-            const vtData = {
-              jobNumber: source,
-              userId,
-              userName: user.name
-            }
-            debug('speckle:valuetrack')(
-              'Project should be charged - will send usage summary (with cost!) to VT'
-            )
-            captureUsageSummary(vtData) //only track usage with VT if JN is provided (ex. in case mandatory JN is not being enforced)
-          }
-        } else {
-          debug('speckle:valuetrack')(
-            'Project should NOT be charged - no usage summary sent to VT'
-          )
-          delete rateLimitedCache[rateLimitKey]
-        }
-      }
-    )
-    if (rateLimitedCache[rateLimitKey]) {
-      await promise
-    }
-
-    if (rateLimitedCache[rateLimitKey]) limitsReached.labels(action).inc()
-    return !rateLimitedCache[rateLimitKey]
-  }
+  respectsLimits,
+  respectsLimitsByProject,
+  sendProjectInfoToValueTrack,
+  rejectsRequestWithRatelimitStatusIfNeeded
 }

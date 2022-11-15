@@ -54,8 +54,10 @@ export default defineComponent({
       updating: false,
       notificationTypeMapping: {
         activityDigest: 'Weekly activity digest',
-        mentionedInComment: 'Mentioned in comment'
-      }
+        mentionedInComment: 'Mentioned in comment',
+        newStreamAccessRequest: 'Stream access request',
+        streamAccessRequestApproved: 'Stream access request approved'
+      } as Record<string, string>
     }
   },
   computed: {

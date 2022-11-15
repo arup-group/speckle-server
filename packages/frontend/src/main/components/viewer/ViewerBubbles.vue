@@ -72,7 +72,6 @@
     <portal to="viewercontrols" :order="4">
       <v-btn
         v-show="users.length !== 0"
-        key="bubbles-toggle-button"
         v-tooltip="`Toggle real time user bubbles`"
         small
         rounded
@@ -117,12 +116,13 @@ export default {
     user: {
       query: gql`
         query {
-          user {
+          activeUser {
             id
             name
           }
         }
       `,
+      update: (data) => data.activeUser,
       skip() {
         return !this.isLoggedIn
       }
@@ -212,13 +212,21 @@ export default {
     return { viewer, viewerState, streamId, resourceId, isLoggedIn }
   },
   data() {
+    const ownActivityUpdateInterval = 60 * 1000
     return {
       uuid: uuid(),
       selectedIds: [],
       selectionLocation: null,
       selectionCenter: null,
       users: [],
-      showBubbles: true
+      showBubbles: true,
+      otherUsersSelectedObjects: [],
+      // How often we send out an "activity" message even if user hasn't made any clicks (just to keep him active)
+      ownActivityUpdateInterval,
+      // How often we check for user staleness
+      userUpdateInterval: 2000,
+      // How much time must pass after an update from user after which we consider them "stale" or "disconnected"
+      userStaleAfterPeriod: 2 * ownActivityUpdateInterval
     }
   },
   watch: {
@@ -241,10 +249,17 @@ export default {
       this.updateBubbles(false)
     )
 
-    // TODO: this needs to be more intelligent...
-    this.updateInterval = window.setInterval(this.sendUpdateAndPrune, 2000)
+    this.updateInterval = window.setInterval(
+      this.sendUpdateAndPrune,
+      this.ownActivityUpdateInterval
+    )
+    this.pruneInterval = window.setInterval(
+      this.pruneStaleUsers,
+      this.userUpdateInterval
+    )
+
     window.addEventListener('beforeunload', async () => {
-      await this.sendDisconnect()
+      await this.safelyDisconnect()
     })
 
     this.viewer.on(
@@ -261,14 +276,27 @@ export default {
     )
   },
   async beforeDestroy() {
-    await this.sendDisconnect()
-    window.clearInterval(this.updateInterval)
+    await this.safelyDisconnect()
   },
   methods: {
+    async safelyDisconnect() {
+      // clear all intervals
+      window.clearInterval(this.updateInterval)
+      window.clearInterval(this.pruneInterval)
+
+      // send out disconnect msg
+      await this.sendDisconnect()
+    },
     sendSelectionUpdate(selectionInfo) {
-      this.selectedIds = selectionInfo?.userData.id
-      this.selectionLocation = selectionInfo?.location
-      this.selectionCenter = selectionInfo?.selectionCenter
+      if (!selectionInfo) {
+        this.sendUpdateAndPrune()
+        return
+      }
+
+      const firstHit = selectionInfo?.hits[0]
+      this.selectedIds = firstHit.object.id
+      this.selectionLocation = firstHit.point
+      this.selectionCenter = firstHit.point
       this.sendUpdateAndPrune()
     },
     setUserPow(user) {
@@ -297,22 +325,37 @@ export default {
       }
       this.$mixpanel.track('Bubbles Action', { type: 'action', name: 'avatar-click' })
     },
-    async sendUpdateAndPrune() {
-      if (!this.resourceId) return
+    /**
+     * Hide stale users that haven't reported activity for a while
+     */
+    pruneStaleUsers() {
+      const stalenessLimit = this.userStaleAfterPeriod
+      if (!this.users?.length) return
+
+      // Hide if stale
       for (const user of this.users) {
-        const delta = Date.now() - user.lastUpdate
-        if (delta > 20000) {
+        const delta = Math.abs(Date.now() - user.lastUpdate)
+        if (delta > stalenessLimit) {
           user.hidden = true
           user.status = 'stale'
         }
-        if (delta < 20000) {
+        if (delta < stalenessLimit) {
           user.hidden = false
           user.status = ''
         }
       }
-      this.users = this.users.filter((u) => Date.now() - u.lastUpdate < 40000)
 
-      if (!this.isLoggedIn) return
+      // Remove altogether if stale for a while
+      this.users = this.users.filter(
+        (u) => Date.now() - u.lastUpdate < stalenessLimit * 2
+      )
+    },
+    /**
+     * Send out user activity broadcast
+     */
+    async sendUpdateAndPrune() {
+      this.pruneStaleUsers()
+      if (!this.resourceId || !this.isLoggedIn) return
 
       const controls = this.viewer.cameraHandler.activeCam.controls
       const pos = controls.getPosition()
@@ -368,6 +411,9 @@ export default {
         }
       })
     },
+    /**
+     * Send out notification that the active user has disconnected
+     */
     async sendDisconnect() {
       if (!this.isLoggedIn) return
       if (!this.streamId) return
@@ -491,7 +537,18 @@ export default {
         uArrowEl.style.transform = `translate(${newTarget.x}px,${newTarget.y}px) rotate(${angle}rad)`
         uArrowEl.style.opacity = user.clipped ? '0' : '1'
       }
-      if (this.showBubbles) highlightObjects(selectedObjects)
+
+      selectedObjects.sort((a, b) => a.localeCompare(b))
+
+      const isSame =
+        JSON.stringify(selectedObjects) ===
+        JSON.stringify([...this.otherUsersSelectedObjects])
+
+      if (this.showBubbles && !isSame) {
+        highlightObjects(selectedObjects)
+      }
+
+      this.otherUsersSelectedObjects = selectedObjects
     }
   }
 }

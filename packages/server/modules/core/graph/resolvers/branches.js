@@ -1,14 +1,11 @@
 'use strict'
 
-const {
-  ForbiddenError,
-  UserInputError,
-  ApolloError,
-  withFilter
-} = require('apollo-server-express')
-const { appRoot } = require('@/bootstrap')
-const { authorizeResolver, pubsub } = require(`${appRoot}/modules/shared`)
+
 const _ = require('lodash')
+const { ForbiddenError, UserInputError, ApolloError } = require('apollo-server-express')
+const { withFilter } = require('graphql-subscriptions')
+
+const { authorizeResolver, pubsub } = require('@/modules/shared')
 
 const {
   createBranch,
