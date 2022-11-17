@@ -35,11 +35,11 @@ const LIMITS = {
   ACTIVE_SUBSCRIPTIONS: parseInt(process.env.LIMIT_ACTIVE_SUBSCRIPTIONS) || 100, // per user
   ACTIVE_CONNECTIONS: parseInt(process.env.LIMIT_ACTIVE_CONNECTIONS) || 100, // per source ip
 
-  'POST /api/getobjects/:streamId': 200, // for 1 minute
-  'POST /api/diff/:streamId': 200, // for 1 minute
-  'POST /objects/:streamId': 200, // for 1 minute
-  'GET /objects/:streamId/:objectId': 200, // for 1 minute
-  'GET /objects/:streamId/:objectId/single': 200 // for 1 minute
+  'POST /api/getobjects/:streamId': 1200, // for 1 minute
+  'POST /api/diff/:streamId': 1200, // for 1 minute
+  'POST /objects/:streamId': 1200, // for 1 minute
+  'GET /objects/:streamId/:objectId': 1200, // for 1 minute
+  'GET /objects/:streamId/:objectId/single': 1200 // for 1 minute
 }
 
 const LIMIT_INTERVAL = {
