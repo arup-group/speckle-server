@@ -11,7 +11,13 @@ export default {
       // eslint-disable-next-line camelcase
       capture_pageview: false,
       loaded(posthog) {
-        posthog.identify(AppLocalStorage.get('uuid') || undefined)
+        try {
+          if (AppLocalStorage.get('uuid')) {
+            posthog.identify(AppLocalStorage.get('uuid'))
+          }
+        } catch {
+          /* empty */
+        }
       }
     })
   }

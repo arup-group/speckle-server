@@ -1,6 +1,5 @@
 'use strict'
 
-
 const _ = require('lodash')
 const { ForbiddenError, UserInputError, ApolloError } = require('apollo-server-express')
 const { withFilter } = require('graphql-subscriptions')

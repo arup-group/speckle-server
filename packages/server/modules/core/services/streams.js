@@ -1,7 +1,6 @@
 'use strict'
 const _ = require('lodash')
 const crs = require('crypto-random-string')
-const debug = require('debug')
 
 const Info = () => knex('server_config')
 
@@ -22,6 +21,7 @@ const {
   inviteUsersToStream
 } = require('@/modules/serverinvites/services/inviteCreationService')
 const { omitBy, isNull, isUndefined, has } = require('lodash')
+const { dbLogger } = require('@/logging/logging')
 
 module.exports = {
   /**
@@ -192,7 +192,7 @@ module.exports = {
   },
 
   async deleteStream({ streamId }) {
-    debug('speckle:db')('Deleting stream ' + streamId)
+    dbLogger.info('Deleting stream %s', streamId)
 
     // Delete stream commits (not automatically cascaded)
     await knex.raw(

@@ -2,14 +2,18 @@
 
 # NOTE: Docker context should be set to git root directory, to include the viewer
 
+ARG NODE_ENV=production
+ARG SPECKLE_SERVER_VERSION=custom
 # build stage
-FROM node:16.18.0-bullseye-slim as build-stage
+FROM node:18.12.1-bullseye-slim as build-stage
 
 RUN --mount=type=secret,id=posthog_api_key \
   export VITE_POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key)
 
-ARG SPECKLE_SERVER_VERSION=custom
- 
+ARG NODE_ENV
+ARG SPECKLE_SERVER_VERSION
+
+ENV NODE_ENV=${NODE_ENV}
 
 WORKDIR /speckle-server
 COPY .yarnrc.yml .
@@ -22,7 +26,7 @@ COPY packages/viewer/package.json ./packages/viewer/
 COPY packages/objectloader/package.json ./packages/objectloader/
 COPY packages/shared/package.json ./packages/shared/
 
-RUN yarn workspaces focus -A
+RUN yarn workspaces focus --all
 
 # Onyl copy in the relevant source files for the dependencies
 COPY packages/objectloader ./packages/objectloader/
@@ -36,10 +40,13 @@ RUN --mount=type=secret,id=posthog_api_key \
   yarn workspaces foreach run build
 
 # production stage
+FROM openresty/openresty:1.21.4.1-4-jammy-amd64 as production-stage
+ARG NODE_ENV
+ARG SPECKLE_SERVER_VERSION
 
-
-FROM openresty/openresty:1.21.4.1-3-jammy-amd64 as production-stage
+ENV NODE_ENV=${NODE_ENV}
 ENV FILE_SIZE_LIMIT_MB=100
+
 COPY --from=build-stage /speckle-server/packages/frontend/dist /usr/share/nginx/html
 RUN rm /etc/nginx/conf.d/default.conf
 

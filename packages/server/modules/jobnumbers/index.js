@@ -1,10 +1,10 @@
 'use strict'
 const debug = require('debug')
 const sentry = require(`@/logging/sentryHelper`)
-const { contextMiddleware } = require('@/modules/shared')
 const { validateServerRole } = require('@/modules/shared')
 const { getServerInfo } = require('@/modules/core/services/generic')
 const { getJobCodes } = require('@/modules/jobnumbers/services/jobnumbers')
+const { moduleLogger } = require('@/logging/logging')
 
 exports.init = async (app) => {
   const serverInfo = await getServerInfo()
@@ -12,15 +12,15 @@ exports.init = async (app) => {
     serverInfo.requireJobNumberToCreateStreams ||
     serverInfo.requireJobNumberToCreateCommits
   ) {
-    debug('speckle:modules')('📄 Init ADS integration module')
+    moduleLogger.info('📄 Init ADS integration module')
   } else {
-    debug('speckle:modules')(
+    moduleLogger.info(
       '📄 Job numbers not required - ADS integration module is DISABLED'
     )
     return
   }
 
-  app.get('/api/jobNumber/:jobNumber', contextMiddleware, async (req, res) => {
+  app.get('/api/jobnumber/:jobNumber', async (req, res) => {
     await validateServerRole(req.context, 'server:user')
     try {
       if (!req.params.jobNumber)

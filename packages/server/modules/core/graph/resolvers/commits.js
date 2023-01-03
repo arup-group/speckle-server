@@ -25,10 +25,11 @@ const { getServerInfo } = require('../../services/generic')
 const { validateJobNumber } = require('@/modules/jobnumbers/services/jobnumbers')
 
 const {
-  respectsLimits,
-  respectsLimitsByProject,
-  sendProjectInfoToValueTrack
-} = require('@/modules/core/services/ratelimits')
+  isRateLimitBreached,
+  getRateLimitResult,
+  RateLimitError,
+  RateLimitAction
+} = require('@/modules/core/services/ratelimiter')
 const {
   batchMoveCommits,
   batchDeleteCommits
@@ -181,35 +182,12 @@ module.exports = {
         'stream:contributor'
       )
 
-      const rateLimitByProject = process.env.RATE_LIMIT_BY_PROJECT === 'true'
-      if (!rateLimitByProject) {
-        if (
-          !(await respectsLimits({
-            action: 'COMMIT_CREATE',
-            source: context.userId
-          }))
-        ) {
-          throw new Error('Blocked due to rate-limiting. Try again later')
-        }
-      } else {
-        const respectsLimits = await respectsLimitsByProject({
-          action: 'COMMIT_CREATE',
-          source: stream.jobNumber
-        })
-        if (!respectsLimits) {
-          throw new Error(
-            'Blocked due to rate-limiting (on a per project basis). Please get in touch with your PM regarding use of Speckle on your project.'
-          )
-        }
-      }
-
-      const useValueTrack = process.env.USE_VALUETRACK === 'true'
-      if (useValueTrack) {
-        await sendProjectInfoToValueTrack({
-          action: 'CREATE_ACTION_VALUETRACK',
-          source: stream.jobNumber,
-          userId: context.userId
-        })
+      const rateLimitResult = await getRateLimitResult(
+        RateLimitAction.COMMIT_CREATE,
+        context.userId
+      )
+      if (isRateLimitBreached(rateLimitResult)) {
+        throw new RateLimitError(rateLimitResult)
       }
 
       const id = await createCommitByBranchName({
