@@ -44,8 +44,9 @@ import { InvalidAuthTokenError } from '@/main/lib/auth/errors'
 //   userId: localStorage.getItem('suuid')
 // })
 
-// import posthogPlugin from '@/plugins/posthog'
-// Vue.use(posthogPlugin)
+import posthogPlugin from '@/plugins/posthog'
+Vue.use(posthogPlugin)
+
 // Async ApexChart load
 Vue.component('ApexChart', async () => {
   const VueApexCharts = await import('vue-apexcharts')
