@@ -139,7 +139,7 @@ export default {
       if (jobQuery) {
         const query = jobQuery.replace('-', '')
         const token = localStorage.getItem('AuthToken')
-        const res = await fetch(`http://localhost:3000/api/jobnumber/${query}`, {
+        const res = await fetch(`/api/jobnumber/${query}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         })
         if (res.status !== 200) {
