@@ -250,19 +250,7 @@ module.exports = {
     },
 
     async commitReceive(parent, args, context) {
-      // if stream is private, check if the user has access to it
-      const stream = await getStream({ streamId: args.input.streamId })
-
-      if (!stream.public) {
-        const info = await getServerInfo()
-        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if (!enableGlobalReviewerAccess)
-          await authorizeResolver(
-            context.userId,
-            args.input.streamId,
-            'stream:reviewer'
-          )
-      }
+      await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
 
       await getCommitById({
         streamId: args.input.streamId,
@@ -335,10 +323,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_CREATED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )
@@ -348,10 +333,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_UPDATED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
           if (streamMatch && variables.commitId) {
@@ -367,10 +349,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([COMMIT_DELETED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }

@@ -113,73 +113,6 @@
 
           <!-- Current users/invites for each role - owner, contributor, reviewer  -->
           <v-col v-for="role in roles" :key="role.name" cols="12" md="4">
-            <!-- <section-card v-if="role" expandable>
-              <template slot="header">
-                <span class="text-capitalize">{{ role.name.split(':')[1] }}s</span>
-              </template>
-              <template slot="actions">
-                <v-spacer></v-spacer>
-                <v-badge
-                  inline
-                  :content="getRoleCount(role.name)"
-                  :color="`grey ${$vuetify.theme.dark ? 'darken-1' : 'lighten-1'}`"
-                ></v-badge>
-              </template>
-              <v-card-text class="flex-grow-1" style="height: 100px">
-                {{ role.description }}
-              </v-card-text>
-              <v-card-text v-if="role.name === 'stream:reviewer'">
-                <div v-if="serverInfo.enableGlobalReviewerAccess">
-                  Reviewer access to all streams on this server has been granted to any
-                  server user (this is controlled by the server admin in the server
-                  settings).
-                </div>
-                <div
-                  v-for="user in reviewers"
-                  v-else
-                  :key="user.id"
-                  class="d-flex align-center mb-2"
-                >
-                  <user-role
-                    :user="user"
-                    :roles="roles"
-                    :disabled="stream.role !== 'stream:owner'"
-                    @update-user-role="(e) => setUserPermissions(e)"
-                    @remove-user="removeUser"
-                  />
-                </div>
-              </v-card-text>
-              <v-card-text v-if="role.name === 'stream:contributor'">
-                <div
-                  v-for="user in contributors"
-                  :key="user.id"
-                  class="d-flex align-center mb-2"
-                >
-                  <user-role
-                    :user="user"
-                    :roles="roles"
-                    :disabled="stream.role !== 'stream:owner'"
-                    @update-user-role="(e) => setUserPermissions(e)"
-                    @remove-user="removeUser"
-                  />
-                </div>
-              </v-card-text>
-              <v-card-text v-if="role.name === 'stream:owner'">
-                <div
-                  v-for="user in owners"
-                  :key="user.id"
-                  class="d-flex align-center mb-2"
-                >
-                  <user-role
-                    :user="user"
-                    :roles="roles"
-                    :disabled="stream.role !== 'stream:owner'"
-                    @update-user-role="(e) => setUserPermissions(e)"
-                    @remove-user="removeUser"
-                  />
-                </div>
-              </v-card-text>
-            </section-card> -->
             <stream-role-collaborators
               :role-name="role.name"
               :roles="roles"
@@ -361,11 +294,6 @@ export default vueWithMixins(IsLoggedInMixin).extend({
     })
   },
   methods: {
-    // getRoleCount(role) {
-    //   if (role === 'stream:owner') return this.owners.length || '0'
-    //   if (role === 'stream:contributor') return this.contributors.length || '0'
-    //   if (role === 'stream:reviewer') return this.reviewers.length || '0'
-    // },
     async cancelInvite({ inviteId }) {
       const { streamId } = this
 
@@ -452,10 +380,10 @@ export default vueWithMixins(IsLoggedInMixin).extend({
             }
           }
         })
-        // const index = this.stream.collaborators.findIndex((u) => u.id === user.id)
-        // if (index !== -1) {
-        //   this.stream.collaborators.splice(index, 1)
-        // }
+        const index = this.stream.collaborators.findIndex((u) => u.id === user.id)
+        if (index !== -1) {
+          this.stream.collaborators.splice(index, 1)
+        }
       } catch (e) {
         // console.log(e)
         this.$eventHub.$emit('notification', {

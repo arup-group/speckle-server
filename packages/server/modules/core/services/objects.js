@@ -2,14 +2,12 @@
 const { performance } = require('perf_hooks')
 const crypto = require('crypto')
 const { set, get, chunk } = require('lodash')
-const crs = require('crypto-random-string')
 
 const knex = require(`@/db/knex`)
 const { servicesLogger } = require('@/logging/logging')
 
 const Objects = () => knex('objects')
 const Closures = () => knex('object_children_closure')
-const Info = () => knex('server_config')
 
 module.exports = {
   /**
@@ -122,59 +120,6 @@ module.exports = {
       }
     }
     return true
-  },
-
-  async createDefaultGlobalsObject(streamId) {
-    const defaultGlobals = await Info().select('defaultGlobals').first()
-    if (!defaultGlobals) return []
-    const defaultGlobalsString = JSON.parse(
-      JSON.stringify(defaultGlobals.defaultGlobals)
-    )
-    const entries = Object.entries(defaultGlobalsString)
-    const arr = []
-
-    for (const [key, val] of entries) {
-      arr.push({
-        key,
-        valid: true,
-        id: crs({ length: 10 }),
-        value: val,
-        type: 'field'
-      })
-    }
-
-    const base = {
-      // eslint-disable-next-line camelcase
-      speckle_type: 'Base',
-      id: null
-    }
-
-    for (const entry of arr) {
-      if (!entry.value) continue
-
-      if (entry.valid !== true) {
-        return null
-      }
-
-      if (Array.isArray(entry.value)) base[entry.key] = entry.value
-      else if (typeof entry.value === 'string' && entry.value.includes(',')) {
-        base[entry.key] = entry.value
-          .replace(/\s/g, '')
-          .split(',')
-          .map((el) => (isNaN(el) ? el : parseFloat(el)))
-      } else if (typeof entry.value === 'boolean') {
-        base[entry.key] = entry.value
-      } else {
-        base[entry.key] = isNaN(entry.value) ? entry.value : parseFloat(entry.value)
-      }
-    }
-
-    const commitObject = JSON.parse(JSON.stringify(base))
-    const ids = await await module.exports.createObjects(streamId.streamId, [
-      commitObject
-    ])
-
-    return ids
   },
 
   async createObjects(streamId, objects) {

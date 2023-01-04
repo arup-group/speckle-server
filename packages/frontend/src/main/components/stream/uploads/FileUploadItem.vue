@@ -41,7 +41,6 @@
 </template>
 <script>
 import { AppLocalStorage } from '@/utils/localStorage'
-import gql from 'graphql-tag'
 
 export default {
   props: {
@@ -56,35 +55,9 @@ export default {
   },
   data: () => ({
     percentCompleted: -1,
-    error: null
+    error: null,
+    selectedBranch: 'main'
   }),
-  apollo: {
-    streams: {
-      query: gql`
-        query Streams($query: String) {
-          streams(query: $query) {
-            totalCount
-            cursor
-            items {
-              id
-              name
-              updatedAt
-            }
-          }
-        }
-      `,
-      variables() {
-        return {
-          query: this.search
-        }
-      },
-      skip() {
-        return !this.search || this.search.length < 3
-      },
-      debounce: 300
-    }
-  },
-  watch: {},
   methods: {
     upload() {
       const data = new FormData()

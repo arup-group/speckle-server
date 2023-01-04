@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2019",
     "module": "es2020",
-    "lib": ["DOM", "es2019"],
+    "lib": ["DOM"],
     "moduleResolution": "Node",
     "strict": false,
     "sourceMap": true,

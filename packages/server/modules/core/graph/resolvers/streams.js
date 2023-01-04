@@ -123,17 +123,9 @@ module.exports = {
 
       await authorizeResolver(context.userId, args.id, 'stream:reviewer')
 
-      const info = await getServerInfo()
-      const loggedInUsersOnly = info.loggedInUsersOnly
-      if (loggedInUsersOnly || !stream.isPublic)
-        await validateServerRole(context, 'server:user')
-
       if (!stream.isPublic) {
+        await validateServerRole(context, 'server:user')
         await validateScopes(context.scopes, 'streams:read')
-
-        const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-        if (!enableGlobalReviewerAccess)
-          await authorizeResolver(context.userId, args.id, 'stream:reviewer')
       }
 
       return stream
@@ -424,12 +416,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_UPDATED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const loggedInUsersOnly = info.loggedInUsersOnly
-          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.id, 'stream:reviewer')
           return payload.id === variables.streamId
         }
       )
@@ -439,12 +426,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([STREAM_DELETED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const loggedInUsersOnly = info.loggedInUsersOnly
-          if (loggedInUsersOnly) await validateServerRole(context, 'server:user')
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
           return payload.streamId === variables.streamId
         }
       )

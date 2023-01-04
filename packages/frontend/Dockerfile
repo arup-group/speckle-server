@@ -1,15 +1,8 @@
-# syntax = docker/dockerfile:1
-
 # NOTE: Docker context should be set to git root directory, to include the viewer
-
 ARG NODE_ENV=production
 ARG SPECKLE_SERVER_VERSION=custom
 # build stage
 FROM node:18.12.1-bullseye-slim as build-stage
-
-RUN --mount=type=secret,id=posthog_api_key \
-  export VITE_POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key)
-
 ARG NODE_ENV
 ARG SPECKLE_SERVER_VERSION
 
@@ -35,9 +28,7 @@ COPY packages/frontend ./packages/frontend/
 COPY packages/shared ./packages/shared/
 
 # This way the foreach only builds the frontend and its deps
-RUN --mount=type=secret,id=posthog_api_key \
-  export VITE_POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key) && \
-  yarn workspaces foreach run build
+RUN yarn workspaces foreach run build
 
 # production stage
 FROM openresty/openresty:1.21.4.1-4-jammy-amd64 as production-stage

@@ -1,4 +1,4 @@
-const { authorizeResolver, pubsub } = require('@/modules/shared')
+const { pubsub } = require('@/modules/shared')
 const {
   ForbiddenError: ApolloForbiddenError,
   ApolloError
@@ -8,7 +8,6 @@ const { getStream } = require('@/modules/core/services/streams')
 const { Roles } = require('@/modules/core/helpers/mainConstants')
 const { saveActivity } = require('@/modules/activitystream/services')
 const { ActionTypes } = require('@/modules/activitystream/helpers/types')
-const { getServerInfo } = require('@/modules/core/services/generic')
 
 const {
   getComment,
@@ -223,12 +222,6 @@ module.exports = {
 
     async commentEdit(parent, args, context) {
       // NOTE: This is NOT in use anywhere
-      const info = await getServerInfo()
-
-      const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-      if (!enableGlobalReviewerAccess)
-        await authorizeResolver(context.userId, args.input.streamId, 'stream:reviewer')
-      await editComment({ userId: context.userId, input: args.input })
       const stream = await authorizeStreamAccess({
         streamId: args.input.streamId,
         userId: context.userId,

@@ -23,7 +23,7 @@
           </v-chip>
           <v-chip v-if="stream.branches" small>
             <v-icon small class="mr-2 float-left">mdi-source-branch</v-icon>
-            {{ branchesTotalCount }}
+            {{ stream.branches.totalCount }}
           </v-chip>
         </v-toolbar-title>
         <div class="mt-3 mb-1 caption text-truncate">
@@ -58,12 +58,6 @@ export default {
       default() {
         return {}
       }
-    }
-  },
-  computed: {
-    branchesTotalCount() {
-      if (!this.stream.branches) return 0
-      return this.stream.branches.items.filter((b) => b.name !== 'globals').length
     }
   }
 }
