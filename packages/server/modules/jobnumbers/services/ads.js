@@ -1,6 +1,6 @@
 'use strict'
 const TokenStore = require('./adstokenstore')
-const { o } = require('odata')
+const { fetch } = require('undici')
 
 module.exports = class ADS {
   constructor({
@@ -35,7 +35,22 @@ module.exports = class ADS {
         'Content-Type': 'application/json'
       }
     }
-    const response = await o(adsUrl, config).get(resource).query(query)
-    return response
+
+    const queryStr = Object.keys(query)
+      .map((key) => `${key}=${query[key]}`)
+      .join('&')
+    const url = `${adsUrl}${resource}?${queryStr}`
+
+    return fetch(url, {
+      method: 'GET',
+      headers: config.headers
+    })
+      .then(async (res) => {
+        const json = await res.json()
+        return json.value
+      })
+      .catch((err) => {
+        console.log(err)
+      })
   }
 }

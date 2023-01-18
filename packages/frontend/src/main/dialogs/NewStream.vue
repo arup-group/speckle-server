@@ -19,6 +19,7 @@
         <job-number-search
           v-if="requireJobNumberToCreateStreams"
           ref="input-field"
+          autofocus
           :job-number-required="requireJobNumberToCreateStreams"
           @jobObjectSelected="selectedJobNumber"
         ></job-number-search>

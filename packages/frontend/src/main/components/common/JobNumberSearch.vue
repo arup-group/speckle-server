@@ -138,10 +138,9 @@ export default {
     async getJobNumber(jobQuery) {
       if (jobQuery) {
         const query = jobQuery.replace('-', '')
-        const res = await fetch(`/api/jobNumber/${query}`, {
-          headers: localStorage.getItem('AuthToken')
-            ? { Authorization: `Bearer ${localStorage.getItem('AuthToken')}` }
-            : {}
+        const token = localStorage.getItem('AuthToken')
+        const res = await fetch(`/api/jobnumber/${query}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
         })
         if (res.status !== 200) {
           console.log(await res.text())

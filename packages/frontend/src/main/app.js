@@ -35,14 +35,14 @@ import '@/plugins/helpers'
 import { AppLocalStorage } from '@/utils/localStorage'
 import { InvalidAuthTokenError } from '@/main/lib/auth/errors'
 
-import VueMatomo from 'vue-matomo'
+// import VueMatomo from 'vue-matomo'
 
-Vue.use(VueMatomo, {
-  host: 'https://arupdt.matomo.cloud',
-  siteId: 1,
-  router,
-  userId: localStorage.getItem('suuid')
-})
+// Vue.use(VueMatomo, {
+//   host: 'https://arupdt.matomo.cloud',
+//   siteId: 1,
+//   router,
+//   userId: localStorage.getItem('suuid')
+// })
 
 import posthogPlugin from '@/plugins/posthog'
 Vue.use(posthogPlugin)

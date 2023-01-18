@@ -382,7 +382,6 @@ export default defineComponent({
     const isEditDisabled = computed(() => isEditNotAuthorized.value || loading.value)
     const changesExist = computed(() => {
       const keys = Object.keys(model.value) as Array<keyof ModelType>
-      console.log(keys)
       for (const key of keys) {
         const oldVal = oldModel.value[key]
         const newVal = model.value[key]

@@ -1,13 +1,8 @@
 'use strict'
 const _ = require('lodash')
 const crs = require('crypto-random-string')
-const debug = require('debug')
-
-const Info = () => knex('server_config')
 
 const { createBranch } = require('@/modules/core/services/branches')
-const { createDefaultGlobalsObject } = require('./objects')
-const { createCommitByBranchName } = require('./commits')
 const { Streams, StreamAcl, knex } = require('@/modules/core/dbSchema')
 const {
   getStream,
@@ -22,6 +17,7 @@ const {
   inviteUsersToStream
 } = require('@/modules/serverinvites/services/inviteCreationService')
 const { omitBy, isNull, isUndefined, has } = require('lodash')
+const { dbLogger } = require('@/logging/logging')
 
 module.exports = {
   /**
@@ -65,27 +61,6 @@ module.exports = {
       streamId,
       authorId: ownerId
     })
-
-    // Create a default globals branch if specified per server config settings
-    const createDefaultGlobals = await Info().select('createDefaultGlobals').first()
-    if (createDefaultGlobals.createDefaultGlobals === true) {
-      await createBranch({
-        name: 'globals',
-        description: 'globals branch',
-        streamId,
-        authorId: ownerId
-      })
-      const objId = await createDefaultGlobalsObject({ streamId })
-      const commitId = await createCommitByBranchName({
-        streamId,
-        branchName: 'globals',
-        objectId: objId[0],
-        authorId: ownerId,
-        message: 'Add default globals on stream creation',
-        sourceApplication: 'web'
-      })
-      if (!commitId) return null
-    }
 
     // Invite contributors?
     if (withContributors && withContributors.length) {
@@ -192,7 +167,7 @@ module.exports = {
   },
 
   async deleteStream({ streamId }) {
-    debug('speckle:db')('Deleting stream ' + streamId)
+    dbLogger.info('Deleting stream %s', streamId)
 
     // Delete stream commits (not automatically cascaded)
     await knex.raw(

@@ -5,7 +5,6 @@ const { getStream } = require('@/modules/core/repositories/streams')
 const crs = require('crypto-random-string')
 const { capture } = require('../../../logging/posthogHelper')
 const { produceMsg } = require('../../../logging/kafkaHelper')
-const { captureUsageEvent } = require('../../../logging/valueTrackHelper')
 
 const WebhooksConfig = () => knex('webhooks_config')
 const WebhooksEvents = () => knex('webhooks_events')
@@ -115,18 +114,6 @@ module.exports = {
       capture(event, eventPayload)
       if (eventPayload.user) {
         delete eventPayload.user.email
-      }
-    }
-
-    // Send usage event to ValueTrack API
-    if (process.env.USE_VALUETRACK === 'true') {
-      if (eventPayload.stream.jobNumber) {
-        const vtData = {
-          jobNumber: eventPayload.stream.jobNumber,
-          userName: eventPayload.user.name,
-          user: eventPayload.user
-        }
-        captureUsageEvent(vtData) //only track usage with VT if JN is provided (ex. in case mandatory JN is not being enforced)
       }
     }
 

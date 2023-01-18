@@ -5,6 +5,6 @@ module.exports = [
   {
     name: Scopes.Users.Invite,
     description: 'Invite others to join this server.',
-    public: true
+    public: false
   }
 ]

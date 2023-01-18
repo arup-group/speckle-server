@@ -1,7 +1,5 @@
 'use strict'
 
-
-const _ = require('lodash')
 const { ForbiddenError, UserInputError, ApolloError } = require('apollo-server-express')
 const { withFilter } = require('graphql-subscriptions')
 
@@ -18,9 +16,6 @@ const {
 
 const { getUserById } = require('../../services/users')
 const { saveActivity } = require('@/modules/activitystream/services')
-const { getCommitsByBranchName } = require('../../services/commits')
-const { getObject } = require('../../services/objects')
-const { getServerInfo } = require('../../services/generic')
 const { ActionTypes } = require('@/modules/activitystream/helpers/types')
 
 // subscription events
@@ -47,33 +42,6 @@ module.exports = {
 
     async branch(parent, args) {
       return await getBranchByNameAndStreamId({ streamId: parent.id, name: args.name })
-    },
-
-    async globals(parent) {
-      const branches = await getBranchesByStreamId({ streamId: parent.id })
-      if (!branches.items.some((b) => b.name === 'globals')) return null
-
-      const { commits } = await getCommitsByBranchName({
-        streamId: parent.id,
-        branchName: 'globals',
-        limit: 1
-      })
-      if (!commits || commits.length === 0) {
-        return null
-      }
-
-      const globalsObject = commits[0].referencedObject
-      const obj = await getObject({ streamId: parent.id, objectId: globalsObject })
-      if (!obj) return null
-      obj.streamId = parent.id
-
-      let filtered = _.omit(obj.data, 'totalChildrenCount')
-      filtered = _.omit(filtered, 'speckle_type')
-      filtered = _.omit(filtered, 'id')
-      const items = filtered
-      const totalCount = Object.keys(filtered).length
-
-      return { totalCount, items }
     }
   },
   Branch: {
@@ -201,10 +169,8 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_CREATED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+
           return payload.streamId === variables.streamId
         }
       )
@@ -214,10 +180,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_UPDATED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           const streamMatch = payload.streamId === variables.streamId
           if (streamMatch && variables.branchId) {
@@ -233,10 +196,7 @@ module.exports = {
       subscribe: withFilter(
         () => pubsub.asyncIterator([BRANCH_DELETED]),
         async (payload, variables, context) => {
-          const info = await getServerInfo()
-          const enableGlobalReviewerAccess = info.enableGlobalReviewerAccess
-          if (!enableGlobalReviewerAccess)
-            await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
+          await authorizeResolver(context.userId, payload.streamId, 'stream:reviewer')
 
           return payload.streamId === variables.streamId
         }

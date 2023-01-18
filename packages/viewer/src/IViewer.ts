@@ -7,6 +7,7 @@ import { DataTree } from './modules/tree/DataTree'
 export interface ViewerParams {
   showStats: boolean
   environmentSrc: Asset | string
+  verbose: boolean
 }
 export enum AssetType {
   TEXTURE_8BPP = 'png', // For now
@@ -32,6 +33,7 @@ export interface Asset {
  */
 export const DefaultViewerParams: ViewerParams = {
   showStats: false,
+  verbose: false,
   environmentSrc: {
     src: sampleHdri,
     type: AssetType.TEXTURE_EXR
@@ -52,6 +54,7 @@ export enum ViewerEvent {
 
 export type SelectionEvent = {
   multiple: boolean
+  event?: PointerEvent
   hits: Array<{
     guid?: string
     object: Record<string, unknown>
@@ -187,6 +190,9 @@ export interface IViewer {
   resetHighlight(): Promise<FilteringState>
 
   setColorFilter(prop: PropertyInfo, ghost?: boolean): Promise<FilteringState>
+  setUserObjectColors(
+    groups: [{ objectIds: string[]; color: string }]
+  ): Promise<FilteringState>
   removeColorFilter(): Promise<FilteringState>
   resetFilters(): Promise<FilteringState>
 
