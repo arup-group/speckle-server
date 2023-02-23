@@ -77,7 +77,7 @@ jobs:
             region: eu-west-1
             accessKey: STAGING_AWS_ACCESS_KEY_ID
             secretAccessKey: STAGING_AWS_SECRET_ACCESS_KEY
-            url: https://v2.speckle-staging.speckle.arup.com
+            url: https://v2.staging-speckle.arup.com
           - package: 'server'
             cxName: 'spec-cx-server'
             serviceName: 'specklev2'
@@ -145,7 +145,7 @@ jobs:
           service: ${{ matrix.serviceName }}-${{ matrix.environment }}
           cluster: specklev2-server-${{ matrix.environment }}
           wait-for-service-stability: true
-          wait-for-minutes: 15
+          wait-for-minutes: 25
 
       - name: Download logs if Deploy Failed
         if: failure()
