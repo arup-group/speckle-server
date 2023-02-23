@@ -7,7 +7,7 @@ const AppScopes = () => knex('server_apps_scopes')
 const { getApp } = require('@/modules/auth/services/apps')
 const { Scopes: ScopesConst } = require('@/modules/core/helpers/mainConstants')
 const { difference } = require('lodash')
-const { moduleLogger, logger } = require('@/logging/logging')
+const { moduleLogger } = require('@/logging/logging')
 
 let allScopes = []
 
@@ -24,6 +24,7 @@ module.exports = async () => {
   await registerOrUpdateApp({ ...SpeckleProjectSetupApp })
   await registerOrUpdateApp({ ...SpeckleFuseApp })
   await registerOrUpdateApp({ ...SpeckleSDPApp })
+  await registerOrUpdateApp({ ...SpecklePowerBi })
 }
 
 async function registerOrUpdateApp(app) {
@@ -42,14 +43,10 @@ async function registerOrUpdateApp(app) {
 }
 
 async function registerDefaultApp(app) {
-  try {
-    const scopes = app.scopes.map((s) => ({ appId: app.id, scopeName: s }))
-    delete app.scopes
-    await Apps().insert(app)
-    await AppScopes().insert(scopes)
-  } catch (e) {
-    logger.error(e)
-  }
+  const scopes = app.scopes.map((s) => ({ appId: app.id, scopeName: s }))
+  delete app.scopes
+  await Apps().insert(app)
+  await AppScopes().insert(scopes)
 }
 
 async function updateDefaultApp(app, existingApp) {
@@ -235,4 +232,22 @@ const SpeckleSDPApp = {
   public: true,
   redirectUrl: 'https://sdp.arup.com/manage-account',
   scopes: 'all'
+}
+
+const SpecklePowerBi = {
+  id: 'spklpwerbi',
+  secret: 'spklpwerbi',
+  name: 'Speckle Connector For PowerBI',
+  description:
+    'The Speckle Connector For Excel. For more info check the docs here: https://speckle.guide/user/powerbi.html.',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://oauth.powerbi.com/views/oauthredirect.html',
+  scopes: [
+    ScopesConst.Streams.Read,
+    ScopesConst.Profile.Read,
+    ScopesConst.Profile.Email,
+    ScopesConst.Users.Read,
+    ScopesConst.Users.Invite
+  ]
 }

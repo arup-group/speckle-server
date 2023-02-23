@@ -182,7 +182,7 @@ exports.init = async (app) => {
       }
 
       const bq = await getAllStreamBlobIds({ streamId: req.params.streamId })
-      const unknownBlobIds = req.body.filter(
+      const unknownBlobIds = [...req.body].filter(
         (id) => bq.findIndex((bInfo) => bInfo.id === id) === -1
       )
       res.send(unknownBlobIds)
@@ -249,11 +249,9 @@ exports.init = async (app) => {
     }
   )
 
-  app.delete(
-    '/api/stream/:streamId/blobs',
-    authMiddlewareCreator(streamWritePermissions)
-    // async (req, res) => {}
-  )
+  app.delete('/api/stream/:streamId/blobs', async (req, res) => {
+    res.status(501).send('This method is not implemented yet.')
+  })
 }
 
 exports.finalize = () => {}
