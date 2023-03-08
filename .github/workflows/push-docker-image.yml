@@ -48,7 +48,7 @@ jobs:
       url: ${{ matrix.url }}
     strategy:
       matrix:
-        environment: ['prod', 'hs2', 'staging', 'hk', 'alr']
+        environment: ['prod', 'hs2', 'staging', 'hk', 'alr', 'et']
         package:
           [
             'server',
@@ -73,6 +73,11 @@ jobs:
             accessKey: AWS_ACCESS_KEY_ID
             secretAccessKey: AWS_SECRET_ACCESS_KEY
             url: https://lightrail.speckle.arup.com
+          - environment: et
+            region: eu-west-2
+            accessKey: AWS_ACCESS_KEY_ID
+            secretAccessKey: AWS_SECRET_ACCESS_KEY
+            url: https://eustontower.speckle.arup.com
           - environment: hs2
             region: eu-west-2
             accessKey: AWS_ACCESS_KEY_ID
