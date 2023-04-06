@@ -145,7 +145,7 @@ module.exports = class ServerAPI {
   }
 
   prepInsertionObject(streamId, obj) {
-    const MAX_OBJECT_SIZE = 10 * 1024 * 1024
+    const MAX_OBJECT_SIZE = 25 * 1024 * 1024
 
     if (obj.hash) obj.id = obj.hash
     else
