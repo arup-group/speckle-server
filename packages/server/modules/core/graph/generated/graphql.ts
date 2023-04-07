@@ -1154,6 +1154,7 @@ export type ServerInfo = {
   requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
   roles: Array<Maybe<Role>>;
   scopes: Array<Maybe<Scope>>;
+  showJobNumberInput?: Maybe<Scalars['Boolean']>;
   termsOfService?: Maybe<Scalars['String']>;
   version?: Maybe<Scalars['String']>;
 };
@@ -1171,6 +1172,7 @@ export type ServerInfoUpdateInput = {
   name: Scalars['String'];
   requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>;
   requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>;
+  showJobNumberInput?: InputMaybe<Scalars['Boolean']>;
   termsOfService?: InputMaybe<Scalars['String']>;
 };
 
@@ -2403,6 +2405,7 @@ export type ServerInfoResolvers<ContextType = GraphQLContext, ParentType extends
   requireJobNumberToCreateStreams?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   roles?: Resolver<Array<Maybe<ResolversTypes['Role']>>, ParentType, ContextType>;
   scopes?: Resolver<Array<Maybe<ResolversTypes['Scope']>>, ParentType, ContextType>;
+  showJobNumberInput?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   termsOfService?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   version?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

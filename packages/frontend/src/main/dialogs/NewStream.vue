@@ -17,7 +17,7 @@
     >
       <v-card-text>
         <job-number-search
-          v-if="requireJobNumberToCreateStreams"
+          v-if="showJobNumberInput"
           ref="input-field"
           autofocus
           :job-number-required="requireJobNumberToCreateStreams"
@@ -153,6 +153,17 @@ export default {
         this.users = [...data.userSearch.items]
       },
       debounce: 300
+    },
+    showJobNumberInput: {
+      query: gql`
+        query {
+          serverInfo {
+            showJobNumberInput
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.showJobNumberInput
     },
     requireJobNumberToCreateStreams: {
       query: gql`
