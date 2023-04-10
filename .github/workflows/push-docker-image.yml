@@ -3,18 +3,10 @@ name: AWS Deploy
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'The environment to deploy to'
-        type: choice
-        default: staging
-        options:
-          - staging
-          - prod
-          - hk
-          - alr
-          - et
-          - hs2
-          - all
+      isStagingDeployment:
+        description: 'Whether this is a staging env deployment'
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -25,7 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [ 'server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -48,28 +47,31 @@ jobs:
   matrix_prep:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      environment: ${{ steps.set-matrix.outputs.MATRIX_ENV }}
+      include: ${{ steps.set-matrix.outputs.MATRIX_INCLUDE }}
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create filter expression
-        run: |
-          if [[ ${{ github.event.inputs.environment == 'all' }} == true ]]; then
-            filter='[?environment || package]'
-          else
-            filter='[?environment==`${{ github.event.inputs.environment }}` || package]'
-          fi
-          echo "filter=$filter" >> $GITHUB_ENV
-
       - id: set-matrix
-        uses: JoshuaTheMiller/conditional-build-matrix@main
-        with:
-          inputFile: '.github/workflows/matrix_includes.json'
-          filter: ${{ env.filter }}
-          addInclude: false
+        run: |
+          if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT      
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT                
+          else
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT 
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT             
+          fi
 
-      - name: Echo
-        run: echo "${{ steps.set-matrix.outputs.matrix }}"
+      - run: echo "Hello {{ steps.set-matrix.outputs.environment }}"
+      - run: echo "Hello {{ fromJSON(steps.set-matrix.outputs.include) }}"
 
   deploy:
     needs: [buildDockerImage, matrix_prep]
@@ -79,8 +81,21 @@ jobs:
       name: ${{ matrix.environment }}
       url: ${{ matrix.url }}
     strategy:
-      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      matrix:
+        environment: ${{ fromJson(needs.matrix_prep.outputs.environment) }}
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
+        include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
+
     steps:
+      - run: echo "Hello  ${{ fromJson(needs.matrix_prep.outputs.environment) }}"
+
       # Download the Docker image tar
       - name: Download Build Artifacts
         uses: actions/download-artifact@v2

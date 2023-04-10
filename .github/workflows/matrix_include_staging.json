@@ -1,0 +1,34 @@
+[
+  {
+    "environment": "staging",
+    "region": "eu-west-1",
+    "accessKey": "STAGING_AWS_ACCESS_KEY_ID",
+    "secretAccessKey": "STAGING_AWS_SECRET_ACCESS_KEY",
+    "url": "https://v2.staging-speckle.arup.com"
+  },
+  {
+    "package": "server",
+    "cxName": "spec-cx-server",
+    "serviceName": "specklev2"
+  },
+  {
+    "package": "frontend",
+    "cxName": "spec-cx-frontend",
+    "serviceName": "specklev2-frontend"
+  },
+  {
+    "package": "preview-service",
+    "cxName": "spec-cx-preview",
+    "serviceName": "specklev2-preview-service"
+  },
+  {
+    "package": "webhook-service",
+    "cxName": "spec-cx-webhook",
+    "serviceName": "specklev2-webhook-service"
+  },
+  {
+    "package": "fileimport-service",
+    "cxName": "spec-cx-fileimport-service",
+    "serviceName": "specklev2-fileimport-service"
+  }
+]
