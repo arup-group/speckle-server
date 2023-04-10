@@ -79,7 +79,10 @@ jobs:
       name: ${{ matrix.environment }}
       url: ${{ matrix.url }}
     strategy:
-      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      matrix:
+        environment: ['prod', 'hs2', 'staging', 'hk', 'alr', 'et']
+        package: [ 'server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
+        include: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     steps:
       # Download the Docker image tar
       - name: Download Build Artifacts
