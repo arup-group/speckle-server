@@ -47,18 +47,20 @@ jobs:
   matrix_prep:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.MATRIX }}
     steps:
       - uses: actions/checkout@v2
 
       - id: set-matrix
         run: |
           if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
-            JSON=$(cat .github/workflows/matrix_staging.json)
+            echo 'MATRIX<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT       
           else
-            JSON=$(cat .github/workflows/matrix.json)
-          fi
-          echo "::set-output name=matrix::${JSON//'%'/'%25'}"
+            echo 'MATRIX<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT                    
 
   deploy:
     needs: [buildDockerImage, matrix_prep]
