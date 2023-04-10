@@ -66,6 +66,7 @@ jobs:
         with:
           inputFile: '.github/workflows/matrix_includes.json'
           filter: ${{ env.filter }}
+          addInclude: false
 
       - name: Echo
         run: echo "${{ steps.set-matrix.outputs.matrix }}"
