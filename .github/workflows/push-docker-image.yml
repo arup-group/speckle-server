@@ -45,6 +45,7 @@ jobs:
           mime-type: application/octet-stream
 
   matrix_prep:
+    name: Generate matrix
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.set-matrix.outputs.MATRIX_ENV }}
@@ -70,9 +71,6 @@ jobs:
             echo 'EOF' >> $GITHUB_OUTPUT             
           fi
 
-      - run: echo "Hello {{ steps.set-matrix.outputs.environment }}"
-      - run: echo "Hello {{ fromJSON(steps.set-matrix.outputs.include) }}"
-
   deploy:
     needs: [buildDockerImage, matrix_prep]
     name: Deploy to ${{ matrix.environment }} for ${{ matrix.package }}
@@ -94,8 +92,6 @@ jobs:
         include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
 
     steps:
-      - run: echo "Hello  ${{ fromJson(needs.matrix_prep.outputs.environment) }}"
-
       # Download the Docker image tar
       - name: Download Build Artifacts
         uses: actions/download-artifact@v2
