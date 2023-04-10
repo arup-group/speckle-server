@@ -54,9 +54,9 @@ jobs:
       - id: set-matrix
         run: |
           if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
-            JSON=$(cat ./matrix_staging.json)
+            JSON=$(cat .github/workflows/matrix_staging.json)
           else
-            JSON=$(cat ./matrix.json)
+            JSON=$(cat .github/workflows/matrix.json)
           fi
           echo "::set-output name=matrix::${JSON//'%'/'%25'}
 
