@@ -60,7 +60,8 @@ jobs:
           else
             echo 'MATRIX<<EOF' >> $GITHUB_OUTPUT
             cat .github/workflows/matrix.json >> $GITHUB_OUTPUT
-            echo 'EOF' >> $GITHUB_OUTPUT                    
+            echo 'EOF' >> $GITHUB_OUTPUT 
+          fi
 
   deploy:
     needs: [buildDockerImage, matrix_prep]
