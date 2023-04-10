@@ -1,0 +1,83 @@
+[
+  { "environment": ["prod", "hs2", "staging", "hk", "alr", "et"] },
+  {
+    "package": [
+      "server",
+      "frontend",
+      "preview-service",
+      "webhook-service",
+      "fileimport-service"
+    ]
+  },
+  {
+    "include": [
+      {
+        "environment": "staging",
+        "region": "eu-west-1",
+        "accessKey": "STAGING_AWS_ACCESS_KEY_ID",
+        "accessKey": "STAGING_AWS_SECRET_ACCESS_KEY",
+        "url": "https://v2.staging-speckle.arup.com"
+      },
+      {
+        "environment": "prod",
+        "region": "eu-west-1",
+        "accessKey": "AWS_ACCESS_KEY_ID",
+        "accessKey": "AWS_SECRET_ACCESS_KEY",
+        "url": "https://v2.speckle.arup.com"
+      },
+      {
+        "environment": "hk",
+        "region": "ap-east-1",
+        "accessKey": "AWS_ACCESS_KEY_ID",
+        "accessKey": "AWS_SECRET_ACCESS_KEY",
+        "url": "https://hk.speckle.arup.com"
+      },
+      {
+        "environment": "alr",
+        "region": "ap-southeast-2",
+        "accessKey": "AWS_ACCESS_KEY_ID",
+        "accessKey": "AWS_SECRET_ACCESS_KEY",
+        "url": "https://lightrail.speckle.arup.com"
+      },
+      {
+        "environment": "et",
+        "region": "eu-west-2",
+        "accessKey": "AWS_ACCESS_KEY_ID",
+        "accessKey": "AWS_SECRET_ACCESS_KEY",
+        "url": "https://eustontower.speckle.arup.com"
+      },
+      {
+        "environment": "hs2",
+        "region": "eu-west-2",
+        "accessKey": "AWS_ACCESS_KEY_ID",
+        "accessKey": "AWS_SECRET_ACCESS_KEY",
+        "url": "https://hs2.speckle.arup.com"
+      },
+      {
+        "package": "server",
+        "cxName": "spec-cx-server",
+        "cxName": "specklev2"
+      },
+      {
+        "package": "frontend",
+        "cxName": "spec-cx-frontend",
+        "cxName": "specklev2-frontend"
+      },
+      {
+        "package": "preview-service",
+        "cxName": "spec-cx-preview",
+        "cxName": "specklev2-preview-service"
+      },
+      {
+        "package": "webhook-service",
+        "cxName": "spec-cx-webhook",
+        "cxName": "specklev2-webhook-service"
+      },
+      {
+        "package": "fileimport-service",
+        "cxName": "spec-cx-fileimport-service",
+        "cxName": "specklev2-fileimport-service"
+      }
+    ]
+  }
+]

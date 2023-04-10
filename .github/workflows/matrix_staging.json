@@ -1,0 +1,48 @@
+[
+  { "environment": ["staging"] },
+  {
+    "package": [
+      "server",
+      "frontend",
+      "preview-service",
+      "webhook-service",
+      "fileimport-service"
+    ]
+  },
+  {
+    "include": [
+      {
+        "environment": "staging",
+        "region": "eu-west-1",
+        "accessKey": "STAGING_AWS_ACCESS_KEY_ID",
+        "accessKey": "STAGING_AWS_SECRET_ACCESS_KEY",
+        "url": "https://v2.staging-speckle.arup.com"
+      },
+      {
+        "package": "server",
+        "cxName": "spec-cx-server",
+        "cxName": "specklev2"
+      },
+      {
+        "package": "frontend",
+        "cxName": "spec-cx-frontend",
+        "cxName": "specklev2-frontend"
+      },
+      {
+        "package": "preview-service",
+        "cxName": "spec-cx-preview",
+        "cxName": "specklev2-preview-service"
+      },
+      {
+        "package": "webhook-service",
+        "cxName": "spec-cx-webhook",
+        "cxName": "specklev2-webhook-service"
+      },
+      {
+        "package": "fileimport-service",
+        "cxName": "spec-cx-fileimport-service",
+        "cxName": "specklev2-fileimport-service"
+      }
+    ]
+  }
+]

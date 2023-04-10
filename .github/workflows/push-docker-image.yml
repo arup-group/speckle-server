@@ -3,18 +3,10 @@ name: AWS Deploy
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'The environment to deploy to'
-        type: choice
-        default: staging
-        options:
-          - staging
-          - prod
-          - hk
-          - alr
-          - et
-          - hs2
-          - all
+      isStagingDeployment:
+        description: 'Whether this is a staging env deployment'
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -25,7 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [ 'server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -52,24 +51,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create filter expression
-        run: |
-          if [[ ${{ github.event.inputs.environment == 'all' }} == true ]]; then
-            filter='[?environment || package]'
-          else
-            filter='[?environment==`${{ github.event.inputs.environment }}` || package]'
-          fi
-          echo "filter=$filter" >> $GITHUB_ENV
-
       - id: set-matrix
-        uses: JoshuaTheMiller/conditional-build-matrix@main
-        with:
-          inputFile: '.github/workflows/matrix_includes.json'
-          filter: ${{ env.filter }}
-          addInclude: false
-
-      - name: Echo
-        run: echo "${{ steps.set-matrix.outputs.matrix }}"
+        run: |
+          if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
+            JSON=$(cat ./matrix_staging.json)
+          else
+            JSON=$(cat ./matrix.json)
+          fi
+          echo "::set-output name=matrix::${JSON//'%'/'%25'}
 
   deploy:
     needs: [buildDockerImage, matrix_prep]
@@ -79,13 +68,10 @@ jobs:
       name: ${{ matrix.environment }}
       url: ${{ matrix.url }}
     strategy:
-      matrix:
-        environment: ['prod', 'hs2', 'staging', 'hk', 'alr', 'et']
-        package: [ 'server', 'frontend', 'preview-service', 'webhook-service', 'fileimport-service']
-        include: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     steps:
-      - run: echo "Hello ${{ matrix }}"
-      
+      - run: echo "Hello  ${{fromJson(needs.matrix_prep.outputs.matrix)}}"
+
       # Download the Docker image tar
       - name: Download Build Artifacts
         uses: actions/download-artifact@v2
