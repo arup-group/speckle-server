@@ -58,7 +58,7 @@ jobs:
           else
             JSON=$(cat .github/workflows/matrix.json)
           fi
-          echo "::set-output name=matrix::${JSON//'%'/'%25'}
+          echo "::set-output name=matrix::${JSON//'%'/'%25'}"
 
   deploy:
     needs: [buildDockerImage, matrix_prep]
