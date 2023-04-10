@@ -2,6 +2,18 @@ name: AWS Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'The environment to deploy to'
+        type: choice
+        options:
+          - staging
+          - prod
+          - hk
+          - alr
+          - et
+          - hs2
+        default: staging
   push:
     branches:
       - main
@@ -39,125 +51,82 @@ jobs:
           path: ${{ matrix.package }}.tar
           mime-type: application/octet-stream
 
+  matrix_prep:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-matrix
+        uses: JoshuaTheMiller/conditional-build-matrix@main
+        with:
+          inputFile: '.github/workflows/matrix_includes.json'
+          filter: '[?environment==`${{ github.event.inputs.environment }}` || package]'
+
   deploy:
-    needs: [buildDockerImage]
+    needs: [buildDockerImage, matrix_prep]
     name: Deploy to ${{ matrix.environment }} for ${{ matrix.package }}
     runs-on: ubuntu-latest
     environment:
       name: ${{ matrix.environment }}
       url: ${{ matrix.url }}
     strategy:
-      matrix:
-        environment: ['prod', 'hs2', 'staging', 'hk', 'alr', 'et']
-        package:
-          [
-            'server',
-            'frontend',
-            'preview-service',
-            'webhook-service',
-            'fileimport-service'
-          ]
-        include:
-          - environment: prod
-            region: eu-west-1
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://v2.speckle.arup.com
-          - environment: hk
-            region: ap-east-1
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://hk.speckle.arup.com
-          - environment: alr
-            region: ap-southeast-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://lightrail.speckle.arup.com
-          - environment: et
-            region: eu-west-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://eustontower.speckle.arup.com
-          - environment: hs2
-            region: eu-west-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://hs2.speckle.arup.com
-          - environment: staging
-            region: eu-west-1
-            accessKey: STAGING_AWS_ACCESS_KEY_ID
-            secretAccessKey: STAGING_AWS_SECRET_ACCESS_KEY
-            url: https://v2.staging-speckle.arup.com
-          - package: 'server'
-            cxName: 'spec-cx-server'
-            serviceName: 'specklev2'
-          - package: 'frontend'
-            cxName: 'spec-cx-frontend'
-            serviceName: 'specklev2-frontend'
-          - package: 'preview-service'
-            cxName: 'spec-cx-preview'
-            serviceName: 'specklev2-preview-service'
-          - package: 'webhook-service'
-            cxName: 'spec-cx-webhook'
-            serviceName: 'specklev2-webhook-service'
-          - package: 'fileimport-service'
-            cxName: 'spec-cx-fileimport-service'
-            serviceName: 'specklev2-fileimport-service'
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
 
-    steps:
-      # Download the Docker image tar
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: ${{ matrix.package }}
+      steps:
+        # Download the Docker image tar
+        - name: Download Build Artifacts
+          uses: actions/download-artifact@v2
+          with:
+            name: ${{ matrix.package }}
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets[matrix.accessKey] }}
-          aws-secret-access-key: ${{ secrets[matrix.secretAccessKey] }}
-          aws-region: ${{ matrix.region }}
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets[matrix.accessKey] }}
+            aws-secret-access-key: ${{ secrets[matrix.secretAccessKey] }}
+            aws-region: ${{ matrix.region }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Download task definition
-        run: |
-          aws ecs describe-task-definition --task-definition specklev2-${{ matrix.package }}-${{ matrix.environment }} --query taskDefinition > task-definition.json
+        - name: Download task definition
+          run: |
+            aws ecs describe-task-definition --task-definition specklev2-${{ matrix.package }}-${{ matrix.environment }} --query taskDefinition > task-definition.json
 
-      - name: Load Docker Image and push to AWS
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ matrix.cxName }}
-          IMAGE_TAG: v${{ github.sha }}
-        id: build-image
-        run: |
-          docker load -i ${{ matrix.package }}.tar
-          docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        - name: Load Docker Image and push to AWS
+          env:
+            ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+            ECR_REPOSITORY: ${{ matrix.cxName }}
+            IMAGE_TAG: v${{ github.sha }}
+          id: build-image
+          run: |
+            docker load -i ${{ matrix.package }}.tar
+            docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+            docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: specklev2-${{ matrix.package }}-${{ matrix.environment }}
-          image: ${{ steps.build-image.outputs.image }}
+        - name: Fill in the new image ID in the Amazon ECS task definition
+          id: task-def
+          uses: aws-actions/amazon-ecs-render-task-definition@v1
+          with:
+            task-definition: task-definition.json
+            container-name: specklev2-${{ matrix.package }}-${{ matrix.environment }}
+            image: ${{ steps.build-image.outputs.image }}
 
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ matrix.serviceName }}-${{ matrix.environment }}
-          cluster: specklev2-server-${{ matrix.environment }}
-          wait-for-service-stability: true
-          wait-for-minutes: 25
+        - name: Deploy Amazon ECS task definition
+          uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+          with:
+            task-definition: ${{ steps.task-def.outputs.task-definition }}
+            service: ${{ matrix.serviceName }}-${{ matrix.environment }}
+            cluster: specklev2-server-${{ matrix.environment }}
+            wait-for-service-stability: true
+            wait-for-minutes: 25
 
-      - name: Download logs if Deploy Failed
-        if: failure()
-        run: |
-          aws logs tail /ecs/specklev2/${{ matrix.serviceName }}/${{ matrix.environment }}
+        - name: Download logs if Deploy Failed
+          if: failure()
+          run: |
+            aws logs tail /ecs/specklev2/${{ matrix.serviceName }}/${{ matrix.environment }}
