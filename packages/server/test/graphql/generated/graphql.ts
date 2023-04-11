@@ -1148,6 +1148,7 @@ export type ServerInfo = {
   requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
   roles: Array<Maybe<Role>>;
   scopes: Array<Maybe<Scope>>;
+  showJobNumberInput?: Maybe<Scalars['Boolean']>;
   termsOfService?: Maybe<Scalars['String']>;
   version?: Maybe<Scalars['String']>;
 };
@@ -1165,6 +1166,7 @@ export type ServerInfoUpdateInput = {
   name: Scalars['String'];
   requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>;
   requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>;
+  showJobNumberInput?: InputMaybe<Scalars['Boolean']>;
   termsOfService?: InputMaybe<Scalars['String']>;
 };
 

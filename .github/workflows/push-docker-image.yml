@@ -2,6 +2,11 @@ name: AWS Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      isStagingDeployment:
+        description: 'Whether this is a staging env deployment'
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -39,8 +44,35 @@ jobs:
           path: ${{ matrix.package }}.tar
           mime-type: application/octet-stream
 
+  matrix_prep:
+    name: Generate matrix
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-matrix.outputs.MATRIX_ENV }}
+      include: ${{ steps.set-matrix.outputs.MATRIX_INCLUDE }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: set-matrix
+        run: |
+          if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT      
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT                
+          else
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT 
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT             
+          fi
+
   deploy:
-    needs: [buildDockerImage]
+    needs: [buildDockerImage, matrix_prep]
     name: Deploy to ${{ matrix.environment }} for ${{ matrix.package }}
     runs-on: ubuntu-latest
     environment:
@@ -48,7 +80,7 @@ jobs:
       url: ${{ matrix.url }}
     strategy:
       matrix:
-        environment: ['prod', 'hs2', 'staging', 'hk', 'alr', 'et']
+        environment: ${{ fromJson(needs.matrix_prep.outputs.environment) }}
         package:
           [
             'server',
@@ -57,52 +89,7 @@ jobs:
             'webhook-service',
             'fileimport-service'
           ]
-        include:
-          - environment: prod
-            region: eu-west-1
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://v2.speckle.arup.com
-          - environment: hk
-            region: ap-east-1
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://hk.speckle.arup.com
-          - environment: alr
-            region: ap-southeast-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://lightrail.speckle.arup.com
-          - environment: et
-            region: eu-west-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://eustontower.speckle.arup.com
-          - environment: hs2
-            region: eu-west-2
-            accessKey: AWS_ACCESS_KEY_ID
-            secretAccessKey: AWS_SECRET_ACCESS_KEY
-            url: https://hs2.speckle.arup.com
-          - environment: staging
-            region: eu-west-1
-            accessKey: STAGING_AWS_ACCESS_KEY_ID
-            secretAccessKey: STAGING_AWS_SECRET_ACCESS_KEY
-            url: https://v2.staging-speckle.arup.com
-          - package: 'server'
-            cxName: 'spec-cx-server'
-            serviceName: 'specklev2'
-          - package: 'frontend'
-            cxName: 'spec-cx-frontend'
-            serviceName: 'specklev2-frontend'
-          - package: 'preview-service'
-            cxName: 'spec-cx-preview'
-            serviceName: 'specklev2-preview-service'
-          - package: 'webhook-service'
-            cxName: 'spec-cx-webhook'
-            serviceName: 'specklev2-webhook-service'
-          - package: 'fileimport-service'
-            cxName: 'spec-cx-fileimport-service'
-            serviceName: 'specklev2-fileimport-service'
+        include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
 
     steps:
       # Download the Docker image tar

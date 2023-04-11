@@ -43,6 +43,7 @@ module.exports = {
     defaultGlobals,
     loggedInUsersOnly,
     enableGlobalReviewerAccess,
+    showJobNumberInput,
     requireJobNumberToCreateStreams,
     requireJobNumberToCreateCommits
   }) {
@@ -59,6 +60,7 @@ module.exports = {
         defaultGlobals,
         loggedInUsersOnly,
         enableGlobalReviewerAccess,
+        showJobNumberInput,
         requireJobNumberToCreateStreams,
         requireJobNumberToCreateCommits,
         completed: true
@@ -75,6 +77,7 @@ module.exports = {
         defaultGlobals,
         loggedInUsersOnly,
         enableGlobalReviewerAccess,
+        showJobNumberInput,
         requireJobNumberToCreateStreams,
         requireJobNumberToCreateCommits,
         completed: true

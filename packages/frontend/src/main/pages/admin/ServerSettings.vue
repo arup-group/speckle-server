@@ -89,6 +89,11 @@ export default {
           hint: 'Only users with an invitation will be able to join',
           type: 'boolean'
         },
+        showJobNumberInput: {
+          label: 'Whether to show job numbers input field',
+          hint: 'Show job number input when creating streams or updating stream settings',
+          type: 'boolean'
+        },
         requireJobNumberToCreateStreams: {
           label: 'Require job numbers for stream creation',
           hint: 'Users must provide a valid job number to create a stream (at time of stream creation)',
