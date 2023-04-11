@@ -36,9 +36,7 @@
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
               <h2>Job number, name and description</h2>
               <job-number-search
-                v-if="
-                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
-                "
+                v-if="showJobNumberInput"
                 ref="input-field"
                 :initial-job-number="stream.jobNumber"
                 :job-number-required="
@@ -451,6 +449,17 @@ export default defineComponent({
     }
   },
   apollo: {
+    showJobNumberInput: {
+      query: gql`
+        query {
+          serverInfo {
+            showJobNumberInput
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.showJobNumberInput
+    },
     requireJobNumberToCreateCommits: {
       query: gql`
         query {

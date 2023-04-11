@@ -20,6 +20,7 @@ export const mainServerInfoFieldsFragment = gql`
     defaultGlobals
     loggedInUsersOnly
     enableGlobalReviewerAccess
+    showJobNumberInput
     requireJobNumberToCreateStreams
     requireJobNumberToCreateCommits
   }

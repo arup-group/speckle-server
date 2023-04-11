@@ -9,6 +9,7 @@ const { moduleLogger } = require('@/logging/logging')
 exports.init = async (app) => {
   const serverInfo = await getServerInfo()
   if (
+    serverInfo.showJobNumberInput ||
     serverInfo.requireJobNumberToCreateStreams ||
     serverInfo.requireJobNumberToCreateCommits
   ) {

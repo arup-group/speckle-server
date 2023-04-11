@@ -1,4 +1,5 @@
 import {
+  Box3,
   BufferAttribute,
   BufferGeometry,
   DynamicDrawUsage,
@@ -9,7 +10,6 @@ import {
   Uint32BufferAttribute,
   WebGLRenderer
 } from 'three'
-import { MeshBVH } from 'three-mesh-bvh'
 import { Geometry } from '../converter/Geometry'
 import SpeckleStandardColoredMaterial from '../materials/SpeckleStandardColoredMaterial'
 import SpeckleMesh from '../objects/SpeckleMesh'
@@ -23,6 +23,10 @@ import {
   HideAllBatchUpdateRange
 } from './Batch'
 import Logger from 'js-logger'
+import { GeometryConverter } from '../converter/GeometryConverter'
+import { WorldTree } from '../tree/WorldTree'
+import { SpeckleMeshBVH } from '../objects/SpeckleMeshBVH'
+import { ObjectLayers } from '../SpeckleRenderer'
 
 export default class MeshBatch implements Batch {
   public id: string
@@ -31,7 +35,8 @@ export default class MeshBatch implements Batch {
   private geometry: BufferGeometry
   public batchMaterial: Material
   public mesh: SpeckleMesh
-  public boundsTree: MeshBVH
+  public boundsTree: SpeckleMeshBVH
+  public bounds: Box3 = new Box3()
   private gradientIndexBuffer: BufferAttribute
   private indexBuffer0: BufferAttribute
   private indexBuffer1: BufferAttribute
@@ -94,6 +99,7 @@ export default class MeshBatch implements Batch {
       minOffset,
       maxOffset - minOffset + ranges.find((val) => val.offset === maxOffset).count
     )
+    this.mesh.visible = true
   }
 
   public getVisibleRange(): BatchUpdateRange {
@@ -124,7 +130,7 @@ export default class MeshBatch implements Batch {
     let maxGradientIndex = 0
     for (let k = 0; k < sortedRanges.length; k++) {
       if (sortedRanges[k].materialOptions) {
-        if (sortedRanges[k].materialOptions.rampIndex) {
+        if (sortedRanges[k].materialOptions.rampIndex !== undefined) {
           const start = sortedRanges[k].offset
           const len = sortedRanges[k].offset + sortedRanges[k].count
           /** The ramp indices specify the *begining* of each ramp color. When sampling with Nearest filter (since we don't want filtering)
@@ -437,16 +443,27 @@ export default class MeshBatch implements Batch {
 
       offset += geometry.attributes.POSITION.length
       arrayOffset += geometry.attributes.INDEX.length
+
+      if (!GeometryConverter.keepGeometryData) {
+        this.renderViews[k].disposeGeometry()
+      }
     }
+
     this.makeMeshGeometry(
       indices,
       position,
       this.batchMaterial.vertexColors ? color : null
     )
 
-    this.boundsTree = Geometry.buildBVH(indices, position)
+    this.boundsTree = Geometry.buildBVH(
+      indices,
+      position,
+      WorldTree.getRenderTree(this.subtreeId).treeBounds
+    )
+    this.boundsTree.getBoundingBox(this.bounds)
     this.mesh = new SpeckleMesh(this.geometry, this.batchMaterial, this.boundsTree)
     this.mesh.uuid = this.id
+    this.mesh.layers.set(ObjectLayers.STREAM_CONTENT_MESH)
   }
 
   public getRenderView(index: number): NodeRenderView {

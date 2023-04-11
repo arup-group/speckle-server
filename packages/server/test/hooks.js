@@ -51,8 +51,8 @@ const initializeTestServer = async (server, app) => {
 
   app.on('appStarted', () => {
     const port = server.address().port
-    serverAddress = `http://localhost:${port}`
-    wsAddress = `ws://localhost:${port}`
+    serverAddress = `http://127.0.0.1:${port}`
+    wsAddress = `ws://127.0.0.1:${port}`
   })
   while (!serverAddress) {
     await new Promise((resolve) => setTimeout(resolve, 100))
@@ -62,11 +62,17 @@ const initializeTestServer = async (server, app) => {
     serverAddress,
     wsAddress,
     sendRequest(auth, obj) {
-      return chai
-        .request(serverAddress)
-        .post('/graphql')
-        .set('Authorization', auth)
-        .send(obj)
+      return (
+        chai
+          .request(serverAddress)
+          .post('/graphql')
+          // if you set the header to null, the actual header in the req will be
+          // a string -> 'null'
+          // this is now treated as an invalid token, and gets forbidden
+          // switching to an empty string token
+          .set('Authorization', auth || '')
+          .send(obj)
+      )
     }
   }
 }

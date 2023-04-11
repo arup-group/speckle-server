@@ -20,6 +20,7 @@ type ServerInfo {
   defaultGlobals: JSONObject
   loggedInUsersOnly: Boolean
   enableGlobalReviewerAccess: Boolean
+  showJobNumberInput: Boolean
   requireJobNumberToCreateStreams: Boolean
   requireJobNumberToCreateCommits: Boolean
 }
@@ -59,6 +60,7 @@ input ServerInfoUpdateInput {
   loggedInUsersOnly: Boolean
   enableGlobalReviewerAccess: Boolean
   enforceJobNumberRequirement: Boolean
+  showJobNumberInput: Boolean
   requireJobNumberToCreateStreams: Boolean
   requireJobNumberToCreateCommits: Boolean
 }
