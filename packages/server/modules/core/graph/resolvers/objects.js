@@ -12,6 +12,12 @@ const {
   getObjectChildrenQuery
 } = require('../../services/objects')
 
+const { getBranchesByStreamId } = require('../../services/branches')
+
+const { getCommitsByBranchName } = require('../../services/commits')
+
+const omitDeep = require('omit-deep-lodash')
+
 module.exports = {
   Stream: {
     async object(parent, args) {
@@ -20,6 +26,26 @@ module.exports = {
 
       obj.streamId = parent.id
       return obj
+    },
+    async globals(parent) {
+      const branches = await getBranchesByStreamId({ streamId: parent.id })
+      if (!branches || !branches.items.some((b) => b.name === 'globals')) return null
+
+      const { commits } = await getCommitsByBranchName({
+        streamId: parent.id,
+        branchName: 'globals',
+        limit: 1
+      })
+      if (!commits || commits.length === 0) return null
+
+      const refObj = commits[0].referencedObject
+      const obj = await getObject({ streamId: parent.id, objectId: refObj })
+      if (!obj) return null
+
+      const items = omitDeep(obj.data, ['totalChildrenCount', 'speckle_type', 'id'])
+      const totalCount = Object.keys(items).length
+
+      return { totalCount, items }
     }
   },
   Object: {
