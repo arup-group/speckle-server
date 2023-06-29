@@ -1,0 +1,150 @@
+name: AWS Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      isStagingDeployment:
+        description: 'Whether this is a staging env deployment'
+        type: boolean
+        default: true
+  push:
+    branches:
+      - main
+
+jobs:
+  buildDockerImage:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: |
+          DOCKER_BUILDKIT=1 docker build --secret id=posthog_api_key,env=POSTHOG_API_KEY --build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
+          docker save ${{ matrix.package }}:latest -o ${{ matrix.package }}.tar
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        env:
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+
+      - name: Upload Build Assets
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.package }}
+          path: ${{ matrix.package }}.tar
+          mime-type: application/octet-stream
+
+  matrix_prep:
+    name: Generate matrix
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-matrix.outputs.MATRIX_ENV }}
+      include: ${{ steps.set-matrix.outputs.MATRIX_INCLUDE }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - id: set-matrix
+        run: |
+          if [[ ${{ github.event.inputs.isStagingDeployment == 'true' }} == true ]]; then
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT      
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include_staging.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT                
+          else
+            echo 'MATRIX_ENV<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_environment.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT 
+            echo 'MATRIX_INCLUDE<<EOF' >> $GITHUB_OUTPUT
+            cat .github/workflows/matrix_include.json >> $GITHUB_OUTPUT
+            echo 'EOF' >> $GITHUB_OUTPUT             
+          fi
+
+  deploy:
+    needs: [buildDockerImage, matrix_prep]
+    name: Deploy to ${{ matrix.environment }} for ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ matrix.environment }}
+      url: ${{ matrix.url }}
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.matrix_prep.outputs.environment) }}
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
+        include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
+
+    steps:
+      # Download the Docker image tar
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ matrix.package }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets[matrix.accessKey] }}
+          aws-secret-access-key: ${{ secrets[matrix.secretAccessKey] }}
+          aws-region: ${{ matrix.region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition specklev2-${{ matrix.package }}-${{ matrix.environment }} --query taskDefinition > task-definition.json
+
+      - name: Load Docker Image and push to AWS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ matrix.cxName }}
+          IMAGE_TAG: v${{ github.sha }}
+        id: build-image
+        run: |
+          docker load -i ${{ matrix.package }}.tar
+          docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag ${{ matrix.package }}:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: specklev2-${{ matrix.package }}-${{ matrix.environment }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ matrix.serviceName }}-${{ matrix.environment }}
+          cluster: specklev2-server-${{ matrix.environment }}
+          wait-for-service-stability: true
+          wait-for-minutes: 25
+
+      - name: Download logs if Deploy Failed
+        if: failure()
+        run: |
+          aws logs tail /ecs/specklev2/${{ matrix.serviceName }}/${{ matrix.environment }}

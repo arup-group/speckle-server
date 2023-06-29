@@ -3,6 +3,7 @@ extend type Stream {
   commit(id: String): Commit
   branches(limit: Int! = 25, cursor: String): BranchCollection
   branch(name: String = "main"): Branch
+  globals: Globals
 }
 
 extend type User {
@@ -27,6 +28,11 @@ type Branch {
   description: String
   createdAt: DateTime
   commits(limit: Int! = 25, cursor: String): CommitCollection
+}
+
+type Globals {
+  totalCount: Int!
+  items: JSONObject
 }
 
 type Commit {

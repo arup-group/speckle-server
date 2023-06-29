@@ -13,6 +13,7 @@ export const commonStreamFieldsFragment = gql`
   fragment CommonStreamFields on Stream {
     id
     name
+    jobNumber
     description
     role
     isPublic
@@ -165,6 +166,7 @@ export const streamSettingsQuery = gql`
     stream(id: $id) {
       id
       name
+      jobNumber
       description
       isPublic
       isDiscoverable

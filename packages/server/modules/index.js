@@ -56,6 +56,7 @@ async function getSpeckleModules() {
     './notifications',
     './activitystream',
     './accessrequests',
+    './jobnumbers',
     './webhooks'
   ]
 

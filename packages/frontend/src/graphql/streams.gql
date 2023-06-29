@@ -5,6 +5,7 @@ query Streams($cursor: String) {
     items {
       id
       name
+      jobNumber
       description
       role
       isPublic
@@ -33,6 +34,9 @@ query Streams($cursor: String) {
       }
       branches {
         totalCount
+        items {
+          name
+        }
       }
       favoritedDate
       favoritesCount

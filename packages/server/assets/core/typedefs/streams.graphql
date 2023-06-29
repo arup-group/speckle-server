@@ -40,6 +40,7 @@ extend type Query {
 type Stream {
   id: String!
   name: String!
+  jobNumber: String
   description: String
   """
   Whether the stream can be viewed by non-contributors
@@ -247,6 +248,10 @@ input StreamCreateInput {
   Optionally specify user IDs of users that you want to invite to be contributors to this stream
   """
   withContributors: [String!]
+  """
+  If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678)
+  """
+  jobNumber: String
 }
 
 input StreamUpdateInput {
@@ -263,6 +268,10 @@ input StreamUpdateInput {
   """
   isDiscoverable: Boolean
   allowPublicComments: Boolean
+  """
+  If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678)
+  """
+  jobNumber: String
 }
 
 input StreamUpdatePermissionInput {

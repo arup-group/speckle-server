@@ -20,6 +20,8 @@ const {
   validateScopes,
   validateServerRole
 } = require(`@/modules/shared`)
+const { getServerInfo } = require('@/modules/core/services/generic')
+const { validateJobNumber } = require('@/modules/jobnumbers/services/jobnumbers')
 const {
   RateLimitError,
   RateLimitAction,
@@ -204,6 +206,22 @@ module.exports = {
   },
   Mutation: {
     async streamCreate(parent, args, context) {
+      const info = await getServerInfo()
+      const requireJobNumber = info.requireJobNumberToCreateStreams
+      if (requireJobNumber) {
+        if (!args.stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a stream on this server. Please provide one.'
+          )
+        }
+        const isValid = await validateJobNumber(args.stream.jobNumber)
+        if (!isValid) {
+          throw new Error(
+            'Invalid job number. Provided job number must contain digits only (no spaces or dashes), must be 8 digits long (ex. 12345678) and must come from an active project.'
+          )
+        }
+      }
+
       const rateLimitResult = await getRateLimitResult(
         RateLimitAction.STREAM_CREATE,
         context.userId

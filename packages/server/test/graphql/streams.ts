@@ -21,6 +21,7 @@ export const basicStreamFieldsFragment = gql`
   fragment BasicStreamFields on Stream {
     id
     name
+    jobNumber
     description
     isPublic
     isDiscoverable

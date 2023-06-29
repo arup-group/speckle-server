@@ -23,7 +23,10 @@ const {
   addCommitReceivedActivity
 } = require('@/modules/activitystream/services/commitActivity')
 
+const { getStream } = require('@/modules/core/services/streams')
 const { getUser } = require('../../services/users')
+const { getServerInfo } = require('../../services/generic')
+const { validateJobNumber } = require('@/modules/jobnumbers/services/jobnumbers')
 
 const {
   isRateLimitBreached,
@@ -160,6 +163,24 @@ module.exports = {
   },
   Mutation: {
     async commitCreate(parent, args, context) {
+      const stream = await getStream({ streamId: args.commit.streamId })
+
+      const info = await getServerInfo()
+      const requireJobNumber = info.requireJobNumberToCreateCommits
+      if (requireJobNumber) {
+        if (!stream.jobNumber) {
+          throw new Error(
+            'A job number is required to create a commit on this server. Please make sure a job number has been assigned to the stream you are working with.'
+          )
+        }
+        const isValid = await validateJobNumber(stream.jobNumber)
+        if (!isValid) {
+          throw new Error(
+            'Stream does not contain a valid job number. Provided job number must contain digits only (no spaces or dashes), must be 8 digits long (ex. 12345678) and must come from an active project.'
+          )
+        }
+      }
+
       await authorizeResolver(
         context.userId,
         args.commit.streamId,

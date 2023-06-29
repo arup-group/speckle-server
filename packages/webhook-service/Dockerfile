@@ -36,7 +36,6 @@ FROM node:18.16.0-bullseye-slim as dependency-stage
 # yarn install
 ARG NODE_ENV
 ENV NODE_ENV=${NODE_ENV}
-
 WORKDIR /speckle-server
 
 COPY .yarnrc.yml .

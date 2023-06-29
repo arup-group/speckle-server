@@ -16,6 +16,13 @@ type ServerInfo {
   scopes: [Scope]!
   inviteOnly: Boolean
   version: String
+  createDefaultGlobals: Boolean
+  defaultGlobals: JSONObject
+  loggedInUsersOnly: Boolean
+  enableGlobalReviewerAccess: Boolean
+  showJobNumberInput: Boolean
+  requireJobNumberToCreateStreams: Boolean
+  requireJobNumberToCreateCommits: Boolean
 }
 
 """
@@ -48,4 +55,12 @@ input ServerInfoUpdateInput {
   adminContact: String
   termsOfService: String
   inviteOnly: Boolean
+  createDefaultGlobals: Boolean
+  defaultGlobals: JSONObject
+  loggedInUsersOnly: Boolean
+  enableGlobalReviewerAccess: Boolean
+  enforceJobNumberRequirement: Boolean
+  showJobNumberInput: Boolean
+  requireJobNumberToCreateStreams: Boolean
+  requireJobNumberToCreateCommits: Boolean
 }

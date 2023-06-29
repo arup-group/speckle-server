@@ -218,6 +218,7 @@ function buildMetaTableHelper<T extends string, C extends string, MK extends str
 export const Streams = buildTableHelper('streams', [
   'id',
   'name',
+  'jobNumber',
   'description',
   'isPublic',
   'clonedFrom',

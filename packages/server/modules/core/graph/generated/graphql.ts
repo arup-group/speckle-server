@@ -542,6 +542,12 @@ export type FileUpload = {
   userId: Scalars['String'];
 };
 
+export type Globals = {
+  __typename?: 'Globals';
+  items?: Maybe<Scalars['JSONObject']>;
+  totalCount: Scalars['Int'];
+};
+
 export type LegacyCommentViewerData = {
   __typename?: 'LegacyCommentViewerData';
   /**
@@ -1842,11 +1848,18 @@ export type ServerInfo = {
   blobSizeLimitBytes: Scalars['Int'];
   canonicalUrl?: Maybe<Scalars['String']>;
   company?: Maybe<Scalars['String']>;
+  createDefaultGlobals?: Maybe<Scalars['Boolean']>;
+  defaultGlobals?: Maybe<Scalars['JSONObject']>;
   description?: Maybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: Maybe<Scalars['Boolean']>;
   inviteOnly?: Maybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: Maybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: Maybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
   roles: Array<Maybe<Role>>;
   scopes: Array<Maybe<Scope>>;
+  showJobNumberInput?: Maybe<Scalars['Boolean']>;
   termsOfService?: Maybe<Scalars['String']>;
   version?: Maybe<Scalars['String']>;
 };
@@ -1854,9 +1867,17 @@ export type ServerInfo = {
 export type ServerInfoUpdateInput = {
   adminContact?: InputMaybe<Scalars['String']>;
   company?: InputMaybe<Scalars['String']>;
+  createDefaultGlobals?: InputMaybe<Scalars['Boolean']>;
+  defaultGlobals?: InputMaybe<Scalars['JSONObject']>;
   description?: InputMaybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: InputMaybe<Scalars['Boolean']>;
+  enforceJobNumberRequirement?: InputMaybe<Scalars['Boolean']>;
   inviteOnly?: InputMaybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: InputMaybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>;
+  showJobNumberInput?: InputMaybe<Scalars['Boolean']>;
   termsOfService?: InputMaybe<Scalars['String']>;
 };
 
@@ -1947,6 +1968,7 @@ export type Stream = {
   fileUpload?: Maybe<FileUpload>;
   /** Returns a list of all the file uploads for this stream. */
   fileUploads: Array<FileUpload>;
+  globals?: Maybe<Globals>;
   id: Scalars['String'];
   /**
    * Whether the stream (if public) can be found on public stream exploration pages
@@ -1955,6 +1977,7 @@ export type Stream = {
   isDiscoverable: Scalars['Boolean'];
   /** Whether the stream can be viewed by non-contributors */
   isPublic: Scalars['Boolean'];
+  jobNumber?: Maybe<Scalars['String']>;
   name: Scalars['String'];
   object?: Maybe<Object>;
   /** Pending stream access requests */
@@ -2063,6 +2086,8 @@ export type StreamCreateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   /** Optionally specify user IDs of users that you want to invite to be contributors to this stream */
   withContributors?: InputMaybe<Array<Scalars['String']>>;
@@ -2099,6 +2124,8 @@ export type StreamUpdateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
 };
 
@@ -2757,6 +2784,7 @@ export type ResolversTypes = {
   EmailAddress: ResolverTypeWrapper<Scalars['EmailAddress']>;
   FileUpload: ResolverTypeWrapper<FileUploadGraphQLReturn>;
   Float: ResolverTypeWrapper<Scalars['Float']>;
+  Globals: ResolverTypeWrapper<Globals>;
   ID: ResolverTypeWrapper<Scalars['ID']>;
   Int: ResolverTypeWrapper<Scalars['Int']>;
   JSONObject: ResolverTypeWrapper<Scalars['JSONObject']>;
@@ -2914,6 +2942,7 @@ export type ResolversParentTypes = {
   EmailAddress: Scalars['EmailAddress'];
   FileUpload: FileUploadGraphQLReturn;
   Float: Scalars['Float'];
+  Globals: Globals;
   ID: Scalars['ID'];
   Int: Scalars['Int'];
   JSONObject: Scalars['JSONObject'];
@@ -3271,6 +3300,12 @@ export type FileUploadResolvers<ContextType = GraphQLContext, ParentType extends
   uploadComplete?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   uploadDate?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   userId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type GlobalsResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Globals'] = ResolversParentTypes['Globals']> = {
+  items?: Resolver<Maybe<ResolversTypes['JSONObject']>, ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3652,11 +3687,18 @@ export type ServerInfoResolvers<ContextType = GraphQLContext, ParentType extends
   blobSizeLimitBytes?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   canonicalUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   company?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  createDefaultGlobals?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  defaultGlobals?: Resolver<Maybe<ResolversTypes['JSONObject']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  enableGlobalReviewerAccess?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   inviteOnly?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  loggedInUsersOnly?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  requireJobNumberToCreateCommits?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
+  requireJobNumberToCreateStreams?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   roles?: Resolver<Array<Maybe<ResolversTypes['Role']>>, ParentType, ContextType>;
   scopes?: Resolver<Array<Maybe<ResolversTypes['Scope']>>, ParentType, ContextType>;
+  showJobNumberInput?: Resolver<Maybe<ResolversTypes['Boolean']>, ParentType, ContextType>;
   termsOfService?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   version?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3706,9 +3748,11 @@ export type StreamResolvers<ContextType = GraphQLContext, ParentType extends Res
   favoritesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   fileUpload?: Resolver<Maybe<ResolversTypes['FileUpload']>, ParentType, ContextType, RequireFields<StreamFileUploadArgs, 'id'>>;
   fileUploads?: Resolver<Array<ResolversTypes['FileUpload']>, ParentType, ContextType>;
+  globals?: Resolver<Maybe<ResolversTypes['Globals']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   isDiscoverable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isPublic?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  jobNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   object?: Resolver<Maybe<ResolversTypes['Object']>, ParentType, ContextType, RequireFields<StreamObjectArgs, 'id'>>;
   pendingAccessRequests?: Resolver<Maybe<Array<ResolversTypes['StreamAccessRequest']>>, ParentType, ContextType>;
@@ -3929,6 +3973,7 @@ export type Resolvers<ContextType = GraphQLContext> = {
   DateTime?: GraphQLScalarType;
   EmailAddress?: GraphQLScalarType;
   FileUpload?: FileUploadResolvers<ContextType>;
+  Globals?: GlobalsResolvers<ContextType>;
   JSONObject?: GraphQLScalarType;
   LegacyCommentViewerData?: LegacyCommentViewerDataResolvers<ContextType>;
   LimitedUser?: LimitedUserResolvers<ContextType>;

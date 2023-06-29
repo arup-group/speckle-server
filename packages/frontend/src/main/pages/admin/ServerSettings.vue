@@ -88,6 +88,21 @@ export default {
           label: 'Invite-Only mode',
           hint: 'Only users with an invitation will be able to join',
           type: 'boolean'
+        },
+        showJobNumberInput: {
+          label: 'Whether to show job numbers input field',
+          hint: 'Show job number input when creating streams or updating stream settings',
+          type: 'boolean'
+        },
+        requireJobNumberToCreateStreams: {
+          label: 'Require job numbers for stream creation',
+          hint: 'Users must provide a valid job number to create a stream (at time of stream creation)',
+          type: 'boolean'
+        },
+        requireJobNumberToCreateCommits: {
+          label: 'Require job numbers for commit creation (ie. for sending to streams)',
+          hint: 'Users can create a stream commit only for streams that contain a job number',
+          type: 'boolean'
         }
       }
     }

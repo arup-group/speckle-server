@@ -533,6 +533,12 @@ export type FileUpload = {
   userId: Scalars['String'];
 };
 
+export type Globals = {
+  __typename?: 'Globals';
+  items?: Maybe<Scalars['JSONObject']>;
+  totalCount: Scalars['Int'];
+};
+
 export type LegacyCommentViewerData = {
   __typename?: 'LegacyCommentViewerData';
   /**
@@ -1833,11 +1839,18 @@ export type ServerInfo = {
   blobSizeLimitBytes: Scalars['Int'];
   canonicalUrl?: Maybe<Scalars['String']>;
   company?: Maybe<Scalars['String']>;
+  createDefaultGlobals?: Maybe<Scalars['Boolean']>;
+  defaultGlobals?: Maybe<Scalars['JSONObject']>;
   description?: Maybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: Maybe<Scalars['Boolean']>;
   inviteOnly?: Maybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: Maybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: Maybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
   roles: Array<Maybe<Role>>;
   scopes: Array<Maybe<Scope>>;
+  showJobNumberInput?: Maybe<Scalars['Boolean']>;
   termsOfService?: Maybe<Scalars['String']>;
   version?: Maybe<Scalars['String']>;
 };
@@ -1845,9 +1858,17 @@ export type ServerInfo = {
 export type ServerInfoUpdateInput = {
   adminContact?: InputMaybe<Scalars['String']>;
   company?: InputMaybe<Scalars['String']>;
+  createDefaultGlobals?: InputMaybe<Scalars['Boolean']>;
+  defaultGlobals?: InputMaybe<Scalars['JSONObject']>;
   description?: InputMaybe<Scalars['String']>;
+  enableGlobalReviewerAccess?: InputMaybe<Scalars['Boolean']>;
+  enforceJobNumberRequirement?: InputMaybe<Scalars['Boolean']>;
   inviteOnly?: InputMaybe<Scalars['Boolean']>;
+  loggedInUsersOnly?: InputMaybe<Scalars['Boolean']>;
   name: Scalars['String'];
+  requireJobNumberToCreateCommits?: InputMaybe<Scalars['Boolean']>;
+  requireJobNumberToCreateStreams?: InputMaybe<Scalars['Boolean']>;
+  showJobNumberInput?: InputMaybe<Scalars['Boolean']>;
   termsOfService?: InputMaybe<Scalars['String']>;
 };
 
@@ -1938,6 +1959,7 @@ export type Stream = {
   fileUpload?: Maybe<FileUpload>;
   /** Returns a list of all the file uploads for this stream. */
   fileUploads: Array<FileUpload>;
+  globals?: Maybe<Globals>;
   id: Scalars['String'];
   /**
    * Whether the stream (if public) can be found on public stream exploration pages
@@ -1946,6 +1968,7 @@ export type Stream = {
   isDiscoverable: Scalars['Boolean'];
   /** Whether the stream can be viewed by non-contributors */
   isPublic: Scalars['Boolean'];
+  jobNumber?: Maybe<Scalars['String']>;
   name: Scalars['String'];
   object?: Maybe<Object>;
   /** Pending stream access requests */
@@ -2054,6 +2077,8 @@ export type StreamCreateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   /** Optionally specify user IDs of users that you want to invite to be contributors to this stream */
   withContributors?: InputMaybe<Array<Scalars['String']>>;
@@ -2090,6 +2115,8 @@ export type StreamUpdateInput = {
   isDiscoverable?: InputMaybe<Scalars['Boolean']>;
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']>;
+  /** If provided, the job number input must contain digits only (no spaces or dashes) and must be 8 digits long (ex. 12345678) */
+  jobNumber?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
 };
 
@@ -2823,7 +2850,7 @@ export type GetStreamPendingCollaboratorsQueryVariables = Exact<{
 
 export type GetStreamPendingCollaboratorsQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, pendingCollaborators?: Array<{ __typename?: 'PendingStreamCollaborator', inviteId: string, title: string, token?: string | null, user?: { __typename?: 'LimitedUser', id: string, name: string } | null }> | null } | null };
 
-export type BasicStreamFieldsFragment = { __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string };
+export type BasicStreamFieldsFragment = { __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string };
 
 export type LeaveStreamMutationVariables = Exact<{
   streamId: Scalars['String'];
@@ -2851,7 +2878,7 @@ export type ReadStreamQueryVariables = Exact<{
 }>;
 
 
-export type ReadStreamQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string } | null };
+export type ReadStreamQuery = { __typename?: 'Query', stream?: { __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string } | null };
 
 export type ReadDiscoverableStreamsQueryVariables = Exact<{
   limit?: Scalars['Int'];
@@ -2860,7 +2887,7 @@ export type ReadDiscoverableStreamsQueryVariables = Exact<{
 }>;
 
 
-export type ReadDiscoverableStreamsQuery = { __typename?: 'Query', discoverableStreams?: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', favoritesCount: number, id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } | null };
+export type ReadDiscoverableStreamsQuery = { __typename?: 'Query', discoverableStreams?: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', favoritesCount: number, id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } | null };
 
 export type GetUserStreamsQueryVariables = Exact<{
   userId?: InputMaybe<Scalars['String']>;
@@ -2869,7 +2896,7 @@ export type GetUserStreamsQueryVariables = Exact<{
 }>;
 
 
-export type GetUserStreamsQuery = { __typename?: 'Query', user?: { __typename?: 'User', streams: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } } | null };
+export type GetUserStreamsQuery = { __typename?: 'Query', user?: { __typename?: 'User', streams: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } } | null };
 
 export type GetLimitedUserStreamsQueryVariables = Exact<{
   userId: Scalars['String'];
@@ -2878,7 +2905,7 @@ export type GetLimitedUserStreamsQueryVariables = Exact<{
 }>;
 
 
-export type GetLimitedUserStreamsQuery = { __typename?: 'Query', otherUser?: { __typename?: 'LimitedUser', streams: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', id: string, name: string, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } } | null };
+export type GetLimitedUserStreamsQuery = { __typename?: 'Query', otherUser?: { __typename?: 'LimitedUser', streams: { __typename?: 'StreamCollection', totalCount: number, cursor?: string | null, items?: Array<{ __typename?: 'Stream', id: string, name: string, jobNumber?: string | null, description?: string | null, isPublic: boolean, isDiscoverable: boolean, allowPublicComments: boolean, role?: string | null, createdAt: string, updatedAt: string }> | null } } | null };
 
 export type BaseUserFieldsFragment = { __typename?: 'User', id: string, email?: string | null, name: string, bio?: string | null, company?: string | null, avatar?: string | null, verified?: boolean | null, role?: string | null };
 

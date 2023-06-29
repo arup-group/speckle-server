@@ -6,6 +6,7 @@ const OIDCStrategy = require('passport-azure-ad').OIDCStrategy
 const URL = require('url').URL
 const { findOrCreateUser, getUserByEmail } = require('@/modules/core/services/users')
 const { getServerInfo } = require('@/modules/core/services/generic')
+const { identify } = require('@/logging/posthogHelper')
 const {
   validateServerInvite,
   finalizeInvitedServerRegistration,
@@ -75,6 +76,7 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
           })
           // ID is used later for verifying access token
           req.user.id = myUser.id
+          identify(myUser)
           return next()
         }
 
@@ -86,6 +88,8 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
           })
           // ID is used later for verifying access token
           req.user.id = myUser.id
+          identify(myUser)
+
           req.user.isNewUser = myUser.isNewUser
 
           // process invites
@@ -111,6 +115,8 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
 
         // ID is used later for verifying access token
         req.user.id = myUser.id
+        identify(myUser)
+
         req.user.isInvite = !!validInvite
         req.log = req.log.child({ userId: myUser.id })
 

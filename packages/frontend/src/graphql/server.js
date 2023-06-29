@@ -16,6 +16,13 @@ export const mainServerInfoFieldsFragment = gql`
     termsOfService
     inviteOnly
     version
+    createDefaultGlobals
+    defaultGlobals
+    loggedInUsersOnly
+    enableGlobalReviewerAccess
+    showJobNumberInput
+    requireJobNumberToCreateStreams
+    requireJobNumberToCreateCommits
   }
 `
 

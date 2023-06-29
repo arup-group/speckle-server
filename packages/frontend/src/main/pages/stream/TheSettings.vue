@@ -34,7 +34,17 @@
           </template>
           <v-card-text>
             <v-form ref="form" v-model="valid" class="px-2" @submit.prevent="save">
-              <h2>Name and description</h2>
+              <h2>Job number, name and description</h2>
+              <job-number-search
+                v-if="showJobNumberInput"
+                ref="input-field"
+                :initial-job-number="stream.jobNumber"
+                :job-number-required="
+                  requireJobNumberToCreateStreams || requireJobNumberToCreateCommits
+                "
+                :disabled="stream.role !== 'stream:owner'"
+                @jobObjectSelected="selectedJobNumber"
+              ></job-number-search>
               <v-text-field
                 v-model="model.name"
                 :rules="validation.nameRules"
@@ -168,6 +178,7 @@
 import { STANDARD_PORTAL_KEYS, usePortalState } from '@/main/utils/portalStateManager'
 import SectionCard from '@/main/components/common/SectionCard.vue'
 import StreamVisibilityToggle from '@/main/components/stream/editor/StreamVisibilityToggle.vue'
+import JobNumberSearch from '@/main/components/common/JobNumberSearch.vue'
 import { required } from '@/main/lib/common/vuetify/validators'
 import { computed, defineComponent, ref, watch } from 'vue'
 import { Nullable } from '@/helpers/typeHelpers'
@@ -190,9 +201,11 @@ import {
   getFirstErrorMessage,
   updateCacheByFilter
 } from '@/main/lib/common/apollo/helpers/apolloOperationHelper'
+import { gql } from '@apollo/client/core'
 
 type ModelType = {
   name: string
+  jobNumber: Nullable<string>
   description: Nullable<string>
   isPublic: boolean
   isDiscoverable: boolean
@@ -205,7 +218,8 @@ export default defineComponent({
   name: 'TheSettings',
   components: {
     SectionCard,
-    StreamVisibilityToggle
+    StreamVisibilityToggle,
+    JobNumberSearch
   },
   setup() {
     const router = useRouter()
@@ -227,11 +241,13 @@ export default defineComponent({
           description: null,
           isPublic: true,
           isDiscoverable: false,
-          allowPublicComments: true
+          allowPublicComments: true,
+          jobNumber: ''
         }
 
       return {
         name: stream.name,
+        jobNumber: stream.jobNumber,
         description: stream.description || '',
         isPublic: stream.isPublic,
         isDiscoverable: stream.isDiscoverable,
@@ -335,6 +351,7 @@ export default defineComponent({
 
     const model = ref<ModelType>({
       name: '',
+      jobNumber: '',
       description: null,
       isPublic: true,
       isDiscoverable: false,
@@ -429,6 +446,48 @@ export default defineComponent({
       isEditDisabled,
       save,
       deleteStream
+    }
+  },
+  apollo: {
+    showJobNumberInput: {
+      query: gql`
+        query {
+          serverInfo {
+            showJobNumberInput
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.showJobNumberInput
+    },
+    requireJobNumberToCreateCommits: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateCommits
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
+    }
+  },
+  methods: {
+    selectedJobNumber(event: { JobCode: Nullable<string> }) {
+      if (event) {
+        this.model.jobNumber = event.JobCode
+      }
     }
   }
 })

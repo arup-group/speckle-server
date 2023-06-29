@@ -29,7 +29,9 @@ Vue.use(VueMixpanel, {
   token: 'acd87c5a50b56df91a795e999812a3a4',
   config: {
     // eslint-disable-next-line camelcase
-    api_host: 'https://analytics.speckle.systems'
+    api_host: 'https://analytics.speckle.systems',
+    // eslint-disable-next-line camelcase
+    opt_out_tracking_by_default: true
   }
 })
 

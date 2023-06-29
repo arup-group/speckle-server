@@ -38,7 +38,14 @@ module.exports = {
     description,
     adminContact,
     termsOfService,
-    inviteOnly
+    inviteOnly,
+    createDefaultGlobals,
+    defaultGlobals,
+    loggedInUsersOnly,
+    enableGlobalReviewerAccess,
+    showJobNumberInput,
+    requireJobNumberToCreateStreams,
+    requireJobNumberToCreateCommits
   }) {
     const serverInfo = await Info().select('*').first()
     if (!serverInfo)
@@ -49,6 +56,13 @@ module.exports = {
         adminContact,
         termsOfService,
         inviteOnly,
+        createDefaultGlobals,
+        defaultGlobals,
+        loggedInUsersOnly,
+        enableGlobalReviewerAccess,
+        showJobNumberInput,
+        requireJobNumberToCreateStreams,
+        requireJobNumberToCreateCommits,
         completed: true
       })
     else
@@ -59,6 +73,13 @@ module.exports = {
         adminContact,
         termsOfService,
         inviteOnly,
+        createDefaultGlobals,
+        defaultGlobals,
+        loggedInUsersOnly,
+        enableGlobalReviewerAccess,
+        showJobNumberInput,
+        requireJobNumberToCreateStreams,
+        requireJobNumberToCreateCommits,
         completed: true
       })
   }

@@ -21,6 +21,10 @@ module.exports = async () => {
   await registerOrUpdateApp({ ...SpeckleDesktopApp })
   await registerOrUpdateApp({ ...SpeckleConnectorApp })
   await registerOrUpdateApp({ ...SpeckleExcel })
+  await registerOrUpdateApp({ ...SpeckleCarbonCalculator })
+  await registerOrUpdateApp({ ...SpeckleProjectSetupApp })
+  await registerOrUpdateApp({ ...SpeckleFuseApp })
+  await registerOrUpdateApp({ ...SpeckleSDPApp })
   await registerOrUpdateApp({ ...SpecklePowerBi })
   await registerOrUpdateApp({ ...SpeckleAutomate })
 }
@@ -180,6 +184,56 @@ const SpeckleExcel = {
     ScopesConst.Users.Read,
     ScopesConst.Users.Invite
   ]
+}
+
+const SpeckleCarbonCalculator = {
+  id: 'carbon',
+  secret: 'carbon',
+  name: 'Speckle Carbon',
+  description: 'Carbon Calculator.',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://act.speckle.arup.com',
+  scopes: 'all'
+}
+
+const SpeckleProjectSetupApp = {
+  id: 'projects',
+  secret: 'projects',
+  name: 'Project Setup App',
+  description: 'An app to manage streams across a project!',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://projects.speckle.arup.com',
+  scopes: 'all'
+}
+
+const SpeckleFuseApp = {
+  id: 'fuse',
+  secret: 'fuse',
+  name: 'Fuse-Speckle-Connector',
+  description: 'Fuse auth with Speckle production',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://arup-fuse-ie-speckle-app.azurewebsites.net/login',
+  scopes: [
+    'streams:read',
+    'streams:write',
+    'profile:read',
+    'profile:email',
+    'users:read'
+  ]
+}
+
+const SpeckleSDPApp = {
+  id: 'sdp',
+  secret: 'sdp',
+  name: 'SDP Connector',
+  description: 'SDP auth with Speckle production',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: 'https://sdp.arup.com/manage-account',
+  scopes: 'all'
 }
 
 const SpecklePowerBi = {

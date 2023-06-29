@@ -595,7 +595,7 @@ module.exports = {
 // we cannot provide a full response back including all object hashes.
 function prepInsertionObject(streamId, obj) {
   // let memNow = process.memoryUsage().heapUsed / 1024 / 1024
-  const MAX_OBJECT_SIZE = 10 * 1024 * 1024
+  const MAX_OBJECT_SIZE = 25 * 1024 * 1024
 
   if (obj.hash) obj.id = obj.hash
   else

@@ -16,12 +16,18 @@
       @submit.prevent="createStream"
     >
       <v-card-text>
+        <job-number-search
+          v-if="showJobNumberInput"
+          ref="input-field"
+          autofocus
+          :job-number-required="requireJobNumberToCreateStreams"
+          @jobObjectSelected="selectedJobNumber"
+        ></job-number-search>
         <v-text-field
           v-model="name"
           :disabled="isLoading"
           :rules="nameRules"
           validate-on-blur
-          autofocus
           label="Stream Name (optional)"
         />
         <v-textarea
@@ -113,11 +119,13 @@ import { userSearchQuery } from '@/graphql/user'
 import { AppLocalStorage } from '@/utils/localStorage'
 import StreamVisibilityToggle from '@/main/components/stream/editor/StreamVisibilityToggle.vue'
 import UserAvatar from '@/main/components/common/UserAvatar.vue'
+import JobNumberSearch from '@/main/components/common/JobNumberSearch.vue'
 
 export default {
   components: {
     UserAvatar,
-    StreamVisibilityToggle
+    StreamVisibilityToggle,
+    JobNumberSearch
   },
   props: {
     open: {
@@ -145,16 +153,51 @@ export default {
         this.users = [...data.userSearch.items]
       },
       debounce: 300
+    },
+    showJobNumberInput: {
+      query: gql`
+        query {
+          serverInfo {
+            showJobNumberInput
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.showJobNumberInput
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
     }
   },
   data() {
     return {
       name: null,
+      jobNumber: null,
       description: null,
       valid: false,
       search: null,
+      junkJobNumbers: ['00000000', '12345678', '12345600', '99999999'],
+      jobNumberRules: [
+        (v) =>
+          !v ||
+          this.junkJobNumbers.findIndex((e) => e === v) === -1 ||
+          `That doesn't look like a valid job number`,
+        (v) => (!v || /^\d+$/.test(v) ? true : 'Job number must contain numbers only'),
+        (v) => {
+          if (v && v.length !== 8) return 'Job number must be 8 characters'
+          return true
+        }
+      ],
       nameRules: [],
-      isPublic: true,
+      isPublic: false,
       isDiscoverable: false,
       collabs: [],
       isLoading: false,
@@ -164,6 +207,7 @@ export default {
   watch: {
     open() {
       this.name = null
+      this.jobNumber = null
       this.search = null
       this.users = null
       this.collabs = []
@@ -212,7 +256,8 @@ export default {
               isPublic: this.isPublic,
               isDiscoverable: this.isDiscoverable,
               description: this.description,
-              withContributors: collabIds
+              withContributors: collabIds,
+              jobNumber: this.jobNumber
             }
           }
         })
@@ -227,7 +272,19 @@ export default {
       } finally {
         this.isLoading = false
       }
+    },
+    selectedJobNumber(event) {
+      if (event) {
+        this.jobNumber = event.JobCode
+      }
     }
   }
 }
 </script>
+
+<style lang="css">
+.required .v-label {
+  color: red;
+  opacity: 0.7;
+}
+</style>
