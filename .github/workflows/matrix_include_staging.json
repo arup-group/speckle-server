@@ -5,7 +5,15 @@
     "accessKey": "STAGING_AWS_ACCESS_KEY_ID",
     "secretAccessKey": "STAGING_AWS_SECRET_ACCESS_KEY",
     "url": "https://v2.staging-speckle.arup.com",
-    "disablePosthogTracking": "true"    
+    "disablePosthogTracking": "true"
+  },
+  {
+    "environment": "px-dev",
+    "region": "us-east-1",
+    "accessKey": "PX_AWS_ACCESS_KEY_ID",
+    "secretAccessKey": "PX_AWS_SECRET_ACCESS_KEY",
+    "url": "",
+    "disablePosthogTracking": "true"
   },
   {
     "package": "server",
