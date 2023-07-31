@@ -45,15 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package:
-          [
-            'server',
-            'frontend',
-            'preview-service',
-            'webhook-service',
-            'fileimport-service'
-          ]
-          include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
+        package: ['server','frontend', 'preview-service','webhook-service', 'fileimport-service']
+        include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
