@@ -4,7 +4,8 @@
     "region": "eu-west-1",
     "accessKey": "STAGING_AWS_ACCESS_KEY_ID",
     "secretAccessKey": "STAGING_AWS_SECRET_ACCESS_KEY",
-    "url": "https://v2.staging-speckle.arup.com"
+    "url": "https://v2.staging-speckle.arup.com",
+    "disablePosthogTracking": "true"    
   },
   {
     "package": "server",
