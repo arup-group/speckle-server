@@ -12,38 +12,6 @@ on:
       - main
 
 jobs:
-  buildDockerImage:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package:
-          [
-            'server',
-            'frontend',
-            'preview-service',
-            'webhook-service',
-            'fileimport-service'
-          ]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Build Docker Image
-        run: |
-          DOCKER_BUILDKIT=1 docker build --secret id=posthog_api_key,env=POSTHOG_API_KEY --build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
-          docker save ${{ matrix.package }}:latest -o ${{ matrix.package }}.tar
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-        env:
-          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
-
-      - name: Upload Build Assets
-        uses: actions/upload-artifact@v2
-        with:
-          name: ${{ matrix.package }}
-          path: ${{ matrix.package }}.tar
-          mime-type: application/octet-stream
-
   matrix_prep:
     name: Generate matrix
     runs-on: ubuntu-latest
@@ -70,6 +38,40 @@ jobs:
             cat .github/workflows/matrix_include.json >> $GITHUB_OUTPUT
             echo 'EOF' >> $GITHUB_OUTPUT             
           fi
+
+  buildDockerImage:
+    needs: [matrix_prep]
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            'server',
+            'frontend',
+            'preview-service',
+            'webhook-service',
+            'fileimport-service'
+          ]
+          include: ${{ fromJSON(needs.matrix_prep.outputs.include) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build Docker Image
+        run: |
+          DOCKER_BUILDKIT=1 docker build --secret id=posthog_api_key,env=POSTHOG_API_KEY -build-arg DISABLE_POSTHOG_TRACKING=${{ matrix.disablePosthogTracking }} -build-arg SPECKLE_SERVER_VERSION=v${GITHUB_SHA::7} -t ${{ matrix.package }}:latest -f packages/${{ matrix.package }}/Dockerfile .
+          docker save ${{ matrix.package }}:latest -o ${{ matrix.package }}.tar
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+        env:
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+
+      - name: Upload Build Assets
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.package }}
+          path: ${{ matrix.package }}.tar
+          mime-type: application/octet-stream
 
   deploy:
     needs: [buildDockerImage, matrix_prep]

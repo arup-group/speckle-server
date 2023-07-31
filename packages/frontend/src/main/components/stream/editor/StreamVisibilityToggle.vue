@@ -1,31 +1,14 @@
 <template>
   <div class="d-flex flex-column">
-    <v-switch
-      v-model="isPublicModel"
-      inset
-      :label="isPublicModel ? 'Link Sharing On' : 'Link Sharing Off'"
-      :hint="
-        isPublicModel
-          ? 'Anyone with the link can view this stream. It is also visible on your profile page. Only collaborators can push data to it.'
-          : 'Only collaborators can access this stream.'
-      "
-      persistent-hint
-      :disabled="disabled"
-      class="visibility-toggle"
-    />
-    <v-switch
-      v-model="isDiscoverableModel"
-      inset
-      :label="isDiscoverableModel ? 'Discoverable' : 'Not Discoverable'"
-      :hint="
-        isDiscoverableModel
-          ? 'This stream can be found on public stream discovery pages'
-          : 'This stream is not shown on any public stream discovery pages'
-      "
-      persistent-hint
-      :disabled="disabled || !isPublicModel"
-      class="visibility-toggle"
-    />
+    <v-switch v-model="isPublicModel" inset :label="isPublicModel ? 'Link Sharing On' : 'Link Sharing Off'" :hint="isPublicModel
+      ? 'Anyone with the link can view this stream. It is also visible on your profile page. Only collaborators can push data to it.'
+      : 'Only collaborators can access this stream.'
+      " persistent-hint :disabled="disabled" class="visibility-toggle" />
+    <v-switch v-model="isDiscoverableModel" inset :label="isDiscoverableModel ? 'Discoverable' : 'Not Discoverable'"
+      :hint="isDiscoverableModel
+        ? 'This stream can be found on public stream discovery pages'
+        : 'This stream is not shown on any public stream discovery pages'
+        " persistent-hint :disabled="disabled || !isPublicModel" class="visibility-toggle" />
   </div>
 </template>
 <script lang="ts">
@@ -35,15 +18,11 @@ export default Vue.extend({
   props: {
     isPublic: {
       type: Boolean,
-      required: true
+      required: false
     },
     isDiscoverable: {
       type: Boolean,
-      required: true
-    },
-    disabled: {
-      type: Boolean,
-      default: false
+      required: false
     }
   },
   setup(props, { emit }) {
@@ -69,6 +48,11 @@ export default Vue.extend({
     })
 
     return { isPublicModel, isDiscoverableModel }
+  },
+  data() {
+    return {
+      disabled: true
+    }
   }
 })
 </script>

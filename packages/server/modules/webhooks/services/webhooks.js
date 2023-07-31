@@ -114,7 +114,11 @@ module.exports = {
         delete eventPayload.user.passwordDigest
       }
       // Capture the user email in posthog to look up ADS data
-      capture(event, eventPayload)
+      if (
+        process.env.DISABLE_POSTHOG_TRACKING !== 'true' &&
+        process.env.POSTHOG_API_KEY
+      )
+        capture(event, eventPayload)
       if (eventPayload.user) {
         delete eventPayload.user.email
       }

@@ -24,6 +24,11 @@ Vue.use(VTooltip, {
   defaultHtml: false
 })
 
+import posthogPlugin from '@/plugins/posthog'
+if (import.meta.env.VITE_DISABLE_POSTHOG_TRACKING === 'false') {
+  Vue.use(posthogPlugin)
+}
+
 // In highly restrictive sandboxed environments mixpanel init might fail due to document.cookie access
 Vue.use(VueMixpanel, {
   token: 'acd87c5a50b56df91a795e999812a3a4',

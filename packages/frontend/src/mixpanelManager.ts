@@ -52,7 +52,7 @@ export function getMixpanelServerId(): string {
  */
 export function getMixpanel(): OverridedMixpanel {
   if (!mixpanelInitialized) {
-    throw new Error('Attempting to use uninitialized mixpanel instance')
+    // throw new Error('Attempting to use uninitialized mixpanel instance')
   }
 
   return mixpanel
@@ -73,6 +73,8 @@ export function initialize(params: {
     server_id: getMixpanelServerId(),
     hostApp
   })
+
+  mp.disable()
 
   // Identify user, if any
   const userId = getMixpanelUserId()

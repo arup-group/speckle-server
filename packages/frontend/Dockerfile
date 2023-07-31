@@ -1,6 +1,7 @@
 # NOTE: Docker context should be set to git root directory, to include the viewer
 ARG NODE_ENV=production
 ARG SPECKLE_SERVER_VERSION=custom
+ARG DISABLE_POSTHOG_TRACKING=true
 # build stage
 FROM node:18.16.0-bullseye-slim as build-stage
 ARG NODE_ENV
@@ -30,6 +31,7 @@ COPY packages/shared ./packages/shared/
 
 # This way the foreach only builds the frontend and its deps
 RUN --mount=type=secret,id=posthog_api_key \
+    -e VITE_DISABLE_POSTHOG_TRACKING=${DISABLE_POSTHOG_TRACKING} \
     export VITE_POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key) && \
     yarn workspaces foreach run build
 
