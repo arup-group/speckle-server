@@ -1,34 +1,37 @@
 import { CSSProperties, Ref } from 'vue'
 import { Nullable, SpeckleViewer } from '@speckle/shared'
 import {
-  InitialStateWithUrlHashState,
   LoadedCommentThread,
   useInjectedViewerInterfaceState,
   useInjectedViewerState,
   useResetUiState
 } from '~~/lib/viewer/composables/setup'
 import { graphql } from '~~/lib/common/generated/gql'
-import { reduce, difference, debounce } from 'lodash-es'
+import { debounce } from 'lodash-es'
 import { Vector3 } from 'three'
 import {
   useOnViewerLoadComplete,
   useSelectionEvents,
   useViewerCameraTracker
 } from '~~/lib/viewer/composables/viewer'
-import { useViewerAnchoredPoints } from '~~/lib/viewer/composables/anchorPoints'
+import {
+  useGetScreenCenterObjectId,
+  useViewerAnchoredPoints
+} from '~~/lib/viewer/composables/anchorPoints'
 import {
   HorizontalDirection,
   useOnBeforeWindowUnload,
   useResponsiveHorizontalDirectionCalculation
 } from '~~/lib/common/composables/window'
 import { useViewerUserActivityBroadcasting } from '~~/lib/viewer/composables/activity'
-import { until, useIntervalFn } from '@vueuse/core'
+import { useIntervalFn } from '@vueuse/core'
 import {
   StateApplyMode,
   useApplySerializedState,
   useStateSerialization
 } from '~~/lib/viewer/composables/serialization'
 import { Merge } from 'type-fest'
+import { useSelectionUtilities } from '~~/lib/viewer/composables/ui'
 
 graphql(`
   fragment ViewerCommentBubblesData on Comment {
@@ -55,8 +58,13 @@ export function useViewerNewThreadBubble(params: {
   const {
     threads: {
       openThread: { newThreadEditor }
-    }
+    },
+    camera: { target },
+    selection
   } = useInjectedViewerInterfaceState()
+  const getCamCenterObjId = useGetScreenCenterObjectId()
+  const { setSelectionFromObjectIds } = useSelectionUtilities()
+  const logger = useLogger()
 
   const buttonState = ref({
     isExpanded: false,
@@ -117,6 +125,36 @@ export function useViewerNewThreadBubble(params: {
     }
   )
 
+  watch(newThreadEditor, (isNewThread, oldIsNewThread) => {
+    if (isNewThread && !!isNewThread !== !!oldIsNewThread) {
+      if (!buttonState.value.clickLocation && !target.value && !selection.value) {
+        logger.warn('Unable to enable new thread editor due to missing position data')
+        newThreadEditor.value = false
+        return
+      }
+
+      // Set "new thread bubble" location & enable it
+      if (!buttonState.value.clickLocation) {
+        if (target.value) {
+          buttonState.value.clickLocation = target.value.clone()
+        } else if (selection.value) {
+          buttonState.value.clickLocation = selection.value.clone()
+        }
+      }
+
+      buttonState.value.isExpanded = true
+      buttonState.value.isVisible = true
+      updatePositions()
+
+      // Also invoke selection, if needed
+      if (selection.value) return
+
+      const oid = getCamCenterObjId()
+      if (!oid) return
+      setSelectionFromObjectIds([oid])
+    }
+  })
+
   return { buttonState, closeNewThread }
 }
 
@@ -124,7 +162,6 @@ export type CommentBubbleModel = Merge<
   LoadedCommentThread,
   { viewerState: Nullable<SpeckleViewer.ViewerState.SerializedViewerState> }
 > & {
-  isExpanded: boolean
   isOccluded: boolean
   style: Partial<CSSProperties> & { x?: number; y?: number }
 }
@@ -144,10 +181,18 @@ export function useViewerCommentBubblesProjection(params: {
     points: computed(() => Object.values(commentThreads.value)),
     pointLocationGetter: (t) => {
       const state = t.viewerState
-      if (!state?.ui.selection) return undefined
 
-      const selection = state.ui.selection
-      return new Vector3(selection[0], selection[1], selection[2])
+      const selection = state?.ui.selection
+      if (selection?.length) {
+        return new Vector3(selection[0], selection[1], selection[2])
+      }
+
+      const target = state?.ui.camera.target
+      if (target?.length) {
+        return new Vector3(target[0], target[1], target[2])
+      }
+
+      return undefined
     },
     updatePositionCallback: (thread, result) => {
       thread.isOccluded = result.isOccluded
@@ -159,127 +204,6 @@ export function useViewerCommentBubblesProjection(params: {
       }
     }
   })
-}
-
-export function useViewerCommentBubbles(
-  options?: Partial<{
-    state: InitialStateWithUrlHashState
-  }>
-) {
-  const {
-    resources: {
-      response: { commentThreads: commentThreadsBase }
-    },
-    urlHashState: { focusedThreadId }
-  } = options?.state || useInjectedViewerState()
-
-  const commentThreads = ref({} as Record<string, CommentBubbleModel>)
-  const openThread = computed(() =>
-    Object.values(commentThreads.value).find((t) => t.isExpanded)
-  )
-
-  useSelectionEvents(
-    {
-      singleClickCallback: (eventInfo) => {
-        if ((eventInfo && eventInfo?.hits.length === 0) || !eventInfo) {
-          // Close open thread
-          // Object.values(commentThreads.value).forEach((t) => (t.isExpanded = false))
-        }
-      }
-    },
-    { state: options?.state }
-  )
-
-  const closeAllThreads = async () => {
-    await focusedThreadId.update(null)
-  }
-
-  const open = async (id: string) => {
-    if (id === focusedThreadId.value) return
-    await focusedThreadId.update(id)
-    await Promise.all([
-      until(focusedThreadId).toBe(id),
-      until(openThread).toMatch((t) => t?.id === id)
-    ])
-  }
-
-  // Shallow watcher, only for mapping `commentThreadsBase` -> `commentThreads`
-  watch(
-    commentThreadsBase,
-    (newCommentThreads) => {
-      const newModels = reduce(
-        newCommentThreads,
-        (results, item) => {
-          const id = item.id
-          results[id] = {
-            ...(commentThreads.value[id]
-              ? commentThreads.value[id]
-              : {
-                  isExpanded: false,
-                  isOccluded: false,
-                  style: {}
-                }),
-            ...item,
-            isExpanded: !!(focusedThreadId.value && id === focusedThreadId.value),
-            viewerState: SpeckleViewer.ViewerState.isSerializedViewerState(
-              item.viewerState
-            )
-              ? item.viewerState
-              : null
-          }
-          return results
-        },
-        {} as Record<string, CommentBubbleModel>
-      )
-      commentThreads.value = newModels
-    },
-    { immediate: true }
-  )
-
-  // Making sure there's only ever 1 expanded thread & focusedThreadId is linked to these values
-  watch(
-    () =>
-      Object.values(commentThreads.value)
-        .filter((t) => t.isExpanded)
-        .map((t) => t.id),
-    async (newExpandedThreadIds, oldExpandedThreadIds) => {
-      const completelyNewIds = difference(
-        newExpandedThreadIds,
-        oldExpandedThreadIds || []
-      )
-      const finalOpenThreadId =
-        (completelyNewIds.length ? completelyNewIds[0] : newExpandedThreadIds[0]) ||
-        null
-
-      for (const commentThread of Object.values(commentThreads.value)) {
-        const shouldBeExpanded = commentThread.id === finalOpenThreadId
-        if (commentThread.isExpanded !== shouldBeExpanded) {
-          commentThreads.value[commentThread.id].isExpanded = shouldBeExpanded
-        }
-      }
-
-      if (focusedThreadId.value !== finalOpenThreadId) {
-        await focusedThreadId.update(finalOpenThreadId)
-      }
-    },
-    { deep: true }
-  )
-
-  // Toggling isExpanded when threadIdToOpen changes
-  watch(focusedThreadId, (id) => {
-    if (id) {
-      if (commentThreads.value[id]) commentThreads.value[id].isExpanded = true
-    } else {
-      Object.values(commentThreads.value).forEach((t) => (t.isExpanded = false))
-    }
-  })
-
-  return {
-    commentThreads,
-    openThread,
-    closeAllThreads,
-    open
-  }
 }
 
 export function useViewerOpenedThreadUpdateEmitter() {
@@ -356,7 +280,7 @@ export function useViewerThreadTracking() {
       if (newState && SpeckleViewer.ViewerState.isSerializedViewerState(newState)) {
         await refocus(newState)
       } else {
-        await resetState()
+        resetState()
       }
     }
   })

@@ -58,7 +58,10 @@ export const mockProjectPageQuery = apolloMockRequestWithDefaults<
           team: fakeUsers.map((u) => ({
             __typename: 'ProjectCollaborator',
             role: Roles.Stream.Contributor,
-            user: u
+            user: {
+              ...u,
+              role: Roles.Server.User
+            }
           })),
           invitedTeam: null
         },
@@ -111,7 +114,8 @@ export const mockProjectLatestModelsQuery = apolloMockRequestWithDefaults<
             previewUrl: randomPreviewUrl,
             createdAt: randomDate.toISOString(),
             updatedAt: randomDate.toISOString(),
-            pendingImportedVersions: []
+            pendingImportedVersions: [],
+            automationStatus: null
           }))
         },
         pendingImportedModels: []
@@ -180,7 +184,8 @@ export const mockProjectModelsTreeTopLevelQuery = apolloMockRequestWithDefaults<
                       previewUrl: randomPreviewUrl,
                       createdAt: randomDate.toISOString(),
                       updatedAt: randomDate.toISOString(),
-                      pendingImportedVersions: []
+                      pendingImportedVersions: [],
+                      automationStatus: null
                     }
                   : null
               }
@@ -230,7 +235,8 @@ export const mockProjectModelChildrenTreeQuery = apolloMockRequestWithDefaults<
               pendingImportedVersions: [],
               previewUrl: randomPreviewUrl,
               createdAt: randomDate.toISOString(),
-              updatedAt: randomDate.toISOString()
+              updatedAt: randomDate.toISOString(),
+              automationStatus: null
             }
           }
         })

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { isUndefinedOrVoid, Optional } from '@speckle/shared'
 import {
@@ -6,12 +7,26 @@ import {
   DataProxy,
   ApolloCache,
   defaultDataIdFromObject,
-  TypedDocumentNode
+  TypedDocumentNode,
+  ServerError,
+  ServerParseError
 } from '@apollo/client/core'
 import { DocumentNode, GraphQLError } from 'graphql'
-import { flatten, isUndefined } from 'lodash-es'
-import { Modifier } from '@apollo/client/cache'
+import { flatten, isUndefined, has, isFunction, isString } from 'lodash-es'
+import { Modifier, Reference } from '@apollo/client/cache'
 import { PartialDeep } from 'type-fest'
+import { NetworkError } from '@apollo/client/errors'
+import { nanoid } from 'nanoid'
+import { StackTrace } from '~~/lib/common/helpers/debugging'
+
+export const isServerError = (err: Error): err is ServerError =>
+  has(err, 'response') && has(err, 'result') && has(err, 'statusCode')
+export const isServerParseError = (err: Error): err is ServerParseError =>
+  has(err, 'response') && has(err, 'bodyText') && has(err, 'statusCode')
+
+export const ROOT_QUERY = 'ROOT_QUERY'
+export const ROOT_MUTATION = 'ROOT_MUTATION'
+export const ROOT_SUBSCRIPTION = 'ROOT_SUBSCRIPTION'
 
 /**
  * Utility type for typing cached data in Apollo modify functions.
@@ -44,13 +59,38 @@ export function getCacheId(typeName: string, id: string) {
   return cachedId
 }
 
+export function isInvalidAuth(error: ApolloError | NetworkError) {
+  const networkError = error instanceof ApolloError ? error.networkError : error
+  if (
+    !networkError ||
+    (!isServerError(networkError) && !isServerParseError(networkError))
+  )
+    return false
+
+  const statusCode = networkError.statusCode
+  const hasCorrectCode = [403].includes(statusCode)
+  if (!hasCorrectCode) return false
+
+  const message: string | undefined = isServerError(networkError)
+    ? isString(networkError.result)
+      ? networkError.result
+      : networkError.result?.error
+    : networkError.bodyText
+
+  return (message || '').toLowerCase().includes('token')
+}
+
 /**
  * Convert an error thrown during $apollo.mutate() into a fetch result
  */
-export function convertThrowIntoFetchResult(err: unknown): FetchResult<undefined> {
+export function convertThrowIntoFetchResult(
+  err: unknown
+): FetchResult<undefined> & { apolloError?: ApolloError; isInvalidAuth: boolean } {
   let gqlErrors: readonly GraphQLError[]
+  let apolloError: Optional<ApolloError> = undefined
   if (err instanceof ApolloError) {
     gqlErrors = err.graphQLErrors
+    apolloError = err
   } else if (err instanceof Error) {
     gqlErrors = [new GraphQLError(err.message)]
   } else {
@@ -58,9 +98,13 @@ export function convertThrowIntoFetchResult(err: unknown): FetchResult<undefined
     gqlErrors = [new GraphQLError(`${err}`)]
   }
 
+  const hasAuthIssue = apolloError && isInvalidAuth(apolloError)
+
   return {
     data: undefined,
-    errors: gqlErrors
+    errors: gqlErrors,
+    apolloError,
+    isInvalidAuth: !!hasAuthIssue
   }
 }
 
@@ -109,6 +153,7 @@ export function updateCacheByFilter<TData, TVariables = unknown>(
 ): boolean {
   const { fragment, query } = filter
   const { ignoreCacheErrors = true, overwrite = true } = options
+  const logger = useLogger()
 
   if (!fragment && !query) {
     throw new Error(
@@ -155,7 +200,7 @@ export function updateCacheByFilter<TData, TVariables = unknown>(
     }
 
     if (ignoreCacheErrors) {
-      console.warn('Failed Apollo cache update:', e)
+      logger.warn('Failed Apollo cache update:', e)
       return false
     }
     throw e
@@ -205,7 +250,7 @@ export function getStoreFieldName(
  * Inside cache.modify calls you'll get these instead of full objects when reading fields that hold
  * identifiable objects or object arrays
  */
-export type CacheObjectReference = { __ref: string }
+export type CacheObjectReference = Reference
 
 /**
  * Objects & object arrays in `cache.modify` calls are represented through reference objects, so
@@ -214,6 +259,44 @@ export type CacheObjectReference = { __ref: string }
 export function getObjectReference(typeName: string, id: string): CacheObjectReference {
   return {
     __ref: getCacheId(typeName, id)
+  }
+}
+
+export function isReference(obj: unknown): obj is CacheObjectReference {
+  return has(obj, '__ref')
+}
+
+/**
+ * Resolve the field name and variables from an Apollo store field name which
+ * is usually a string like "fieldName:{"var1":"val1","var2":"val2"}"
+ * @param storeFieldName
+ * @param fieldName
+ */
+const revolveFieldNameAndVariables = <
+  V extends Optional<Record<string, unknown>> = undefined
+>(
+  storeFieldName: string,
+  fieldName?: string
+) => {
+  let variables: Optional<V> = undefined
+
+  if (!fieldName) {
+    fieldName = /^[a-zA-Z0-9_-]+(?=[:(])/.exec(storeFieldName)?.[0]
+  }
+  if (!fieldName?.length) return { fieldName: storeFieldName, variables }
+
+  const variablesStringbase = storeFieldName.substring(fieldName.length)
+  if (variablesStringbase.startsWith(':')) {
+    variables = JSON.parse(variablesStringbase.substring(1)) as V
+  } else if (variablesStringbase.startsWith('(')) {
+    variables = JSON.parse(
+      variablesStringbase.substring(1, variablesStringbase.length - 1)
+    ) as V
+  }
+
+  return {
+    fieldName,
+    variables
   }
 }
 
@@ -235,38 +318,62 @@ export function modifyObjectFields<
     value: ModifyFnCacheData<D>,
     details: Parameters<Modifier<ModifyFnCacheData<D>>>[1] & {
       ref: typeof getObjectReference
+      revolveFieldNameAndVariables: typeof revolveFieldNameAndVariables
     }
-  ) => Optional<ModifyFnCacheData<D>> | void
+  ) => Optional<ModifyFnCacheData<D>> | void,
+  options?: Partial<{
+    fieldNameWhitelist: string[]
+    debug: boolean
+  }>
 ) {
+  const { fieldNameWhitelist, debug = !!(process.dev && process.client) } =
+    options || {}
+
+  const logger = useLogger()
+  const invocationId = nanoid()
+  const log = (...args: Parameters<typeof logger.debug>) => {
+    if (!debug) return
+    const [message, ...rest] = args
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    logger.debug(`[${invocationId}] ${message}`, ...rest)
+  }
+
+  log(
+    'modifyObjectFields invoked',
+    {
+      id,
+      fieldNameWhitelist
+    },
+    new StackTrace()
+  )
   cache.modify({
     id,
     fields(fieldValue, details) {
       const { storeFieldName, fieldName } = details
 
-      let variables: Optional<V> = undefined
-      if (storeFieldName !== fieldName) {
-        const variablesStringbase = storeFieldName.substring(fieldName.length)
-        if (variablesStringbase.startsWith(':')) {
-          variables = JSON.parse(variablesStringbase.substring(1)) as V
-        } else if (variablesStringbase.startsWith('(')) {
-          variables = JSON.parse(
-            variablesStringbase.substring(1, variablesStringbase.length - 1)
-          ) as V
-        }
+      if (fieldNameWhitelist?.length && !fieldNameWhitelist.includes(fieldName)) {
+        return fieldValue as unknown
       }
 
+      const { variables } = revolveFieldNameAndVariables<V>(storeFieldName, fieldName)
+
+      log('invoking updater', { fieldName, variables, fieldValue })
       const res = updater(
         fieldName,
         variables as V,
         fieldValue as ModifyFnCacheData<D>,
         {
           ...details,
-          ref: getObjectReference
+          ref: getObjectReference,
+          revolveFieldNameAndVariables
         }
       )
+
       if (isUndefined(res)) {
         return fieldValue as unknown
       } else {
+        log('updater returned', { res })
         return res
       }
     }
@@ -284,15 +391,35 @@ export function evictObjectFields<
 >(
   cache: ApolloCache<unknown>,
   id: string,
-  predicate: (
-    fieldName: string,
-    variables: V,
-    value: ModifyFnCacheData<D>,
-    details: Parameters<Modifier<ModifyFnCacheData<D>>>[1]
-  ) => boolean
+  predicate:
+    | ((
+        fieldName: string,
+        variables: V,
+        value: ModifyFnCacheData<D>,
+        details: Parameters<Modifier<ModifyFnCacheData<D>>>[1] & {
+          revolveFieldNameAndVariables: typeof revolveFieldNameAndVariables
+        }
+      ) => boolean)
+    | string[]
 ) {
-  modifyObjectFields<V, D>(cache, id, (fieldName, variables, value, details) => {
-    if (!predicate(fieldName, variables, value, details)) return undefined
-    return details.DELETE as ModifyFnCacheData<D>
-  })
+  modifyObjectFields<V, D>(
+    cache,
+    id,
+    (fieldName, variables, value, details) => {
+      if (isFunction(predicate)) {
+        if (
+          !predicate(fieldName, variables, value, {
+            ...details,
+            revolveFieldNameAndVariables
+          })
+        )
+          return undefined
+      } else {
+        const predicateFields = predicate
+        if (!predicateFields.includes(fieldName)) return undefined
+      }
+      return details.DELETE as ModifyFnCacheData<D>
+    },
+    { debug: false }
+  )
 }

@@ -4,12 +4,13 @@ import { StoryObj, Meta } from '@storybook/vue3'
 import { wait } from '@speckle/shared'
 import { VuePlayFunction, mergeStories } from '~~/src/stories/helpers/storybook'
 import { XMarkIcon } from '@heroicons/vue/24/solid'
+import { rightClick } from '~~/src/helpers/testing'
 
 export default {
   component: FormButton,
   argTypes: {
     color: {
-      options: ['default', 'invert', 'danger', 'warning', 'secondary'],
+      options: ['default', 'invert', 'danger', 'warning', 'secondary', 'info'],
       control: { type: 'select' }
     },
     outlined: {
@@ -62,12 +63,16 @@ export default {
 } as Meta
 
 const clickPlayBuilder: (rightClick: boolean) => VuePlayFunction =
-  (rightClick) =>
+  (useRightClick) =>
   async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const button = canvas.getByRole('button')
 
-    userEvent.click(button, rightClick ? { button: 2 } : undefined)
+    if (useRightClick) {
+      rightClick(button)
+    } else {
+      userEvent.click(button)
+    }
 
     await wait(1000)
 
@@ -120,6 +125,42 @@ export const Rounded: StoryObj = mergeStories(Default, {
 export const WarningButton: StoryObj = mergeStories(Default, {
   args: {
     color: 'warning'
+  }
+})
+
+export const InfoButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'info'
+  }
+})
+
+export const DangerButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'danger'
+  }
+})
+
+export const SuccessButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'success'
+  }
+})
+
+export const SecondaryButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'secondary'
+  }
+})
+
+export const InvertButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'invert'
+  }
+})
+
+export const CardButton: StoryObj = mergeStories(Default, {
+  args: {
+    color: 'card'
   }
 })
 

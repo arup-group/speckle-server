@@ -10,7 +10,7 @@ import {
   getCommitStreams,
   StreamWithCommitId
 } from '@/modules/core/repositories/streams'
-import { getUsers } from '@/modules/core/repositories/users'
+import { UserWithOptionalRole, getUsers } from '@/modules/core/repositories/users'
 import { keyBy } from 'lodash'
 import { getInvites } from '@/modules/serverinvites/repositories'
 import { AuthContext } from '@/modules/shared/authz'
@@ -52,6 +52,7 @@ import { metaHelpers } from '@/modules/core/helpers/meta'
 import { Users } from '@/modules/core/dbSchema'
 import { getStreamPendingModels } from '@/modules/fileuploads/repositories/fileUploads'
 import { FileUploadRecord } from '@/modules/fileuploads/helpers/types'
+import { getAutomationFunctionRunResultVersions } from '@/modules/automations/repositories/automations'
 
 /**
  * TODO: Lazy load DataLoaders to reduce memory usage
@@ -346,10 +347,15 @@ export function buildRequestLoaders(
       /**
        * Get user from DB
        */
-      getUser: createLoader<string, Nullable<LimitedUserRecord>>(async (userIds) => {
-        const results = keyBy(await getUsers(userIds.slice()), 'id')
-        return userIds.map((i) => results[i] || null)
-      }),
+      getUser: createLoader<string, Nullable<UserWithOptionalRole<LimitedUserRecord>>>(
+        async (userIds) => {
+          const results = keyBy(
+            await getUsers(userIds.slice(), { withRole: true }),
+            'id'
+          )
+          return userIds.map((i) => results[i] || null)
+        }
+      ),
 
       /**
        * Get meta values associated with one or more users
@@ -386,6 +392,25 @@ export function buildRequestLoaders(
           const results = keyBy(await getInvites(inviteIds), 'id')
           return inviteIds.map((i) => results[i] || null)
         }
+      )
+    },
+    automationFunctionRuns: {
+      /**
+       * Get result versions/commits from function runs
+       */
+      getResultVersions: createLoader<
+        [automationRunId: string, functionId: string],
+        CommitRecord[],
+        string
+      >(
+        async (ids) => {
+          const results = await getAutomationFunctionRunResultVersions(ids.slice())
+          return ids.map((i) => {
+            const [automationRunId, functionId] = i
+            return results[automationRunId]?.[functionId] || []
+          })
+        },
+        { cacheKeyFn: (key) => `${key[0]}:${key[1]}` }
       )
     }
   }

@@ -1,14 +1,9 @@
 <!-- eslint-disable vuejs-accessibility/mouse-events-have-key-events -->
 <template>
   <div class="space-y-4 relative" @mouseleave="showActionsMenu = false">
-    <!--
-      Nested anchors are causing a hydration mismatch for some reason (template renders wrong in SSR), could be a Vue bug?
-      TODO: Report it to Vue/Nuxt!
-    -->
-    <NuxtLink
+    <div
       v-if="itemType !== StructureItemType.ModelWithOnlySubmodels"
-      class="group bg-foundation w-full py-1 pr-1 flex rounded-md shadow hover:shadow-xl cursor-pointer hover:bg-primary-muted transition-all border-l-2 border-primary-muted hover:border-primary items-stretch"
-      :to="modelLink || ''"
+      class="group bg-foundation w-full py-1 pr-1 flex rounded-md shadow hover:shadow-xl hover:bg-primary-muted transition-all border-l-2 border-primary-muted hover:border-primary items-stretch"
     >
       <div class="flex items-center flex-grow">
         <!-- Icon -->
@@ -25,9 +20,9 @@
 
         <!-- Name -->
         <div class="flex justify-start space-x-2 items-center">
-          <span class="text-lg font-bold text-foreground">
+          <NuxtLink :to="modelLink || ''" class="text-lg font-bold text-foreground">
             {{ name }}
-          </span>
+          </NuxtLink>
           <span v-if="model" class="opacity-0 group-hover:opacity-100 transition">
             <ProjectPageModelsActions
               v-model:open="showActionsMenu"
@@ -114,13 +109,15 @@
         v-if="!isPendingFileUpload(item) && item.model?.previewUrl && !pendingVersion"
         class="w-24 h-20 ml-4"
       >
-        <PreviewImage
-          v-if="item.model?.previewUrl"
-          :preview-url="item.model.previewUrl"
-        />
+        <NuxtLink :to="modelLink || ''" class="h-full w-full">
+          <PreviewImage
+            v-if="item.model?.previewUrl"
+            :preview-url="item.model.previewUrl"
+          />
+        </NuxtLink>
       </div>
       <div v-else class="h-20" />
-    </NuxtLink>
+    </div>
     <!-- Doubling up for mixed items -->
     <div
       v-if="hasSubmodels"
@@ -168,6 +165,7 @@
               :icon-right="ArrowTopRightOnSquareIcon"
               :to="viewAllUrl"
               :disabled="!viewAllUrl"
+              @click="trackFederateModels"
             >
               View All
             </FormButton>
@@ -232,6 +230,7 @@ import { useQuery } from '@vue/apollo-composable'
 import { projectModelChildrenTreeQuery } from '~~/lib/projects/graphql/queries'
 import { has } from 'lodash-es'
 import { Nullable } from '@speckle/shared'
+import { useMixpanel } from '~~/lib/core/composables/mp'
 
 /**
  * TODO: The template in this file is a complete mess, needs refactoring
@@ -279,6 +278,16 @@ const importArea = ref(
     triggerPicker: () => void
   }>
 )
+
+const mp = useMixpanel()
+const trackFederateModels = () =>
+  mp.track('Viewer Action', {
+    type: 'action',
+    name: 'federation',
+    action: 'view-all',
+    source: 'model grid item'
+  })
+
 const expanded = ref(false)
 const showActionsMenu = ref(false)
 

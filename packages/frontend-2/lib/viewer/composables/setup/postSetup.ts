@@ -4,7 +4,8 @@ import {
   PropertyInfo,
   StringPropertyInfo,
   SunLightConfiguration,
-  ViewerEvent
+  ViewerEvent,
+  VisualDiffMode
 } from '@speckle/viewer'
 import { useAuthCookie } from '~~/lib/auth/composables/auth'
 import {
@@ -30,6 +31,7 @@ import { useViewerCommentUpdateTracking } from '~~/lib/viewer/composables/commen
 import {
   getCacheId,
   getObjectReference,
+  isReference,
   ModifyFnCacheData,
   modifyObjectFields
 } from '~~/lib/common/helpers/graphql'
@@ -44,6 +46,10 @@ import { Vector3 } from 'three'
 import { areVectorsLooselyEqual } from '~~/lib/viewer/helpers/three'
 import { Nullable } from '@speckle/shared'
 import { useCameraUtilities } from '~~/lib/viewer/composables/ui'
+import { watchTriggerable } from '@vueuse/core'
+import { setupDebugMode } from '~~/lib/viewer/composables/setup/dev'
+import { Reference } from '@apollo/client'
+import { Modifier } from '@apollo/client/cache'
 
 function useViewerIsBusyEventHandler() {
   const state = useInjectedViewerState()
@@ -76,15 +82,26 @@ function useViewerObjectAutoLoading() {
     },
     resources: {
       response: { resourceItems }
-    }
+    },
+    urlHashState: { focusedThreadId }
   } = useInjectedViewerState()
 
-  const loadObject = (objectId: string, unload?: boolean) => {
+  const loadObject = (
+    objectId: string,
+    unload?: boolean,
+    options?: Partial<{ zoomToObject: boolean }>
+  ) => {
     const objectUrl = getObjectUrl(projectId.value, objectId)
     if (unload) {
       viewer.unloadObject(objectUrl)
     } else {
-      viewer.loadObjectAsync(objectUrl, authToken.value || undefined)
+      viewer.loadObjectAsync(
+        objectUrl,
+        authToken.value || undefined,
+        undefined,
+        undefined,
+        options?.zoomToObject
+      )
     }
   }
 
@@ -98,11 +115,16 @@ function useViewerObjectAutoLoading() {
       if (!newIsInitialized) return
 
       const [oldResources, oldIsInitialized] = oldData || [[], false]
+      const zoomToObject = !focusedThreadId.value // we want to zoom to the thread instead
 
       // Viewer initialized - load in all resources
       if (newIsInitialized && !oldIsInitialized) {
         const allObjectIds = getUniqueObjectIds(newResources)
-        await Promise.all(allObjectIds.map((i) => loadObject(i)))
+
+        await Promise.all(
+          allObjectIds.map((i) => loadObject(i, false, { zoomToObject }))
+        )
+
         return
       }
 
@@ -113,7 +135,9 @@ function useViewerObjectAutoLoading() {
       const addableObjectIds = difference(newObjectIds, oldObjectIds)
 
       await Promise.all(removableObjectIds.map((i) => loadObject(i, true)))
-      await Promise.all(addableObjectIds.map((i) => loadObject(i)))
+      await Promise.all(
+        addableObjectIds.map((i) => loadObject(i, false, { zoomToObject }))
+      )
     },
     { deep: true, immediate: true }
   )
@@ -189,7 +213,11 @@ function useViewerSubscriptionEventTracker() {
           cache.modify({
             id: getCacheId('Comment', parentId),
             fields: {
-              replies: (oldValue: ModifyFnCacheData<Comment['replies']>) => {
+              replies: ((
+                oldValue: ModifyFnCacheData<Comment['replies']> | Reference
+              ) => {
+                if (isReference(oldValue)) return oldValue
+
                 const newValue: typeof oldValue = {
                   totalCount: (oldValue?.totalCount || 0) + 1,
                   items: [
@@ -198,7 +226,7 @@ function useViewerSubscriptionEventTracker() {
                   ]
                 }
                 return newValue
-              }
+              }) as Modifier<ModifyFnCacheData<Comment['replies']> | Reference>
             }
           })
         } else {
@@ -292,8 +320,6 @@ function useViewerCameraIntegration() {
       cameraManuallyChanged = true
     }
 
-    // console.log('incomingCamera', viewerPos, viewerTarget)
-
     return cameraManuallyChanged
   }
 
@@ -301,11 +327,7 @@ function useViewerCameraIntegration() {
   // debouncing pos/target updates to avoid jitteriness + spotlight mode unnecessarily disabling
   useViewerCameraTracker(
     () => {
-      const cameraManuallyChanged = loadCameraDataFromViewer()
-      if (cameraManuallyChanged) {
-        // Stop following TODO: Doesn't work very well
-        // spotlightUserSessionId.value = null
-      }
+      loadCameraDataFromViewer()
     }
     // { debounceWait: 100 }
   )
@@ -369,7 +391,6 @@ function useViewerCameraIntegration() {
       if ((!newVal && !oldVal) || (oldVal && areVectorsLooselyEqual(newVal, oldVal))) {
         return
       }
-
       instance.setView({
         position: newVal,
         target: target.value
@@ -479,14 +500,14 @@ function useViewerFiltersIntegration() {
     { immediate: true, flush: 'sync' }
   )
 
-  const syncColorFilterToViewer = (
+  const syncColorFilterToViewer = async (
     filter: Nullable<PropertyInfo>,
     isApplied: boolean
   ) => {
     const targetFilter = filter || speckleTypeFilter.value
 
-    if (isApplied && targetFilter) instance.setColorFilter(targetFilter)
-    if (!isApplied) instance.removeColorFilter()
+    if (isApplied && targetFilter) await instance.setColorFilter(targetFilter)
+    if (!isApplied) await instance.removeColorFilter()
   }
 
   watch(
@@ -495,19 +516,19 @@ function useViewerFiltersIntegration() {
         filters.propertyFilter.filter.value,
         filters.propertyFilter.isApplied.value
       ],
-    (newVal) => {
+    async (newVal) => {
       const [filter, isApplied] = newVal
-      syncColorFilterToViewer(filter, isApplied)
+      await syncColorFilterToViewer(filter, isApplied)
     },
     { immediate: true, flush: 'sync' }
   )
 
   useOnViewerLoadComplete(
-    () => {
+    async () => {
       const targetFilter =
         filters.propertyFilter.filter.value || speckleTypeFilter.value
       const isApplied = filters.propertyFilter.isApplied.value
-      syncColorFilterToViewer(targetFilter, isApplied)
+      await syncColorFilterToViewer(targetFilter, isApplied)
     },
     { initialOnly: true }
   )
@@ -594,21 +615,107 @@ function useExplodeFactorIntegration() {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function useDebugViewerEvents() {
-  if (process.server) return
-  const {
-    viewer: { instance }
-  } = useInjectedViewerState()
+function useDiffingIntegration() {
+  const state = useInjectedViewerState()
+  const authCookie = useAuthCookie()
+  const getObjectUrl = useGetObjectUrl()
 
-  for (const [key, val] of Object.entries(ViewerEvent)) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    useViewerEventListener(val, (...args) => console.log(key, ...args))
-  }
+  const hasInitialLoadFired = ref(false)
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  window.VIEWER = instance
+  const { trigger: triggerDiffCommandWatch } = watchTriggerable(
+    () => <const>[state.ui.diff.oldVersion.value, state.ui.diff.newVersion.value],
+    async (newVal, oldVal) => {
+      if (!hasInitialLoadFired.value) return
+      const [oldVersion, newVersion] = newVal
+      const [oldOldVersion, oldNewVersion] = oldVal || [null, null]
+
+      const versionId = (version: typeof oldOldVersion) => version?.id || null
+      const commandId = (
+        oldVersion: typeof oldOldVersion,
+        newVersion: typeof oldOldVersion
+      ) => {
+        const oldId = versionId(oldVersion)
+        const newId = versionId(newVersion)
+        return oldId && newId ? `${oldId}->${newId}` : null
+      }
+
+      const newCommand = commandId(oldVersion, newVersion)
+      const oldCommand = commandId(oldOldVersion, oldNewVersion)
+
+      if ((newCommand && oldCommand === newCommand) || !!newCommand === !!oldCommand)
+        return
+
+      if (!newCommand || oldVal) {
+        await state.viewer.instance.undiff()
+        if (!newCommand) return
+      }
+
+      // values shouldn't be undefined cause commandId() generation succeeded
+      const oldObjUrl = getObjectUrl(
+        state.projectId.value,
+        oldVersion?.referencedObject as string
+      )
+      const newObjUrl = getObjectUrl(
+        state.projectId.value,
+        newVersion?.referencedObject as string
+      )
+
+      state.ui.diff.result.value = await state.viewer.instance.diff(
+        oldObjUrl,
+        newObjUrl,
+        state.ui.diff.mode.value,
+        authCookie.value
+      )
+    },
+    { immediate: true }
+  )
+
+  // const preventWatchers = 0
+  watch(state.ui.diff.result, (val) => {
+    if (!val) return
+    // reset visual diff time and mode on new diff result
+    // sometimes the watcher won't fire even when the values are updated, because they're updated to
+    // the same values that they were already. because of that we're manually & forcefully running
+    // the relevant watchers when diffResult changes
+    ignoreDiffModeUpdates(() => {
+      ignoreDiffTimeUpdates(() => {
+        state.ui.diff.time.value = 0.5
+        state.ui.diff.mode.value = VisualDiffMode.COLORED
+
+        // this watcher also updates diffTime, so no need to invoke that separately
+        triggerDiffModeWatch()
+      })
+    })
+  })
+
+  const { ignoreUpdates: ignoreDiffTimeUpdates } = watchTriggerable(
+    state.ui.diff.time,
+    (val) => {
+      if (!hasInitialLoadFired.value) return
+      if (!state.ui.diff.result.value) return
+
+      state.viewer.instance.setDiffTime(state.ui.diff.result.value, val)
+    }
+  )
+
+  const { trigger: triggerDiffModeWatch, ignoreUpdates: ignoreDiffModeUpdates } =
+    watchTriggerable(state.ui.diff.mode, (val) => {
+      if (!hasInitialLoadFired.value) return
+      if (!state.ui.diff.result.value) return
+
+      state.viewer.instance.setVisualDiffMode(state.ui.diff.result.value, val)
+      state.viewer.instance.setDiffTime(
+        state.ui.diff.result.value,
+        state.ui.diff.time.value
+      ) // hmm, why do i need to call diff time again? seems like a minor viewer bug
+    })
+
+  useOnViewerLoadComplete(({ isInitial }) => {
+    if (!isInitial) return
+    hasInitialLoadFired.value = true
+
+    triggerDiffCommandWatch()
+  })
 }
 
 export function useViewerPostSetup() {
@@ -624,7 +731,6 @@ export function useViewerPostSetup() {
   useViewerFiltersIntegration()
   useLightConfigIntegration()
   useExplodeFactorIntegration()
-
-  // test
-  // useDebugViewerEvents()
+  useDiffingIntegration()
+  setupDebugMode()
 }

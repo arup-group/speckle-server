@@ -19,7 +19,7 @@ import {
   updateStreamAndNotify,
   updateStreamRoleAndNotify
 } from '@/modules/core/services/streams/management'
-import { createOnboardingStream } from '@/modules/core/services/streams/onboarding'
+import { ensureOnboardingStream } from '@/modules/core/services/streams/onboarding'
 import { removeStreamCollaborator } from '@/modules/core/services/streams/streamAccessService'
 import { cancelStreamInvite } from '@/modules/serverinvites/services/inviteProcessingService'
 import {
@@ -30,7 +30,8 @@ import {
   createStreamInviteAndNotify,
   useStreamInviteAndNotify
 } from '@/modules/serverinvites/services/management'
-import { authorizeResolver, validateScopes, validateServerRole } from '@/modules/shared'
+import { authorizeResolver, validateScopes } from '@/modules/shared'
+import { throwForNotHavingServerRole } from '@/modules/shared/authz'
 import {
   filteredSubscribe,
   ProjectSubscriptions,
@@ -52,7 +53,7 @@ export = {
       await authorizeResolver(context.userId, args.id, Roles.Stream.Reviewer)
 
       if (!stream.isPublic) {
-        await validateServerRole(context, Roles.Server.User)
+        await throwForNotHavingServerRole(context, Roles.Server.Guest)
         validateScopes(context.scopes, Scopes.Streams.Read)
       }
 
@@ -68,7 +69,7 @@ export = {
       return await deleteStreamAndNotify(id, userId!)
     },
     async createForOnboarding(_parent, _args, { userId }) {
-      return await createOnboardingStream(userId!)
+      return await ensureOnboardingStream(userId!)
     },
     async update(_parent, { update }, { userId }) {
       await authorizeResolver(userId, update.id, Roles.Stream.Owner)

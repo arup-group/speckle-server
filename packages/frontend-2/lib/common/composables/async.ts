@@ -1,30 +1,29 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { MaybeAsync } from '@speckle/shared'
-import { AsyncComputedOptions, computedAsync } from '@vueuse/core'
+import {
+  AsyncWritableComputedOptions,
+  AsyncWritableComputedRef,
+  writableAsyncComputed as originalWritableAsyncComputed
+} from '@speckle/ui-components'
 
-export interface AsyncWritableComputedOptions<T> {
-  get: (...args: any[]) => MaybeAsync<T>
-  set: (value: T) => MaybeAsync<void>
-  initialState: T
-  readOptions?: AsyncComputedOptions
-}
-
-export type AsyncWritableComputedRef<T> = ComputedRef<T> & {
-  update: AsyncWritableComputedOptions<T>['set']
-}
+export type { AsyncWritableComputedOptions, AsyncWritableComputedRef }
 
 /**
  * Allows async read/write from/to computed. Use `res.value` to read and `res.update` to write. If you only need
- * the computed to be read-only then use vueuse's `computedAsync`.
+ * the computed to be read-only then use vueuse's `computedAsync`. If you only need async writes you can
+ * disable async reads through the `asyncRead` param.
  * @param params
  */
-export function writableAsyncComputed<T>(
-  params: AsyncWritableComputedOptions<T>
-): AsyncWritableComputedRef<T> {
-  const readValue = computedAsync(params.get, params.initialState, params.readOptions)
-
-  const getter = computed(() => readValue.value) as AsyncWritableComputedRef<T>
-  getter.update = params.set
-
-  return getter
+export const writableAsyncComputed: typeof originalWritableAsyncComputed = (params) => {
+  const logger = useLogger()
+  return originalWritableAsyncComputed({
+    ...params,
+    debugging: params.debugging?.log
+      ? {
+          ...params.debugging,
+          log: {
+            ...params.debugging.log,
+            logger: logger.debug
+          }
+        }
+      : undefined
+  })
 }

@@ -2,17 +2,17 @@
   <div class="relative">
     <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events -->
     <div
-      :class="`group rounded-md border-l-4 transition hover:shadow-md ${
+      :class="`rounded-md border-l-4 transition  ${
         showVersions
-          ? 'border-primary max-h-96'
+          ? 'border-primary max-h-96 shadow-md'
           : 'hover:border-primary border-transparent'
-      } cursor-pointer`"
+      }`"
     >
       <!-- eslint-disable-next-line vuejs-accessibility/click-events-have-key-events -->
       <div
         :class="`${
-          showVersions ? 'bg-primary-muted' : 'bg-foundation'
-        } hover:bg-primary-muted sticky top-0 z-20 flex h-20 min-w-0 max-w-full items-center justify-between space-x-2 p-2 transition`"
+          showVersions ? 'bg-primary' : 'bg-foundation hover:bg-primary-muted'
+        } group sticky cursor-pointer top-0 z-20 flex h-20 min-w-0 max-w-full items-center justify-between space-x-2 p-2 transition select-none`"
         @click="showVersions = !showVersions"
       >
         <div>
@@ -21,12 +21,19 @@
         <div class="flex min-w-0 flex-grow flex-col space-y-0">
           <div
             v-tippy="modelName.subheader ? model.name : null"
-            class="font-bold truncate min-w-0"
+            :class="`${
+              showVersions ? 'text-foundation' : ''
+            } font-bold truncate min-w-0`"
           >
             {{ modelName.header }}
           </div>
-          <div class="text-foreground-2 truncate text-xs">
-            <span v-tippy="createdAt" class="text-xs font-semibold">
+          <div class="truncate text-xs">
+            <span
+              v-tippy="createdAt"
+              :class="`${
+                showVersions ? 'text-foundation font-semibold' : ''
+              } text-xs opacity-70`"
+            >
               {{ isLatest ? 'latest version' : timeAgoCreatedAt }}
             </span>
           </div>
@@ -40,11 +47,17 @@
         </div>
         <div
           v-else
-          class="flex flex-none items-center space-x-2 text-xs font-bold opacity-0 transition-opacity group-hover:opacity-100"
+          :class="`${
+            showVersions ? 'text-white' : ''
+          } flex flex-none items-center space-x-2 text-xs font-bold opacity-80 transition-opacity group-hover:opacity-100`"
         >
           <ChevronUpIcon class="h-4 w-4" />
         </div>
       </div>
+      <ViewerResourcesActiveVersionCard
+        v-if="loadedVersion && showVersions"
+        :version="loadedVersion"
+      />
     </div>
     <Transition>
       <div
@@ -74,7 +87,9 @@
         :is-loaded-version="version.id === loadedVersion?.id"
         :last="index === props.model.versions.totalCount - 1"
         :last-loaded="index === props.model.versions.items.length - 1"
+        :clickable="version.id !== loadedVersion?.id"
         @change-version="handleVersionChange"
+        @view-changes="handleViewChanges"
       />
       <div class="mt-4 px-2 py-2">
         <FormButton
@@ -92,21 +107,22 @@
 </template>
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import localizedFormat from 'dayjs/plugin/localizedFormat'
 import { graphql } from '~~/lib/common/generated/gql'
 import {
   XMarkIcon,
   ArrowPathRoundedSquareIcon,
   ChevronUpIcon
 } from '@heroicons/vue/24/solid'
-import { ViewerLoadedResourcesQuery } from '~~/lib/common/generated/gql/graphql'
+import {
+  ViewerLoadedResourcesQuery,
+  ViewerModelVersionCardItemFragment
+} from '~~/lib/common/generated/gql/graphql'
 import { Get } from 'type-fest'
 import {
   useInjectedViewerLoadedResources,
   useInjectedViewerRequestedResources
 } from '~~/lib/viewer/composables/setup'
-
-dayjs.extend(localizedFormat)
+import { useDiffUtilities } from '~~/lib/viewer/composables/ui'
 
 type ModelItem = NonNullable<Get<ViewerLoadedResourcesQuery, 'project.models.items[0]'>>
 
@@ -122,6 +138,7 @@ const props = defineProps<{
 
 const { switchModelToVersion } = useInjectedViewerRequestedResources()
 const { loadMoreVersions } = useInjectedViewerLoadedResources()
+const { diffModelVersions } = useDiffUtilities()
 
 const showVersions = ref(false)
 
@@ -195,5 +212,10 @@ async function handleVersionChange(versionId: string) {
 
 const onLoadMore = async () => {
   await loadMoreVersions(props.model.id)
+}
+
+async function handleViewChanges(version: ViewerModelVersionCardItemFragment) {
+  if (!loadedVersion.value?.id) return
+  await diffModelVersions(modelId.value, loadedVersion.value.id, version.id)
 }
 </script>

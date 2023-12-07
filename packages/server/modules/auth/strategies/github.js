@@ -30,6 +30,9 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: new URL(strategy.callbackUrl, process.env.CANONICAL_URL).toString(),
+      // WARNING, the 'user:email' scope belongs to the GITHUB scopes
+      // DO NOT change it to our internal scope definitions !!!
+      // You have been warned.
       scope: ['profile', 'user:email'],
       passReqToCallback: true
     },
@@ -81,7 +84,13 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
         const validInvite = await validateServerInvite(user.email, req.session.token)
 
         // create the user
-        const myUser = await findOrCreateUser({ user, rawProfile: profile._raw })
+        const myUser = await findOrCreateUser({
+          user: {
+            ...user,
+            role: validInvite?.serverRole
+          },
+          rawProfile: profile._raw
+        })
 
         // use the invite
         await finalizeInvitedServerRegistration(user.email, myUser.id)

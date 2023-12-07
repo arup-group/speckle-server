@@ -15,9 +15,9 @@ import {
   GeometryType,
   HideAllBatchUpdateRange
 } from './Batch'
-import Logger from 'js-logger'
 import { GeometryConverter } from '../converter/GeometryConverter'
 import { ObjectLayers } from '../SpeckleRenderer'
+import Logger from 'js-logger'
 
 export default class PointBatch implements Batch {
   public id: string
@@ -37,6 +37,7 @@ export default class PointBatch implements Batch {
     this.subtreeId = subtreeId
     this.renderViews = renderViews
   }
+
   updateBatchObjects() {
     // TO DO
   }
@@ -109,7 +110,7 @@ export default class PointBatch implements Batch {
     for (let k = 0; k < sortedRanges.length; k++) {
       const collidingGroup = this.getDrawRangeCollision(sortedRanges[k])
       if (collidingGroup) {
-        Logger.warn(`Draw range collision @ ${this.id} overwritting...`)
+        // Logger.warn(`Draw range collision @ ${this.id} overwritting...`)
         collidingGroup.materialIndex = this.mesh.material.indexOf(
           sortedRanges[k].material
         )
@@ -124,6 +125,40 @@ export default class PointBatch implements Batch {
         this.mesh.material.indexOf(newGroups[i].material)
       )
     }
+  }
+
+  insertDrawRanges(...ranges: BatchUpdateRange[]) {
+    const materials = ranges.map((val) => val.material)
+    const uniqueMaterials = [...Array.from(new Set(materials.map((value) => value)))]
+    if (!Array.isArray(this.mesh.material)) {
+      this.mesh.material = [this.mesh.material]
+    }
+    for (let k = 0; k < uniqueMaterials.length; k++) {
+      if (!this.mesh.material.includes(uniqueMaterials[k]))
+        this.mesh.material.push(uniqueMaterials[k])
+    }
+
+    const sortedRanges = ranges.sort((a, b) => {
+      return a.offset - b.offset
+    })
+
+    for (let i = 0; i < sortedRanges.length; i++) {
+      const group = {
+        start: sortedRanges[i].offset,
+        count: sortedRanges[i].count,
+        materialIndex: this.mesh.material.indexOf(sortedRanges[i].material),
+        id: sortedRanges[i].id
+      }
+      this.geometry.groups.push(group)
+    }
+
+    this.flattenGroups()
+  }
+
+  removeDrawRanges(id: string) {
+    this.geometry.groups = this.geometry.groups.filter((value) => {
+      return !(value['id'] && value['id'] === id)
+    })
   }
 
   private getDrawRangeCollision(range: BatchUpdateRange): {
@@ -210,6 +245,10 @@ export default class PointBatch implements Batch {
       console.error(`DrawRange autocomplete failed! ${count}vs${this.getCount()}`)
     }
 
+    this.flattenGroups()
+  }
+
+  private flattenGroups() {
     /** We're flattening sequential groups to avoid redundant draw calls.
      *  ! Not thoroughly tested !
      */
@@ -266,9 +305,10 @@ export default class PointBatch implements Batch {
   }
 
   public resetDrawRanges() {
-    this.mesh.material = this.batchMaterial
+    this.mesh.material = [this.batchMaterial]
     this.mesh.visible = true
     this.geometry.clearGroups()
+    this.geometry.addGroup(0, this.getCount(), 0)
     this.geometry.setDrawRange(0, Infinity)
   }
 
@@ -297,6 +337,8 @@ export default class PointBatch implements Batch {
     }
     this.makePointGeometry(position, color)
     this.mesh = new Points(this.geometry, this.batchMaterial)
+    this.mesh.material = [this.batchMaterial]
+    this.mesh.geometry.addGroup(0, this.getCount(), 0)
     this.mesh.uuid = this.id
     this.mesh.layers.set(ObjectLayers.STREAM_CONTENT_POINT)
   }
@@ -308,6 +350,32 @@ export default class PointBatch implements Batch {
         index < this.renderViews[k].batchEnd
       ) {
         return this.renderViews[k]
+      }
+    }
+  }
+
+  public getMaterialAtIndex(index: number): Material {
+    for (let k = 0; k < this.renderViews.length; k++) {
+      if (
+        index >= this.renderViews[k].batchStart &&
+        index < this.renderViews[k].batchEnd
+      ) {
+        const rv = this.renderViews[k]
+        const group = this.geometry.groups.find((value) => {
+          return (
+            rv.batchStart >= value.start &&
+            rv.batchStart + rv.batchCount <= value.count + value.start
+          )
+        })
+        if (!Array.isArray(this.mesh.material)) {
+          return this.mesh.material
+        } else {
+          if (!group) {
+            Logger.warn(`Malformed material index!`)
+            return null
+          }
+          return this.mesh.material[group.materialIndex]
+        }
       }
     }
   }

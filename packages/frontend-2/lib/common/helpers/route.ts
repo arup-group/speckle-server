@@ -12,7 +12,7 @@ export const projectRoute = (id: string) => `/projects/${id}`
 export const modelRoute = (
   projectId: string,
   resourceIdString: string,
-  hashState?: Record<ViewerHashStateKeys, string>
+  hashState?: Partial<Record<ViewerHashStateKeys, string>>
 ) =>
   `/projects/${projectId}/models/${encodeURIComponent(resourceIdString)}${
     hashState ? serializeHashState(hashState) || '' : ''
@@ -23,6 +23,9 @@ export const allProjectModelsRoute = (projectId: string) =>
   `/projects/${projectId}/models`
 export const projectDiscussionsRoute = (projectId: string) =>
   `/projects/${projectId}/discussions`
+
+export const automationDataPageRoute = (baseUrl: string, automationId: string) =>
+  new URL(`/automations/${automationId}`, baseUrl).toString()
 
 /**
  * TODO: Page doesn't exist

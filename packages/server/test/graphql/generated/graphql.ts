@@ -52,6 +52,63 @@ export type ActivityCollection = {
   totalCount: Scalars['Int'];
 };
 
+export type AdminInviteList = {
+  __typename?: 'AdminInviteList';
+  cursor?: Maybe<Scalars['String']>;
+  items: Array<ServerInvite>;
+  totalCount: Scalars['Int'];
+};
+
+export type AdminQueries = {
+  __typename?: 'AdminQueries';
+  inviteList: AdminInviteList;
+  projectList: ProjectCollection;
+  serverStatistics: ServerStatistics;
+  userList: AdminUserList;
+};
+
+
+export type AdminQueriesInviteListArgs = {
+  cursor?: InputMaybe<Scalars['String']>;
+  limit?: Scalars['Int'];
+  query?: InputMaybe<Scalars['String']>;
+};
+
+
+export type AdminQueriesProjectListArgs = {
+  cursor?: InputMaybe<Scalars['String']>;
+  limit?: Scalars['Int'];
+  orderBy?: InputMaybe<Scalars['String']>;
+  query?: InputMaybe<Scalars['String']>;
+  visibility?: InputMaybe<Scalars['String']>;
+};
+
+
+export type AdminQueriesUserListArgs = {
+  cursor?: InputMaybe<Scalars['String']>;
+  limit?: Scalars['Int'];
+  query?: InputMaybe<Scalars['String']>;
+  role?: InputMaybe<ServerRole>;
+};
+
+export type AdminUserList = {
+  __typename?: 'AdminUserList';
+  cursor?: Maybe<Scalars['String']>;
+  items: Array<AdminUserListItem>;
+  totalCount: Scalars['Int'];
+};
+
+export type AdminUserListItem = {
+  __typename?: 'AdminUserListItem';
+  avatar?: Maybe<Scalars['String']>;
+  company?: Maybe<Scalars['String']>;
+  email?: Maybe<Scalars['String']>;
+  id: Scalars['ID'];
+  name: Scalars['String'];
+  role?: Maybe<Scalars['String']>;
+  verified?: Maybe<Scalars['Boolean']>;
+};
+
 export type AdminUsersListCollection = {
   __typename?: 'AdminUsersListCollection';
   items: Array<AdminUsersListItem>;
@@ -121,6 +178,87 @@ export type AuthStrategy = {
   id: Scalars['String'];
   name: Scalars['String'];
   url: Scalars['String'];
+};
+
+export type AutomationCreateInput = {
+  automationId: Scalars['String'];
+  automationName: Scalars['String'];
+  automationRevisionId: Scalars['String'];
+  modelId: Scalars['String'];
+  projectId: Scalars['String'];
+  webhookId?: InputMaybe<Scalars['String']>;
+};
+
+export type AutomationFunctionRun = {
+  __typename?: 'AutomationFunctionRun';
+  contextView?: Maybe<Scalars['String']>;
+  elapsed: Scalars['Float'];
+  functionId: Scalars['String'];
+  id: Scalars['ID'];
+  resultVersions: Array<Version>;
+  /**
+   * Current schema: {
+   *   version: "1.0.0",
+   *   values: {
+   *     speckleObjects: Record<ObjectId, {level: string; statusMessage: string}[]>
+   *     blobIds?: string[]
+   *   }
+   * }
+   */
+  results?: Maybe<Scalars['JSONObject']>;
+  status: AutomationRunStatus;
+  statusMessage?: Maybe<Scalars['String']>;
+};
+
+export type AutomationMutations = {
+  __typename?: 'AutomationMutations';
+  create: Scalars['Boolean'];
+  functionRunStatusReport: Scalars['Boolean'];
+};
+
+
+export type AutomationMutationsCreateArgs = {
+  input: AutomationCreateInput;
+};
+
+
+export type AutomationMutationsFunctionRunStatusReportArgs = {
+  input: AutomationRunStatusUpdateInput;
+};
+
+export type AutomationRun = {
+  __typename?: 'AutomationRun';
+  automationId: Scalars['String'];
+  createdAt: Scalars['DateTime'];
+  functionRuns: Array<AutomationFunctionRun>;
+  id: Scalars['ID'];
+  /** Resolved from all function run statuses */
+  status: AutomationRunStatus;
+  updatedAt: Scalars['DateTime'];
+  versionId: Scalars['String'];
+};
+
+export enum AutomationRunStatus {
+  Failed = 'FAILED',
+  Initializing = 'INITIALIZING',
+  Running = 'RUNNING',
+  Succeeded = 'SUCCEEDED'
+}
+
+export type AutomationRunStatusUpdateInput = {
+  automationId: Scalars['String'];
+  automationRevisionId: Scalars['String'];
+  automationRunId: Scalars['String'];
+  functionRuns: Array<FunctionRunStatusInput>;
+  versionId: Scalars['String'];
+};
+
+export type AutomationsStatus = {
+  __typename?: 'AutomationsStatus';
+  automationRuns: Array<AutomationRun>;
+  id: Scalars['ID'];
+  status: AutomationRunStatus;
+  statusMessage?: Maybe<Scalars['String']>;
 };
 
 export type BlobMetadata = {
@@ -367,6 +505,7 @@ export type Commit = {
   authorAvatar?: Maybe<Scalars['String']>;
   authorId?: Maybe<Scalars['String']>;
   authorName?: Maybe<Scalars['String']>;
+  branch?: Maybe<Branch>;
   branchName?: Maybe<Scalars['String']>;
   /**
    * The total number of comments for this commit. To actually get the comments, use the comments query and pass in a resource array consisting of of this commit's id.
@@ -533,6 +672,25 @@ export type FileUpload = {
   userId: Scalars['String'];
 };
 
+export type FunctionRunStatusInput = {
+  contextView?: InputMaybe<Scalars['String']>;
+  elapsed: Scalars['Float'];
+  functionId: Scalars['String'];
+  resultVersionIds: Array<Scalars['String']>;
+  /**
+   * Current schema: {
+   *   version: "1.0.0",
+   *   values: {
+   *     speckleObjects: Record<ObjectId, {level: string; statusMessage: string}[]>
+   *     blobIds?: string[]
+   *   }
+   * }
+   */
+  results?: InputMaybe<Scalars['JSONObject']>;
+  status: AutomationRunStatus;
+  statusMessage?: InputMaybe<Scalars['String']>;
+};
+
 export type Globals = {
   __typename?: 'Globals';
   items?: Maybe<Scalars['JSONObject']>;
@@ -629,6 +787,7 @@ export type LimitedUserTimelineArgs = {
 export type Model = {
   __typename?: 'Model';
   author: LimitedUser;
+  automationStatus?: Maybe<AutomationsStatus>;
   /** Return a model tree of children */
   childrenTree: Array<ModelsTreeItem>;
   /** All comment threads in this model */
@@ -703,6 +862,8 @@ export type ModelMutationsUpdateArgs = {
 export type ModelVersionsFilter = {
   /** Make sure these specified versions are always loaded first */
   priorityIds?: InputMaybe<Array<Scalars['String']>>;
+  /** Only return versions specified in `priorityIds` */
+  priorityIdsOnly?: InputMaybe<Scalars['Boolean']>;
 };
 
 export type ModelsTreeItem = {
@@ -754,6 +915,7 @@ export type Mutation = {
   appRevokeAccess?: Maybe<Scalars['Boolean']>;
   /** Update an existing third party application. **Note: This will invalidate all existing tokens, refresh tokens and access codes and will require existing users to re-authorize it.** */
   appUpdate: Scalars['Boolean'];
+  automationMutations: AutomationMutations;
   branchCreate: Scalars['String'];
   branchDelete: Scalars['Boolean'];
   branchUpdate: Scalars['Boolean'];
@@ -1254,6 +1416,7 @@ export type Project = {
   /** Return metadata about resources being requested in the viewer */
   viewerResources: Array<ViewerResourceGroup>;
   visibility: ProjectVisibility;
+  webhooks?: Maybe<WebhookCollection>;
 };
 
 
@@ -1302,6 +1465,19 @@ export type ProjectVersionsArgs = {
 export type ProjectViewerResourcesArgs = {
   loadedVersionsOnly?: InputMaybe<Scalars['Boolean']>;
   resourceIdString: Scalars['String'];
+};
+
+
+export type ProjectWebhooksArgs = {
+  id?: InputMaybe<Scalars['String']>;
+};
+
+export type ProjectAutomationsStatusUpdatedMessage = {
+  __typename?: 'ProjectAutomationsStatusUpdatedMessage';
+  model: Model;
+  project: Project;
+  status: AutomationsStatus;
+  version: Version;
 };
 
 export type ProjectCollaborator = {
@@ -1367,6 +1543,8 @@ export type ProjectInviteCreateInput = {
   email?: InputMaybe<Scalars['String']>;
   /** Defaults to the contributor role, if not specified */
   role?: InputMaybe<Scalars['String']>;
+  /** Can only be specified if guest mode is on or if the user is an admin */
+  serverRole?: InputMaybe<Scalars['String']>;
   /** Either this or email must be filled */
   userId?: InputMaybe<Scalars['String']>;
 };
@@ -1455,7 +1633,10 @@ export type ProjectMutations = {
   __typename?: 'ProjectMutations';
   /** Create new project */
   create: Project;
-  /** Create onboarding/tutorial project */
+  /**
+   * Create onboarding/tutorial project. If one is already created for the active user, that
+   * one will be returned instead.
+   */
   createForOnboarding: Project;
   /** Delete an existing project */
   delete: Scalars['Boolean'];
@@ -1587,11 +1768,16 @@ export type Query = {
   _?: Maybe<Scalars['String']>;
   /** Gets the profile of the authenticated user or null if not authenticated */
   activeUser?: Maybe<User>;
-  /** All the streams of the server. Available to admins only. */
+  admin: AdminQueries;
+  /**
+   * All the streams of the server. Available to admins only.
+   * @deprecated use admin.projectList instead
+   */
   adminStreams?: Maybe<StreamCollection>;
   /**
    * Get all (or search for specific) users, registered or invited, from the server in a paginated view.
    * The query looks for matches in name, company and email.
+   * @deprecated use admin.UserList instead
    */
   adminUsers?: Maybe<AdminUsersListCollection>;
   /** Gets a specific app from the server. */
@@ -1621,6 +1807,7 @@ export type Query = {
    */
   projectInvite?: Maybe<PendingStreamCollaborator>;
   serverInfo: ServerInfo;
+  /** @deprecated use admin.serverStatistics instead */
   serverStats: ServerStats;
   /**
    * Returns a specific stream. Will throw an authorization error if active user isn't authorized
@@ -1787,7 +1974,6 @@ export enum ResourceType {
   Stream = 'stream'
 }
 
-/** Available roles. */
 export type Role = {
   __typename?: 'Role';
   description: Scalars['String'];
@@ -1836,6 +2022,8 @@ export type ServerInfo = {
   adminContact?: Maybe<Scalars['String']>;
   /** The authentication strategies available on this server. */
   authStrategies: Array<AuthStrategy>;
+  /** Base URL of Speckle Automate, if set */
+  automateUrl?: Maybe<Scalars['String']>;
   blobSizeLimitBytes: Scalars['Int'];
   canonicalUrl?: Maybe<Scalars['String']>;
   company?: Maybe<Scalars['String']>;
@@ -1843,13 +2031,16 @@ export type ServerInfo = {
   defaultGlobals?: Maybe<Scalars['JSONObject']>;
   description?: Maybe<Scalars['String']>;
   enableGlobalReviewerAccess?: Maybe<Scalars['Boolean']>;
+  guestModeEnabled: Scalars['Boolean'];
   inviteOnly?: Maybe<Scalars['Boolean']>;
   loggedInUsersOnly?: Maybe<Scalars['Boolean']>;
   name: Scalars['String'];
   requireJobNumberToCreateCommits?: Maybe<Scalars['Boolean']>;
   requireJobNumberToCreateStreams?: Maybe<Scalars['Boolean']>;
-  roles: Array<Maybe<Role>>;
-  scopes: Array<Maybe<Scope>>;
+  /** @deprecated Use role constants from the @speckle/shared npm package instead */
+  roles: Array<Role>;
+  scopes: Array<Scope>;
+  serverRoles: Array<ServerRoleItem>;
   showJobNumberInput?: Maybe<Scalars['Boolean']>;
   termsOfService?: Maybe<Scalars['String']>;
   version?: Maybe<Scalars['String']>;
@@ -1863,6 +2054,7 @@ export type ServerInfoUpdateInput = {
   description?: InputMaybe<Scalars['String']>;
   enableGlobalReviewerAccess?: InputMaybe<Scalars['Boolean']>;
   enforceJobNumberRequirement?: InputMaybe<Scalars['Boolean']>;
+  guestModeEnabled?: InputMaybe<Scalars['Boolean']>;
   inviteOnly?: InputMaybe<Scalars['Boolean']>;
   loggedInUsersOnly?: InputMaybe<Scalars['Boolean']>;
   name: Scalars['String'];
@@ -1882,13 +2074,29 @@ export type ServerInvite = {
 export type ServerInviteCreateInput = {
   email: Scalars['String'];
   message?: InputMaybe<Scalars['String']>;
+  /** Can only be specified if guest mode is on or if the user is an admin */
+  serverRole?: InputMaybe<Scalars['String']>;
 };
 
 export enum ServerRole {
   ServerAdmin = 'SERVER_ADMIN',
   ServerArchivedUser = 'SERVER_ARCHIVED_USER',
+  ServerGuest = 'SERVER_GUEST',
   ServerUser = 'SERVER_USER'
 }
+
+export type ServerRoleItem = {
+  __typename?: 'ServerRoleItem';
+  id: Scalars['String'];
+  title: Scalars['String'];
+};
+
+export type ServerStatistics = {
+  __typename?: 'ServerStatistics';
+  totalPendingInvites: Scalars['Int'];
+  totalProjectCount: Scalars['Int'];
+  totalUserCount: Scalars['Int'];
+};
 
 export type ServerStats = {
   __typename?: 'ServerStats';
@@ -2059,6 +2267,7 @@ export type StreamCollaborator = {
   id: Scalars['String'];
   name: Scalars['String'];
   role: Scalars['String'];
+  serverRole: Scalars['String'];
 };
 
 export type StreamCollection = {
@@ -2089,6 +2298,8 @@ export type StreamInviteCreateInput = {
   message?: InputMaybe<Scalars['String']>;
   /** Defaults to the contributor role, if not specified */
   role?: InputMaybe<Scalars['String']>;
+  /** Can only be specified if guest mode is on or if the user is an admin */
+  serverRole?: InputMaybe<Scalars['String']>;
   streamId: Scalars['String'];
   userId?: InputMaybe<Scalars['String']>;
 };
@@ -2156,6 +2367,7 @@ export type Subscription = {
   commitDeleted?: Maybe<Scalars['JSONObject']>;
   /** Subscribe to commit updated event. */
   commitUpdated?: Maybe<Scalars['JSONObject']>;
+  projectAutomationsStatusUpdated: ProjectAutomationsStatusUpdatedMessage;
   /**
    * Subscribe to updates to resource comments/threads. Optionally specify resource ID string to only receive
    * updates regarding comments for those resources.
@@ -2240,6 +2452,11 @@ export type SubscriptionCommitDeletedArgs = {
 export type SubscriptionCommitUpdatedArgs = {
   commitId?: InputMaybe<Scalars['String']>;
   streamId: Scalars['String'];
+};
+
+
+export type SubscriptionProjectAutomationsStatusUpdatedArgs = {
+  projectId: Scalars['String'];
 };
 
 
@@ -2341,10 +2558,6 @@ export type User = {
   /** Returns the apps you have created. */
   createdApps?: Maybe<Array<ServerApp>>;
   createdAt?: Maybe<Scalars['DateTime']>;
-  /**
-   * E-mail can be null, if it's requested for a user other than the authenticated one
-   * and the user isn't an admin
-   */
   email?: Maybe<Scalars['String']>;
   /**
    * All the streams that a active user has favorited.
@@ -2489,6 +2702,7 @@ export type UserUpdateInput = {
 export type Version = {
   __typename?: 'Version';
   authorUser?: Maybe<LimitedUser>;
+  automationStatus?: Maybe<AutomationsStatus>;
   /** All comment threads in this version */
   commentThreads: CommentCollection;
   createdAt: Scalars['DateTime'];

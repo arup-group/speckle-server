@@ -38,13 +38,22 @@ export type CommitWithStreamBranchMetadata = CommitRecord & {
 /**
  * Get commits with their stream and branch IDs
  */
-export async function getCommits(commitIds: string[]) {
+export async function getCommits(
+  commitIds: string[],
+  options?: Partial<{ streamId: string }>
+) {
+  const { streamId } = options || {}
+
   const q = Commits.knex()
     .select<CommitWithStreamBranchMetadata[]>(CommitWithStreamBranchMetadataFields)
     .whereIn(Commits.col.id, commitIds)
     .leftJoin(StreamCommits.name, StreamCommits.col.commitId, Commits.col.id)
     .leftJoin(BranchCommits.name, BranchCommits.col.commitId, Commits.col.id)
     .innerJoin(Branches.name, Branches.col.id, BranchCommits.col.branchId)
+
+  if (streamId) {
+    q.andWhere(StreamCommits.col.streamId, streamId)
+  }
 
   const rows = await q
 
@@ -55,8 +64,11 @@ export async function getCommits(commitIds: string[]) {
   return uniqueRows
 }
 
-export async function getCommit(commitId: string) {
-  const [commit] = await getCommits([commitId])
+export async function getCommit(
+  commitId: string,
+  options?: Partial<{ streamId: string }>
+) {
+  const [commit] = await getCommits([commitId], options)
   return commit as Optional<typeof commit>
 }
 
@@ -93,6 +105,20 @@ export async function deleteCommits(commitIds: string[]) {
 export async function deleteCommit(commitId: string) {
   const delCount = await deleteCommits([commitId])
   return !!delCount
+}
+
+export async function getStreamCommitsWithBranchId(streamId: string) {
+  const baseQuery = Commits.knex<CommitRecord[]>()
+    .select<Array<CommitRecord & { branchId: string }>>([
+      ...Commits.cols,
+      BranchCommits.col.branchId
+    ])
+    .innerJoin(StreamCommits.name, StreamCommits.col.commitId, Commits.col.id)
+    .innerJoin(BranchCommits.name, BranchCommits.col.commitId, Commits.col.id)
+    .where(StreamCommits.col.streamId, streamId)
+    .orderBy(Commits.col.createdAt)
+
+  return await baseQuery
 }
 
 export function getBatchedStreamCommits(

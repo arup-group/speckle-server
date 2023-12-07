@@ -3,6 +3,7 @@ import { MaybeNullOrUndefined, Nullable } from '@speckle/shared'
 import { useAuthCookie } from '~~/lib/auth/composables/auth'
 import { onProjectVersionsPreviewGeneratedSubscription } from '~~/lib/projects/graphql/subscriptions'
 import { useSubscription } from '@vue/apollo-composable'
+import { useLock } from '~~/lib/common/composables/singleton'
 
 const previewUrlProjectIdRegexp = /\/preview\/([\w\d]+)\//i
 const previewUrlCommitIdRegexp = /\/commits\/([\w\d]+)/i
@@ -18,6 +19,8 @@ class AngleNotFoundError extends Error {}
  */
 export function usePreviewImageBlob(previewUrl: MaybeRef<string | null | undefined>) {
   const authToken = useAuthCookie()
+  const logger = useLogger()
+
   const url = ref(null as Nullable<string>)
   const panoramaUrl = ref(null as Nullable<string>)
   const isLoadingPanorama = ref(false)
@@ -60,12 +63,15 @@ export function usePreviewImageBlob(previewUrl: MaybeRef<string | null | undefin
     return val
   })
 
+  const { hasLock } = useLock(
+    computed(() => `useProjectModelUpdateTracking-${unref(previewUrl) || ''}`)
+  )
   const { onResult: onProjectPreviewGenerated } = useSubscription(
     onProjectVersionsPreviewGeneratedSubscription,
     () => ({
       id: projectId.value || ''
     }),
-    () => ({ enabled: !!projectId.value })
+    () => ({ enabled: !!projectId.value && hasLock.value })
   )
 
   onProjectPreviewGenerated((res) => {
@@ -104,7 +110,7 @@ export function usePreviewImageBlob(previewUrl: MaybeRef<string | null | undefin
       const blobUrl = URL.createObjectURL(blob)
       url.value = blobUrl
     } catch (e) {
-      console.error('Preview image load error', e)
+      logger.error('Preview image load error', e)
       url.value = basePreviewUrl || null
     }
   }
@@ -138,7 +144,7 @@ export function usePreviewImageBlob(previewUrl: MaybeRef<string | null | undefin
       panoramaUrl.value = blobUrl
     } catch (e) {
       if (!(e instanceof AngleNotFoundError)) {
-        console.error('Panorama preview image load error:', e)
+        logger.error('Panorama preview image load error:', e)
       }
 
       panoramaUrl.value = basePreviewUrl || null

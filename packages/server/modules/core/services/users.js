@@ -26,17 +26,19 @@ const {
   UserInputError,
   PasswordTooShortError
 } = require('@/modules/core/errors/userinput')
+const { Roles } = require('@speckle/shared')
+const { getServerInfo } = require('@/modules/core/services/generic')
 
-const changeUserRole = async ({ userId, role }) =>
+const _changeUserRole = async ({ userId, role }) =>
   await Acl().where({ userId }).update({ role })
 
 const countAdminUsers = async () => {
-  const [{ count }] = await Acl().where({ role: 'server:admin' }).count()
+  const [{ count }] = await Acl().where({ role: Roles.Server.Admin }).count()
   return parseInt(count)
 }
 const _ensureAtleastOneAdminRemains = async (userId) => {
   if ((await countAdminUsers()) === 1) {
-    const currentAdmin = await Acl().where({ role: 'server:admin' }).first()
+    const currentAdmin = await Acl().where({ role: Roles.Server.Admin }).first()
     if (currentAdmin.userId === userId) {
       throw new UserInputError('Cannot remove the last admin role from the server')
     }
@@ -72,6 +74,15 @@ module.exports = {
     // ONLY ALLOW SKIPPING WHEN CREATING USERS FOR TESTS, IT'S UNSAFE OTHERWISE
     const { skipPropertyValidation = false } = options || {}
 
+    let expectedRole = null
+    if (user.role) {
+      const isValidRole = Object.values(Roles.Server).includes(user.role)
+      const isValidIfGuestModeEnabled =
+        user.role !== Roles.Server.Guest || (await getServerInfo()).guestModeEnabled
+      expectedRole = isValidRole && isValidIfGuestModeEnabled ? user.role : null
+    }
+    delete user.role
+
     user = skipPropertyValidation
       ? user
       : pick(user, ['id', 'bio', 'email', 'password', 'name', 'company'])
@@ -93,7 +104,10 @@ module.exports = {
     const [newUser] = (await Users().insert(user, UsersSchema.cols)) || []
     if (!newUser) throw new Error("Couldn't create user")
 
-    const userRole = (await countAdminUsers()) === 0 ? 'server:admin' : 'server:user'
+    const userRole =
+      (await countAdminUsers()) === 0
+        ? Roles.Server.Admin
+        : expectedRole || Roles.Server.User
 
     await Acl().insert({ userId: newId, role: userRole })
 
@@ -182,7 +196,7 @@ module.exports = {
       .where((queryBuilder) => {
         queryBuilder.where({ email: searchQuery }) //match full email or partial name
         if (!emailOnly) queryBuilder.orWhere('name', 'ILIKE', `%${searchQuery}%`)
-        if (!archived) queryBuilder.andWhere('role', '!=', 'server:archived-user')
+        if (!archived) queryBuilder.andWhere('role', '!=', Roles.Server.ArchivedUser)
       })
 
     if (cursor) query.andWhere('users.createdAt', '<', cursor)
@@ -225,9 +239,9 @@ module.exports = {
           (
           -- Get streams ids on which the user is owner
           SELECT "resourceId" FROM stream_acl
-          WHERE role = 'stream:owner' AND "userId" = ?
+          WHERE role = '${Roles.Stream.Owner}' AND "userId" = ?
           ) AS us ON acl."resourceId" = us."resourceId"
-        WHERE acl.role = 'stream:owner'
+        WHERE acl.role = '${Roles.Stream.Owner}'
         GROUP BY (acl."resourceId")
       ) AS soc
       WHERE cnt = 1
@@ -262,25 +276,18 @@ module.exports = {
     return users
   },
 
-  async makeUserAdmin({ userId }) {
-    await changeUserRole({ userId, role: 'server:admin' })
-  },
-
-  async unmakeUserAdmin({ userId }) {
-    // dont delete last admin role
-    await _ensureAtleastOneAdminRemains(userId)
-    await changeUserRole({ userId, role: 'server:user' })
-  },
-
-  async archiveUser({ userId }) {
-    // dont change last admin to archived
-    await _ensureAtleastOneAdminRemains(userId)
-    await changeUserRole({ userId, role: 'server:archived-user' })
-  },
-
   async countUsers(searchQuery = null) {
     const query = getUsersBaseQuery(searchQuery)
     const [userCount] = await query.count()
     return parseInt(userCount.count)
+  },
+
+  async changeUserRole({ userId, role, guestModeEnabled = false }) {
+    if (!Object.values(Roles.Server).includes(role))
+      throw new UserInputError(`Invalid role specified: ${role}`)
+    if (!guestModeEnabled && role === Roles.Server.Guest)
+      throw new UserInputError('Guest role is not enabled')
+    if (role !== Roles.Server.Admin) await _ensureAtleastOneAdminRemains(userId)
+    await _changeUserRole({ userId, role })
   }
 }

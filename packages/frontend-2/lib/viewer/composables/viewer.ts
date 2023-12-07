@@ -5,10 +5,25 @@ import {
 } from '~~/lib/viewer/composables/setup'
 import { SelectionEvent, ViewerEvent } from '@speckle/viewer'
 import { debounce, isArray, throttle } from 'lodash-es'
+import { until } from '@vueuse/core'
 import { MaybeAsync, Nullable, TimeoutError, timeoutAt } from '@speckle/shared'
-import { until } from '@vueuse/shared'
 import { Vector3 } from 'three'
 import { areVectorsLooselyEqual } from '~~/lib/viewer/helpers/three'
+
+// NOTE: this is a preformance optimisation - this function is hot, and has to do
+// potentially large searches if many elements are hidden/isolated. We cache the
+// result for 250ms, which represents a single click.
+// NOTE: in the near future, this will hopefully not be needed as we'll have
+// viewer bound modules to help us with selection and visibility state management.
+const cacheTimeoutMs = 250
+let hitCache: Nullable<{
+  guid?: string | undefined
+  object: Record<string, unknown> & {
+    id: string
+  }
+  point: Vector3
+}> = null
+let lastCacheRefresh: number = Date.now()
 
 function getFirstVisibleSelectionHit(
   { hits }: SelectionEvent,
@@ -20,6 +35,12 @@ function getFirstVisibleSelectionHit(
     }
   } = state
 
+  if (Date.now() - lastCacheRefresh < cacheTimeoutMs && hitCache) {
+    return hitCache
+  }
+  hitCache = null
+  lastCacheRefresh = Date.now()
+
   const hasHiddenObjects = (filteringState.value?.hiddenObjects || []).length !== 0
   const hasIsolatedObjects =
     !!filteringState.value?.isolatedObjects &&
@@ -28,13 +49,17 @@ function getFirstVisibleSelectionHit(
   for (const hit of hits) {
     if (hasHiddenObjects) {
       if (!filteringState.value?.hiddenObjects?.includes(hit.object.id as string)) {
-        return hit
+        hitCache = hit
+        return hitCache
       }
     } else if (hasIsolatedObjects) {
-      if (filteringState.value.isolatedObjects?.includes(hit.object.id as string))
-        return hit
+      if (filteringState.value.isolatedObjects?.includes(hit.object.id as string)) {
+        hitCache = hit
+        return hitCache
+      }
     } else {
-      return hit
+      hitCache = hit
+      return hitCache
     }
   }
   return null
@@ -284,6 +309,7 @@ export function useOnViewerLoadComplete(
   const {
     ui: { viewerBusy }
   } = useInjectedViewerState()
+  const logger = useLogger()
   const { initialOnly, waitForBusyOver = true } = options || {}
 
   const hasRun = ref(false)
@@ -306,7 +332,7 @@ export function useOnViewerLoadComplete(
         : Promise.resolve())
     } catch (e) {
       if (!(e instanceof TimeoutError)) throw e
-      console.warn(e.message)
+      logger.warn(e.message)
     }
 
     listener({ isInitial: !hasRun.value })

@@ -1,6 +1,7 @@
 <template>
   <div>
     <Listbox
+      :key="forceUpdateKey"
       v-model="wrappedValue"
       :name="name"
       :multiple="multiple"
@@ -9,7 +10,7 @@
       as="div"
     >
       <ListboxLabel
-        class="block label text-foreground"
+        class="block label text-foreground-2 mb-2"
         :class="{ 'sr-only': !showLabel }"
       >
         {{ label }}
@@ -102,13 +103,15 @@
                   :key="itemKey(item)"
                   v-slot="{ active, selected }: { active: boolean, selected: boolean }"
                   :value="item"
+                  :disabled="disabledItemPredicate?.(item) || false"
                 >
                   <li
-                    :class="[
-                      active ? 'text-primary' : 'text-foreground',
-                      'relative transition cursor-pointer select-none py-1.5 pl-3',
-                      !hideCheckmarks ? 'pr-9' : ''
-                    ]"
+                    :class="
+                      listboxOptionClasses({
+                        active,
+                        disabled: disabledItemPredicate?.(item) || false
+                      })
+                    "
                   >
                     <span :class="['block truncate']">
                       <slot
@@ -116,6 +119,7 @@
                         :item="item"
                         :active="active"
                         :selected="selected"
+                        :disabled="disabledItemPredicate?.(item) || false"
                       >
                         {{ simpleDisplayText(item) }}
                       </slot>
@@ -138,12 +142,7 @@
         </Transition>
       </div>
     </Listbox>
-    <p
-      v-if="helpTipId"
-      :id="helpTipId"
-      class="mt-2 ml-3 text-sm"
-      :class="helpTipClasses"
-    >
+    <p v-if="helpTipId" :id="helpTipId" class="mt-2 text-sm" :class="helpTipClasses">
       {{ helpTip }}
     </p>
   </div>
@@ -175,16 +174,13 @@ import { MaybeAsync, Nullable, Optional } from '@speckle/shared'
 import { RuleExpression, useField } from 'vee-validate'
 import { nanoid } from 'nanoid'
 import CommonLoadingBar from '~~/src/components/common/loading/Bar.vue'
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import { directive as vTippy } from 'vue-tippy'
 
-type ButtonStyle = 'base' | 'simple'
+type ButtonStyle = 'base' | 'simple' | 'tinted'
 type SingleItem = any
 type ValueType = SingleItem | SingleItem[] | undefined
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'update:modelValue', v: ValueType): void
 }>()
 
@@ -219,6 +215,13 @@ const props = defineProps({
     type: Function as PropType<
       Optional<(item: SingleItem, searchString: string) => boolean>
     >,
+    default: undefined
+  },
+  /**
+   * Set this to disable certain items in the list
+   */
+  disabledItemPredicate: {
+    type: Function as PropType<Optional<(item: SingleItem) => boolean>>,
     default: undefined
   },
   /**
@@ -284,7 +287,7 @@ const props = defineProps({
    * Validation stuff
    */
   rules: {
-    type: [String, Object, Function, Array] as PropType<RuleExpression<string>>,
+    type: [String, Object, Function, Array] as PropType<RuleExpression<ValueType>>,
     default: undefined
   },
   /**
@@ -318,6 +321,16 @@ const props = defineProps({
   fixedHeight: {
     type: Boolean,
     default: false
+  },
+  /**
+   * By default component holds its own internal value state so that even if you don't have it tied up to a real `modelValue` ref somewhere
+   * it knows its internal state and can report it on form submits.
+   *
+   * If you set this to true, its only going to rely on `modelValue` as its primary source of truth so that you can reject updates etc.
+   */
+  fullyControlValue: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -331,6 +344,7 @@ const searchInput = ref(null as Nullable<HTMLInputElement>)
 const searchValue = ref('')
 const currentItems = ref([] as SingleItem[])
 const isAsyncLoading = ref(false)
+const forceUpdateKey = ref(1)
 
 const internalHelpTipId = ref(nanoid())
 
@@ -354,7 +368,7 @@ const renderClearButton = computed(
 )
 
 const buttonsWrapperClasses = computed(() => {
-  const classParts: string[] = ['relative flex group', props.showLabel ? 'mt-1' : '']
+  const classParts: string[] = ['relative flex group']
 
   if (props.buttonStyle !== 'simple') {
     classParts.push('hover:shadow rounded-md')
@@ -389,13 +403,19 @@ const clearButtonClasses = computed(() => {
     'relative z-[1]',
     'flex items-center justify-center text-center shrink-0',
     'rounded-r-md overflow-hidden transition-all',
+    'text-foreground',
     hasValueSelected.value ? `w-6 ${commonButtonClasses.value}` : 'w-0'
   ]
 
   if (!isDisabled.value) {
     classParts.push(
-      'bg-primary-muted hover:bg-primary hover:text-foreground-on-primary'
+      'hover:bg-primary hover:text-foreground-on-primary dark:text-foreground-on-primary'
     )
+    if (props.buttonStyle === 'tinted') {
+      classParts.push('bg-outline-3')
+    } else {
+      classParts.push('bg-primary-muted')
+    }
   }
 
   return classParts.join(' ')
@@ -413,7 +433,11 @@ const buttonClasses = computed(() => {
     classParts.push('py-2 px-3')
 
     if (!isDisabled.value) {
-      classParts.push('bg-foundation text-foreground')
+      if (props.buttonStyle === 'tinted') {
+        classParts.push('bg-foundation-page text-foreground')
+      } else {
+        classParts.push('bg-foundation text-foreground')
+      }
     }
   }
 
@@ -450,8 +474,9 @@ const wrappedValue = computed({
       return
     }
 
+    let finalValue: typeof value.value
     if (props.multiple) {
-      value.value = newVal || []
+      finalValue = newVal || []
     } else {
       const currentVal = value.value
       const isUnset =
@@ -459,8 +484,21 @@ const wrappedValue = computed({
         currentVal &&
         newVal &&
         itemKey(currentVal as SingleItem) === itemKey(newVal as SingleItem)
-      value.value = isUnset ? undefined : newVal
+      finalValue = isUnset ? undefined : newVal
     }
+
+    if (props.fullyControlValue) {
+      // Not setting value.value, cause then we don't give a chance for the parent
+      // component to reject the update
+      emit('update:modelValue', finalValue)
+    } else {
+      value.value = finalValue
+    }
+
+    // hacky, but there's no other way to force ListBox to re-read the modelValue prop which
+    // we need in case the update was rejected and ListBox still thinks the value is the one
+    // that was clicked on
+    forceUpdateKey.value += 1
   }
 })
 
@@ -492,7 +530,6 @@ const itemKey = (v: SingleItem): string | number =>
   props.by ? (v[props.by] as string) : v
 
 const triggerSearch = async () => {
-  console.log('triggerSearch')
   if (!isAsyncSearchMode.value || !props.getSearchResults) return
 
   isAsyncLoading.value = true
@@ -503,6 +540,24 @@ const triggerSearch = async () => {
   }
 }
 const debouncedSearch = debounce(triggerSearch, 1000)
+
+const listboxOptionClasses = (params: { active: boolean; disabled: boolean }) => {
+  const { active, disabled } = params || {}
+  const { hideCheckmarks } = props
+
+  const classParts = [
+    'relative transition cursor-pointer select-none py-1.5 pl-3',
+    !hideCheckmarks ? 'pr-9' : ''
+  ]
+
+  if (disabled) {
+    classParts.push('opacity-50 cursor-not-allowed')
+  } else {
+    classParts.push(active ? 'text-primary' : 'text-foreground')
+  }
+
+  return classParts.join(' ')
+}
 
 watch(
   () => props.items,
@@ -522,4 +577,6 @@ onMounted(() => {
     triggerSearch()
   }
 })
+
+defineExpose({ triggerSearch })
 </script>

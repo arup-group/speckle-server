@@ -66,7 +66,7 @@ type MetaInnerSchemaConfig<
    * Get meta keys individually
    */
   metaKey: {
-    [keyName in MK]: string
+    [keyName in MK]: keyName
   }
 
   /**
@@ -186,8 +186,8 @@ function buildMetaTableHelper<T extends string, C extends string, MK extends str
         prev[curr] = curr
         return prev
       },
-      {} as Record<keyof BaseMetaRecord | MK, string>
-    ),
+      {} as Record<keyof BaseMetaRecord | MK, keyof BaseMetaRecord | MK>
+    ) as { [keyName in MK]: keyName },
     parentIdentityCol
   })
 
@@ -215,18 +215,29 @@ function buildMetaTableHelper<T extends string, C extends string, MK extends str
  * Largely the same, but also hold extra props like `metaKeys` that store allowed meta keys
  */
 
-export const Streams = buildTableHelper('streams', [
-  'id',
-  'name',
-  'jobNumber',
-  'description',
-  'isPublic',
-  'clonedFrom',
-  'createdAt',
-  'updatedAt',
-  'allowPublicComments',
-  'isDiscoverable'
-])
+export const StreamsMeta = buildMetaTableHelper(
+  'streams_meta',
+  ['streamId', 'key', 'value', 'createdAt', 'updatedAt'],
+  ['onboardingBaseStream'],
+  'streamId'
+)
+
+export const Streams = buildTableHelper(
+  'streams',
+  [
+    'id',
+    'name',
+    'jobNumber',
+    'description',
+    'isPublic',
+    'clonedFrom',
+    'createdAt',
+    'updatedAt',
+    'allowPublicComments',
+    'isDiscoverable'
+  ],
+  StreamsMeta
+)
 
 export const StreamAcl = buildTableHelper('stream_acl', [
   'userId',
@@ -244,7 +255,7 @@ export const StreamFavorites = buildTableHelper('stream_favorites', [
 export const UsersMeta = buildMetaTableHelper(
   'users_meta',
   ['userId', 'key', 'value', 'createdAt', 'updatedAt'],
-  ['isOnboardingFinished', 'foo', 'bar'],
+  ['isOnboardingFinished', 'foo', 'bar', 'onboardingStreamId'],
   'userId'
 )
 
@@ -304,7 +315,8 @@ export const ServerInvites = buildTableHelper('server_invites', [
   'resourceTarget',
   'resourceId',
   'role',
-  'token'
+  'token',
+  'serverRole'
 ])
 
 export const PasswordResetTokens = buildTableHelper('pwdreset_tokens', [
@@ -436,5 +448,40 @@ export const FileUploads = buildTableHelper('file_uploads', [
   'convertedMessage',
   'convertedCommitId'
 ])
+
+export const Automations = buildTableHelper('automations', [
+  'automationId',
+  'automationRevisionId',
+  'automationName',
+  'projectId',
+  'modelId',
+  'createdAt',
+  'updatedAt',
+  'webhookId'
+])
+
+export const AutomationRuns = buildTableHelper('automation_runs', [
+  'automationId',
+  'automationRevisionId',
+  'automationRunId',
+  'versionId',
+  'createdAt',
+  'updatedAt'
+])
+
+export const AutomationFunctionRuns = buildTableHelper('automation_function_runs', [
+  'automationRunId',
+  'functionId',
+  'elapsed',
+  'status',
+  'contextView',
+  'statusMessage',
+  'results'
+])
+
+export const AutomationFunctionRunsResultVersions = buildTableHelper(
+  'automation_function_runs_result_versions',
+  ['automationRunId', 'functionId', 'resultVersionId']
+)
 
 export { knex }

@@ -35,7 +35,9 @@ export default class Coverter {
     Circle: this.CircleToNode.bind(this),
     Arc: this.ArcToNode.bind(this),
     Ellipse: this.EllipseToNode.bind(this),
-    RevitInstance: this.RevitInstanceToNode.bind(this)
+    RevitInstance: this.RevitInstanceToNode.bind(this),
+    Text: this.TextToNode.bind(this),
+    Dimension: this.DimensionToNode.bind(this)
   }
 
   constructor(objectLoader: unknown, tree: WorldTree) {
@@ -132,7 +134,8 @@ export default class Coverter {
     const target = obj //obj.data || obj
 
     // Check if the object has a display value of sorts
-    let displayValue = this.getDisplayValue(target)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let displayValue = this.getDisplayValue(target) as any
 
     if (displayValue) {
       childNode.model.atomic = true
@@ -299,12 +302,23 @@ export default class Coverter {
   }
 
   private getDisplayValue(obj) {
-    return (
+    const displayValue =
       obj['displayValue'] ||
       obj['@displayValue'] ||
       obj['displayMesh'] ||
       obj['@displayMesh']
-    )
+
+    if (displayValue) {
+      if (Array.isArray(displayValue)) {
+        const filteredDisplayValue = displayValue.filter((v) => v)
+        if (displayValue.length !== filteredDisplayValue.length) {
+          Logger.warn(`Object ${obj.id} has null display values which will be ignored`)
+        }
+        return filteredDisplayValue
+      }
+      return displayValue
+    }
+    return null
   }
 
   private getElementsValue(obj) {
@@ -402,6 +416,21 @@ export default class Coverter {
       this.tree.addNode(childNode, node)
 
       await this.displayableLookup(ref, childNode)
+      const elements = this.getElementsValue(obj)
+      if (elements) {
+        for (const element of elements) {
+          const ref = await this.resolveReference(element)
+          const childNode: TreeNode = this.tree.parse({
+            id: this.getNodeId(ref),
+            raw: Object.assign({}, ref),
+            atomic: false,
+            children: []
+          })
+          childNode.model.raw.host = obj.id
+          this.tree.addNode(childNode, node)
+          await this.displayableLookup(ref, childNode)
+        }
+      }
     }
   }
 
@@ -440,8 +469,11 @@ export default class Coverter {
     try {
       if (!obj) return
 
-      let displayValue = obj.displayValue || obj.displayMesh
+      let displayValue = this.getDisplayValue(obj)
+
       if (Array.isArray(displayValue)) displayValue = displayValue[0] //Just take the first display value for now (not ideal)
+      if (!displayValue) return
+
       const ref = await this.resolveReference(displayValue)
       const nestedNode: TreeNode = this.tree.parse({
         id: this.getNodeId(ref),
@@ -487,6 +519,53 @@ export default class Coverter {
     node.model.raw.colors = await this.dechunk(obj.colors)
   }
 
+  private async TextToNode(obj, node) {
+    return
+  }
+
+  private async DimensionToNode(obj, node) {
+    const displayValues = [...this.getDisplayValue(obj)]
+    for (const displayValue of displayValues) {
+      const childNode: TreeNode = this.tree.parse({
+        id: this.getNodeId(displayValue),
+        raw: Object.assign({}, displayValue),
+        atomic: false,
+        children: []
+      })
+      this.tree.addNode(childNode, node)
+      await this.convertToNode(displayValue, childNode)
+    }
+    /**
+     * YOLO
+     * - Dimensions of all types do not have information about text size
+     * - Positioning of the text is not consistent across dimension types
+     * - Angular Dimensions are broken
+     */
+    const textObj = JSON.parse(JSON.stringify(obj))
+    textObj.plane = textObj.RhinoProps.plane
+    const derivedType = this.getSpeckleTypeChain(textObj)[0]
+    switch (derivedType) {
+      case 'LengthDimension':
+        textObj.plane.origin = textObj.position
+        break
+      case 'DistanceDimension':
+        textObj.plane.origin = textObj.textPosition
+        break
+      case 'AngleDimension':
+        textObj.plane.origin = textObj.textPosition
+        break
+    }
+    textObj['speckle_type'] = 'Objects.Other.Text'
+    const textNode: TreeNode = this.tree.parse({
+      id: this.getNodeId(textObj),
+      raw: textObj,
+      atomic: false,
+      children: []
+    })
+    this.tree.addNode(textNode, node)
+    await this.convertToNode(textObj, textNode)
+  }
+
   private async PointToNode(obj, node) {
     return
   }
@@ -528,14 +607,15 @@ export default class Coverter {
   }
 
   private async CurveToNode(obj, node) {
-    if (!obj.displayValue) {
+    let displayValue = this.getDisplayValue(obj)
+    if (!displayValue) {
       Logger.warn(
         `Object ${obj.id} of type ${obj.speckle_type} has no display value and will be ignored`
       )
       return
     }
     node.model.nestedNodes = []
-    const displayValue = await this.resolveReference(obj.displayValue)
+    displayValue = await this.resolveReference(obj.displayValue)
     displayValue.units = displayValue.units || obj.units
     const nestedNode: TreeNode = this.tree.parse({
       id: this.getNodeId(displayValue),

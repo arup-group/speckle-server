@@ -1,5 +1,6 @@
 import { wait } from '@speckle/shared'
 import { Meta, StoryObj } from '@storybook/vue3'
+import { omit } from 'lodash'
 import FormSelectBase from '~~/src/components/form/select/Base.vue'
 import { isRequired } from '~~/src/helpers/common/validation'
 
@@ -122,6 +123,31 @@ export const Default: StoryType = {
     clearable: true,
     buttonStyle: 'base',
     disabled: false
+  }
+}
+
+export const WithLabel: StoryType = {
+  ...Default,
+  args: {
+    ...Default.args,
+    showLabel: true
+  }
+}
+
+export const WithLabelAndHelp: StoryType = {
+  ...Default,
+  args: {
+    ...Default.args,
+    showLabel: true,
+    help: 'Some help text'
+  }
+}
+
+export const Tinted: StoryType = {
+  ...Default,
+  args: {
+    ...Default.args,
+    buttonStyle: 'tinted'
   }
 }
 
@@ -263,5 +289,53 @@ export const Simple: StoryType = {
   args: {
     ...Default.args,
     buttonStyle: 'simple'
+  }
+}
+
+export const NoVModel: StoryType = {
+  ...Default,
+  render: (args) => ({
+    components: { FormSelectBase },
+    setup: () => {
+      return { args }
+    },
+    template: `
+      <div class="flex justify-center h-72">
+        <FormSelectBase v-bind="args" class="max-w-xs w-full"/>
+      </div>
+    `
+  }),
+  args: omit(Default.args, 'modelValue')
+}
+
+export const RejectingUpdates: StoryType = {
+  ...Default,
+  args: {
+    ...Default.args,
+    fullyControlValue: true
+  },
+  render: (args) => ({
+    components: { FormSelectBase },
+    setup: () => {
+      return { args }
+    },
+    template: `
+      <div class="flex justify-center h-72">
+        <FormSelectBase v-bind="args" class="max-w-xs w-full" @update:modelValue="onModelUpdate"/>
+      </div>
+    `,
+    methods: {
+      onModelUpdate() {
+        console.log('rejecting update')
+      }
+    }
+  })
+}
+
+export const WithDisabledItems: StoryType = {
+  ...Default,
+  args: {
+    ...Default.args,
+    disabledItemPredicate: (item: FakeItemType) => item.id === '3'
   }
 }

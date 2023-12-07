@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { graphql } from '~~/lib/common/generated/gql'
 import { ProjectPageModelsCardDeleteDialogFragment } from '~~/lib/common/generated/gql/graphql'
+import { useMixpanel } from '~~/lib/core/composables/mp'
 import { useDeleteModel } from '~~/lib/projects/composables/modelManagement'
 
 graphql(`
@@ -29,24 +30,20 @@ graphql(`
 `)
 
 const emit = defineEmits<{
-  (e: 'update:open', v: boolean): void
   (e: 'deleted'): void
 }>()
 
 const props = defineProps<{
-  open: boolean
   projectId: string
   model: ProjectPageModelsCardDeleteDialogFragment
 }>()
 
+const isOpen = defineModel<boolean>('open', { required: true })
 const deleteModel = useDeleteModel()
 
 const loading = ref(false)
 
-const isOpen = computed({
-  get: () => props.open,
-  set: (newVal) => emit('update:open', newVal)
-})
+const mp = useMixpanel()
 
 const onDelete = async () => {
   loading.value = true
@@ -55,6 +52,7 @@ const onDelete = async () => {
     projectId: props.projectId
   }).finally(() => (loading.value = false))
   isOpen.value = false
+  mp.track('Branch Action', { type: 'action', name: 'delete' })
 
   if (deleted) emit('deleted')
 }

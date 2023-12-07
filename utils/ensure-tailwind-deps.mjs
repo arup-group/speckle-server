@@ -18,8 +18,17 @@ const lockFilePath = resolve(__dirname, lockFileName)
 
 async function checkForPresence() {
   try {
-    require('@speckle/tailwind-theme')
     require('@speckle/ui-components')
+  } catch (e) {
+    // We can't properly require this package from a node environment, so as long as we
+    // get to the expected error, we at least know that the package is built and exists
+    if (!(e instanceof Error) || !e.message.includes('v3-infinite-loading')) {
+      return false
+    }
+  }
+
+  try {
+    require('@speckle/tailwind-theme')
     require('@speckle/shared')
   } catch (e) {
     return false
@@ -52,6 +61,7 @@ async function doWork() {
     lock(lockFilePath, lockFileOpts, async (err) => {
       if (err) {
         await waitForUnlock()
+        return
       }
 
       const depsExist = await checkForPresence()
@@ -68,9 +78,7 @@ async function doWork() {
         (err, stdout, stderr) => {
           if (err) {
             console.error(err)
-            return reject()
           }
-
           if (stdout) {
             console.log(stdout)
           }
@@ -79,9 +87,15 @@ async function doWork() {
           }
         }
       )
-      proc.on('exit', () => {
-        console.log(`...done [${Math.round(performance.now() - now)}ms]`)
-        return resolve()
+      proc.on('exit', (code) => {
+        console.log(
+          `...done w/ status ${code} [${Math.round(performance.now() - now)}ms]`
+        )
+        if (!code) {
+          resolve()
+        } else {
+          reject(new Error('Failed with non-0 status code'))
+        }
       })
     })
   })

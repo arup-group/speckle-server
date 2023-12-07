@@ -73,6 +73,7 @@ export type ServerConfigRecord = {
   canonicalUrl: string
   completed: boolean
   inviteOnly: boolean
+  guestModeEnabled: boolean
 }
 
 export type ServerInfo = ServerConfigRecord & {
@@ -85,7 +86,7 @@ export type ServerInfo = ServerConfigRecord & {
 export type CommitRecord = {
   id: string
   referencedObject: string
-  author: string
+  author: Nullable<string>
   message: Nullable<string>
   createdAt: Date
   sourceApplication: Nullable<string>

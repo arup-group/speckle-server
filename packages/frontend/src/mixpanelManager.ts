@@ -69,8 +69,9 @@ export function initialize(params: {
   const { hostApp, hostAppDisplayName } = params
 
   // Register session
+  const serverId = getMixpanelServerId()
   mp.register({
-    server_id: getMixpanelServerId(),
+    server_id: serverId,
     hostApp
   })
 
@@ -82,6 +83,7 @@ export function initialize(params: {
     mp.identify(userId)
     mp.people.set('Identified', true)
     mp.people.set('Theme Web', ThemeStateManager.isDarkTheme() ? 'dark' : 'light')
+    mp.add_group('server_id', serverId)
   }
 
   // Track UTM

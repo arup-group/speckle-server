@@ -57,7 +57,9 @@ async function getSpeckleModules() {
     './activitystream',
     './accessrequests',
     './jobnumbers',
-    './webhooks'
+    './webhooks',
+    './cross-server-sync',
+    './automations'
   ]
 
   for (const dir of moduleDirs) {
@@ -73,7 +75,7 @@ exports.init = async (app) => {
 
   // Stage 1: initialise all modules
   for (const module of modules) {
-    await module.init(app, isInitial)
+    await module.init?.(app, isInitial)
   }
 
   // Stage 2: finalize init all modules

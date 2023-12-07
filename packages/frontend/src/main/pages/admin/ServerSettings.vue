@@ -103,6 +103,11 @@ export default {
           label: 'Require job numbers for commit creation (ie. for sending to streams)',
           hint: 'Users can create a stream commit only for streams that contain a job number',
           type: 'boolean'
+        },
+        guestModeEnabled: {
+          label: 'Guest mode',
+          hint: "Enable the 'Guest' server role, which allows users to only contribute to streams that they're invited to",
+          type: 'boolean'
         }
       }
     }
@@ -121,6 +126,7 @@ export default {
   methods: {
     async saveEdit() {
       this.loading = true
+      const changes = pick(this.serverModifications, Object.keys(this.serverDetails))
       await this.$apollo.mutate({
         mutation: gql`
           mutation ($info: ServerInfoUpdateInput!) {
@@ -128,10 +134,21 @@ export default {
           }
         `,
         variables: {
-          info: pick(this.serverModifications, Object.keys(this.serverDetails))
+          info: changes
+        },
+        update: (cache) => {
+          cache.writeQuery({
+            query: mainServerInfoQuery,
+            data: {
+              serverInfo: {
+                ...this.serverInfo,
+                ...changes
+              }
+            }
+          })
         }
       })
-      await this.$apollo.queries['serverInfo'].refetch()
+      // await this.$apollo.queries['serverInfo'].refetch()
       this.loading = false
     }
   }

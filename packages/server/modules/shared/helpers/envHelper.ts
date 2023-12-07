@@ -1,4 +1,3 @@
-import { Nullable } from '@speckle/shared'
 import { MisconfiguredEnvironmentError } from '@/modules/shared/errors'
 import { trimEnd } from 'lodash'
 
@@ -35,6 +34,10 @@ export function getApolloServerVersion() {
 
 export function getFileSizeLimitMB() {
   return getIntFromEnv('FILE_SIZE_LIMIT_MB', '100')
+}
+
+export function getMaximumObjectSizeMB() {
+  return getIntFromEnv('MAX_OBJECT_SIZE_MB', '10')
 }
 
 export function getIntFromEnv(envVarKey: string, aDefault = '0'): number {
@@ -81,6 +84,26 @@ export function getOidcName() {
   return process.env.OIDC_NAME
 }
 
+export function getMailchimpStatus() {
+  return [true, 'true'].includes(process.env.MAILCHIMP_ENABLED || false)
+}
+
+export function getMailchimpConfig() {
+  if (
+    !process.env.MAILCHIMP_API_KEY ||
+    !process.env.MAILCHIMP_SERVER_PREFIX ||
+    !process.env.MAILCHIMP_LIST_ID
+  ) {
+    throw new MisconfiguredEnvironmentError('Mailchimp is not configured')
+  }
+
+  return {
+    apiKey: process.env.MAILCHIMP_API_KEY,
+    serverPrefix: process.env.MAILCHIMP_SERVER_PREFIX,
+    listId: process.env.MAILCHIMP_LIST_ID
+  }
+}
+
 /**
  * Get app base url / canonical url / origin
  * TODO: Go over all getBaseUrl() usages and move them to getXOrigin() instead
@@ -102,8 +125,8 @@ export function shouldDisableNotificationsConsumption() {
 /**
  * Get frontend app origin/base URL
  */
-export function getFrontendOrigin() {
-  const envKey = useNewFrontend() ? 'FRONTEND_ORIGIN' : 'CANONICAL_URL'
+export function getFrontendOrigin(forceFe2?: boolean) {
+  const envKey = useNewFrontend() || forceFe2 ? 'FRONTEND_ORIGIN' : 'CANONICAL_URL'
   const trimmedOrigin = trimEnd(process.env[envKey], '/')
 
   if (!trimmedOrigin) {
@@ -121,7 +144,7 @@ export function getFrontendOrigin() {
 export function getServerOrigin() {
   if (!process.env.CANONICAL_URL) {
     throw new MisconfiguredEnvironmentError(
-      'Server origin env var (CANONICAL_URL) not configured'
+      'Server origin environment variable (CANONICAL_URL) not configured'
     )
   }
 
@@ -133,13 +156,6 @@ export function getServerOrigin() {
  */
 export function isSSLServer() {
   return /^https:\/\//.test(getBaseUrl())
-}
-
-/**
- * Source stream for cloning tutorial/guide streams for users
- */
-export function getOnboardingStreamId(): Nullable<string> {
-  return process.env.ONBOARDING_STREAM_ID || null
 }
 
 export function adminOverrideEnabled() {
@@ -162,4 +178,38 @@ export function speckleAutomateUrl() {
  */
 export function ignoreMissingMigrations() {
   return ['1', 'true'].includes(process.env.IGNORE_MISSING_MIRATIONS || 'false')
+}
+
+/**
+ * URL of a project on any FE2 speckle server that will be pulled in and used as the onboarding stream
+ */
+export function getOnboardingStreamUrl() {
+  const val = process.env.ONBOARDING_STREAM_URL
+  if (!val?.length) return null
+
+  try {
+    // validating that the URL is valid
+    return new URL(val).toString()
+  } catch (e) {
+    // suppress
+  }
+
+  return null
+}
+
+/**
+ * Increase this value to re-sync the onboarding stream
+ */
+export function getOnboardingStreamCacheBustNumber() {
+  const val = process.env.ONBOARDING_STREAM_CACHE_BUST_NUMBER || '1'
+  return parseInt(val) || 1
+}
+
+export function getEmailFromAddress() {
+  if (!process.env.EMAIL_FROM) {
+    throw new MisconfiguredEnvironmentError(
+      'Email From environment variable (EMAIL_FROM) is not configured'
+    )
+  }
+  return process.env.EMAIL_FROM
 }

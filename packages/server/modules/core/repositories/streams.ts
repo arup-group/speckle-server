@@ -47,6 +47,7 @@ import { Knex } from 'knex'
 import { isProjectCreateInput } from '@/modules/core/helpers/stream'
 import { SetRequired } from 'type-fest'
 import { StreamAccessUpdateError } from '@/modules/core/errors/stream'
+import { metaHelpers } from '@/modules/core/helpers/meta'
 
 export type StreamWithOptionalRole = StreamRecord & {
   /**
@@ -929,7 +930,7 @@ export async function revokeStreamPermissions(params: {
     .select<StreamAclRecord[]>('*')
     .first()
 
-  if (aclEntry?.role === 'stream:owner') {
+  if (aclEntry?.role === Roles.Stream.Owner) {
     const [countObj] = await StreamAcl.knex()
       .where({
         resourceId: streamId,
@@ -960,4 +961,60 @@ export async function revokeStreamPermissions(params: {
     .update({ updatedAt: knex.fn.now() }, '*')
 
   return stream as StreamRecord
+}
+
+/**
+ * Mark stream as the onboarding base stream from which user onboarding streams will be cloned
+ */
+export async function markOnboardingBaseStream(streamId: string, version: string) {
+  const stream = await getStream({ streamId })
+  if (!stream) {
+    throw new Error(`Stream ${streamId} not found`)
+  }
+
+  const meta = metaHelpers(Streams)
+  await meta.set(streamId, Streams.meta.metaKey.onboardingBaseStream, version)
+}
+
+/**
+ * Get onboarding base stream, if any
+ */
+export async function getOnboardingBaseStream(version: string) {
+  const q = Streams.knex()
+    .select<StreamRecord[]>(Streams.cols)
+    .innerJoin(Streams.meta.name, Streams.meta.col.streamId, Streams.col.id)
+    .where(Streams.meta.col.key, Streams.meta.metaKey.onboardingBaseStream)
+    .andWhereRaw(`${Streams.meta.col.value}::text = ?`, JSON.stringify(version))
+    .first()
+
+  return await q
+}
+
+/**
+ * Get user's own onboarding stream, if any
+ */
+export async function getUserOnboardingStream(userId: string) {
+  const q = Users.meta
+    .knex()
+    .select<StreamRecord[]>(Streams.cols)
+    .innerJoin(
+      Streams.name,
+      Streams.col.id,
+      knex.raw(`?? #>> '{}'`, [Users.meta.col.value])
+    )
+    .where(Users.meta.col.userId, userId)
+    .andWhere(Users.meta.col.key, Users.meta.metaKey.onboardingStreamId)
+    .first()
+
+  return await q
+}
+
+export async function markUserOnboardingStream(userId: string, streamId: string) {
+  const stream = await getStream({ streamId })
+  if (!stream) {
+    throw new Error(`Stream ${streamId} not found`)
+  }
+
+  const meta = metaHelpers(Users)
+  await meta.set(userId, Users.meta.metaKey.onboardingStreamId, streamId)
 }

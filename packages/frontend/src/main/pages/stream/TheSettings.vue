@@ -22,8 +22,13 @@
     <v-row v-if="stream">
       <v-col v-if="isEditNotAuthorized" cols="12">
         <v-alert type="warning">
-          Your permission level ({{ stream.role ? stream.role : 'none' }}) is not high
-          enough to edit this stream's details.
+          <template v-if="isServerGuest">
+            Server guests cannot edit stream details
+          </template>
+          <template v-else>
+            Your permission level ({{ stream.role ? stream.role : 'none' }}) is not high
+            enough to edit this stream's details.
+          </template>
         </v-alert>
       </v-col>
       <v-col cols="12">
@@ -202,6 +207,7 @@ import {
   updateCacheByFilter
 } from '@/main/lib/common/apollo/helpers/apolloOperationHelper'
 import { gql } from '@apollo/client/core'
+import { useActiveUser } from '@/main/lib/core/composables/activeUser'
 
 type ModelType = {
   name: string
@@ -222,6 +228,7 @@ export default defineComponent({
     JobNumberSearch
   },
   setup() {
+    const { isServerGuest } = useActiveUser()
     const router = useRouter()
     const route = useRoute()
     const mixpanel = useMixpanel()
@@ -375,7 +382,7 @@ export default defineComponent({
     )
     const oldModel = computed(() => buildModelFromStream(stream.value))
     const isEditNotAuthorized = computed(
-      () => stream.value?.role !== Roles.Stream.Owner
+      () => stream.value?.role !== Roles.Stream.Owner || isServerGuest.value
     )
     const isEditDisabled = computed(() => isEditNotAuthorized.value || loading.value)
     const changesExist = computed(() => {
@@ -445,7 +452,50 @@ export default defineComponent({
       isEditNotAuthorized,
       isEditDisabled,
       save,
-      deleteStream
+      deleteStream,
+      isServerGuest
+    }
+  },
+  apollo: {
+    showJobNumberInput: {
+      query: gql`
+        query {
+          serverInfo {
+            showJobNumberInput
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.showJobNumberInput
+    },
+    requireJobNumberToCreateCommits: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateCommits
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
+    },
+    requireJobNumberToCreateStreams: {
+      query: gql`
+        query {
+          serverInfo {
+            requireJobNumberToCreateStreams
+          }
+        }
+      `,
+      prefetch: true,
+      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
+    }
+  },
+  methods: {
+    selectedJobNumber(event: { JobCode: Nullable<string> }) {
+      if (event) {
+        this.model.jobNumber = event.JobCode
+      }
     }
   },
   apollo: {
