@@ -1,7 +1,8 @@
 'use strict'
 const debug = require('debug')
 const sentry = require(`@/logging/sentryHelper`)
-const { validateServerRole } = require('@/modules/shared')
+const { throwForNotHavingServerRole } = require('@/modules/shared/authz')
+const { Roles } = require('@speckle/shared')
 const { getServerInfo } = require('@/modules/core/services/generic')
 const { getJobCodes } = require('@/modules/jobnumbers/services/jobnumbers')
 const { moduleLogger } = require('@/logging/logging')
@@ -22,7 +23,7 @@ exports.init = async (app) => {
   }
 
   app.get('/api/jobnumber/:jobNumber', async (req, res) => {
-    await validateServerRole(req.context, 'server:user')
+    await throwForNotHavingServerRole(req.context, Roles.Server.User)
     try {
       if (!req.params.jobNumber)
         return res.status(400).send('No job number or job name parameter specified.')
