@@ -1546,6 +1546,7 @@ export type ProjectCreateInput = {
   description?: InputMaybe<Scalars['String']>;
   name?: InputMaybe<Scalars['String']>;
   visibility?: InputMaybe<ProjectVisibility>;
+  jobNumber?: InputMaybe<Scalars['String']>;
 };
 
 export type ProjectInviteCreateInput = {

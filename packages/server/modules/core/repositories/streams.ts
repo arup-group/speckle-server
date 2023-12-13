@@ -722,7 +722,7 @@ export async function createStream(
     trx: Knex.Transaction
   }>
 ) {
-  const { name, description } = input
+  const { name, description, jobNumber } = input
   const { ownerId, trx } = options || {}
 
   let shouldBePublic: boolean, shouldBeDiscoverable: boolean
@@ -743,6 +743,7 @@ export async function createStream(
     description: description || '',
     isPublic: shouldBePublic,
     isDiscoverable: shouldBeDiscoverable,
+    jobNumber: jobNumber || '',
     updatedAt: knex.fn.now()
   }
 
