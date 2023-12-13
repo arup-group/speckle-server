@@ -254,7 +254,7 @@ export default defineComponent({
 
       return {
         name: stream.name,
-        jobNumber: stream.jobNumber,
+        jobNumber: stream.jobNumber || '',
         description: stream.description || '',
         isPublic: stream.isPublic,
         isDiscoverable: stream.isDiscoverable,
@@ -454,48 +454,6 @@ export default defineComponent({
       save,
       deleteStream,
       isServerGuest
-    }
-  },
-  apollo: {
-    showJobNumberInput: {
-      query: gql`
-        query {
-          serverInfo {
-            showJobNumberInput
-          }
-        }
-      `,
-      prefetch: true,
-      update: (data) => data.serverInfo.showJobNumberInput
-    },
-    requireJobNumberToCreateCommits: {
-      query: gql`
-        query {
-          serverInfo {
-            requireJobNumberToCreateCommits
-          }
-        }
-      `,
-      prefetch: true,
-      update: (data) => data.serverInfo.requireJobNumberToCreateCommits
-    },
-    requireJobNumberToCreateStreams: {
-      query: gql`
-        query {
-          serverInfo {
-            requireJobNumberToCreateStreams
-          }
-        }
-      `,
-      prefetch: true,
-      update: (data) => data.serverInfo.requireJobNumberToCreateStreams
-    }
-  },
-  methods: {
-    selectedJobNumber(event: { JobCode: Nullable<string> }) {
-      if (event) {
-        this.model.jobNumber = event.JobCode
-      }
     }
   },
   apollo: {
