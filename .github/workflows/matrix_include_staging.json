@@ -16,14 +16,6 @@
     "disablePosthogTracking": "true"
   },
   {
-    "environment": "amr",
-    "region": "us-east-1",
-    "accessKey": "AWS_ACCESS_KEY_ID",
-    "secretAccessKey": "AWS_SECRET_ACCESS_KEY",
-    "url": "https://amr.speckle.arup.com",
-    "disablePosthogTracking": "false"
-  },
-  {
     "package": "server",
     "cxName": "spec-cx-server",
     "serviceName": "specklev2"
