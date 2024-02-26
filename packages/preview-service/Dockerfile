@@ -55,7 +55,7 @@ RUN apt-get update && \
   libdrm2=2.4.104-1 \
   libexpat1=2.2.10-2+deb11u5 \
   libgbm1=20.3.5-1 \
-  libglib2.0-0=2.66.8-1 \
+  libglib2.0-0=2.66.8-1+deb11u1 \
   libnspr4=2:4.29-1 \
   libnss3=2:3.61-1+deb11u3 \
   libpango-1.0-0=1.46.2-3 \
