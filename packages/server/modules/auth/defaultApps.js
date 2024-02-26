@@ -8,6 +8,7 @@ const { getApp } = require('@/modules/auth/services/apps')
 const { Scopes: ScopesConst } = require('@/modules/core/helpers/mainConstants')
 const { difference } = require('lodash')
 const { moduleLogger } = require('@/logging/logging')
+const { speckleAutomateUrl } = require('@/modules/shared/helpers/envHelper')
 
 let allScopes = []
 
@@ -25,6 +26,7 @@ module.exports = async () => {
   await registerOrUpdateApp({ ...SpeckleFuseApp })
   await registerOrUpdateApp({ ...SpeckleSDPApp })
   await registerOrUpdateApp({ ...SpecklePowerBi })
+  await registerOrUpdateApp({ ...SpeckleAutomate })
 }
 
 async function registerOrUpdateApp(app) {
@@ -249,5 +251,23 @@ const SpecklePowerBi = {
     ScopesConst.Profile.Email,
     ScopesConst.Users.Read,
     ScopesConst.Users.Invite
+  ]
+}
+
+const SpeckleAutomate = {
+  id: 'spklautoma',
+  secret: 'spklautoma',
+  name: 'Speckle Automate',
+  description: 'Our automation platform',
+  trustByDefault: true,
+  public: true,
+  redirectUrl: `${speckleAutomateUrl()}/authn/callback`,
+  scopes: [
+    ScopesConst.Profile.Email,
+    ScopesConst.Profile.Read,
+    ScopesConst.Users.Read,
+    ScopesConst.Tokens.Write,
+    ScopesConst.Streams.Read,
+    ScopesConst.Streams.Write
   ]
 }

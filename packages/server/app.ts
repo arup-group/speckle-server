@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* istanbul ignore file */
 import './bootstrap'
 import http from 'http'
@@ -22,10 +23,16 @@ import prometheusClient from 'prom-client'
 import {
   ApolloServer,
   ForbiddenError,
-  ApolloServerExpressConfig
+  ApolloServerExpressConfig,
+  ApolloError
 } from 'apollo-server-express'
+import {
+  ApolloServerPluginLandingPageLocalDefault,
+  ApolloServerPluginUsageReportingDisabled,
+  ApolloServerPluginUsageReporting
+} from 'apollo-server-core'
 
-import { SubscriptionServer } from 'subscriptions-transport-ws'
+import { ExecutionParams, SubscriptionServer } from 'subscriptions-transport-ws'
 import { execute, subscribe } from 'graphql'
 
 import knex from '@/db/knex'
@@ -34,21 +41,63 @@ import { buildErrorFormatter } from '@/modules/core/graph/setup'
 import {
   getFileSizeLimitMB,
   isDevEnv,
-  isTestEnv
+  isTestEnv,
+  useNewFrontend,
+  isApolloMonitoringEnabled
 } from '@/modules/shared/helpers/envHelper'
 import * as ModulesSetup from '@/modules'
-import { Optional } from '@/modules/shared/helpers/typeHelper'
+import { GraphQLContext, Optional } from '@/modules/shared/helpers/typeHelper'
 import { createRateLimiterMiddleware } from '@/modules/core/services/ratelimiter'
 
 import { get, has, isString, toNumber } from 'lodash'
+import { corsMiddleware } from '@/modules/core/configs/cors'
+import { IMocks } from '@graphql-tools/mock'
 import {
   authContextMiddleware,
   buildContext,
   determineClientIpAddressMiddleware,
   mixpanelTrackerHelperMiddleware
 } from '@/modules/shared/middleware'
+import { GraphQLError } from 'graphql'
+import { redactSensitiveVariables } from '@/logging/loggingHelper'
 
 let graphqlServer: ApolloServer
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SubscriptionResponse = { errors?: GraphQLError[]; data?: any }
+
+function logSubscriptionOperation(params: {
+  ctx: GraphQLContext
+  execParams: ExecutionParams
+  error?: Error
+  response?: SubscriptionResponse
+}) {
+  const { error, response, ctx, execParams } = params
+  if (!error && !response) return
+
+  const logger = ctx.log.child({
+    graphql_query: execParams.query.toString(),
+    graphql_variables: redactSensitiveVariables(execParams.variables),
+    graphql_operation_name: execParams.operationName,
+    graphql_operation_type: 'subscription'
+  })
+
+  const errors = response?.errors || (error ? [error] : [])
+  if (errors.length) {
+    for (const error of errors) {
+      if (
+        (error instanceof GraphQLError && error.extensions?.code === 'FORBIDDEN') ||
+        error instanceof ApolloError
+      ) {
+        logger.info(error, 'graphql error')
+      } else {
+        logger.error(error, 'graphql error')
+      }
+    }
+  } else if (response?.data) {
+    logger.info('graphql response')
+  }
+}
 
 /**
  * TODO: subscriptions-transport-ws is no longer maintained, we should migrate to graphql-ws insted. The problem
@@ -117,13 +166,33 @@ function buildApolloSubscriptionServer(
         // Build context (Apollo Server v3 no longer triggers context building automatically
         // for subscriptions)
         try {
-          return await buildContext({ req: null, token })
+          return await buildContext({ req: null, token, cleanLoadersEarly: false })
         } catch (e) {
           throw new ForbiddenError('Subscription context build failed')
         }
       },
       onDisconnect: () => {
         metricConnectedClients.dec()
+      },
+      onOperation: (...params: [() => void, ExecutionParams]) => {
+        // kinda hacky, but we're using this as an "subscription event emitted"
+        // callback to clear subscription connection dataloaders to avoid stale cache
+        const baseParams = params[1]
+        const ctx = baseParams.context as GraphQLContext
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        baseParams.formatResponse = (val: SubscriptionResponse) => {
+          ctx.loaders.clearAll()
+          logSubscriptionOperation({ ctx, execParams: baseParams, response: val })
+          return val
+        }
+        baseParams.formatError = (e: Error) => {
+          ctx.loaders.clearAll()
+          logSubscriptionOperation({ ctx, execParams: baseParams, error: e })
+          return e
+        }
+
+        return baseParams
       }
     },
     {
@@ -131,6 +200,24 @@ function buildApolloSubscriptionServer(
       path: apolloServer.graphqlPath
     }
   )
+}
+
+/**
+ * Define mocking config in dev env
+ * https://www.apollographql.com/docs/apollo-server/v3/testing/mocking
+ */
+async function buildMocksConfig(): Promise<{
+  mocks: boolean | IMocks
+  mockEntireSchema: boolean
+}> {
+  const isDebugEnv = isDevEnv()
+  if (!isDebugEnv) return { mocks: false, mockEntireSchema: false } // we def don't want this on in prod
+
+  // feel free to define mocks for your dev env below
+  // const roles = Object.values(Roles.Stream)
+  // const { faker } = await import('@faker-js/faker')
+
+  return { mocks: false, mockEntireSchema: false }
 }
 
 /**
@@ -145,12 +232,17 @@ export async function buildApolloServer(
 ): Promise<ApolloServer> {
   const debug = optionOverrides?.debug || isDevEnv() || isTestEnv()
   const schema = ModulesSetup.graphSchema()
+  const { mockEntireSchema, mocks } = await buildMocksConfig()
 
   const server = new ApolloServer({
     schema,
     context: buildContext,
     plugins: [
       require('@/logging/apolloPlugin'),
+      ApolloServerPluginLandingPageLocalDefault({
+        embed: true,
+        includeCookies: true
+      }),
       ...(subscriptionServerResolver
         ? [
             {
@@ -163,7 +255,15 @@ export async function buildApolloServer(
               }
             }
           ]
-        : [])
+        : []),
+      ...(isApolloMonitoringEnabled()
+        ? [
+            ApolloServerPluginUsageReporting({
+              // send all headers (except auth ones)
+              sendHeaders: { all: true }
+            })
+          ]
+        : [ApolloServerPluginUsageReportingDisabled()])
     ],
     introspection: true,
     cache: 'bounded',
@@ -171,6 +271,8 @@ export async function buildApolloServer(
     csrfPrevention: true,
     formatError: buildErrorFormatter(debug),
     debug,
+    mocks,
+    mockEntireSchema,
     ...optionOverrides
   })
   await server.start()
@@ -182,6 +284,10 @@ export async function buildApolloServer(
  * Initialises all server (express/subscription/http) instances
  */
 export async function init() {
+  if (useNewFrontend()) {
+    startupLogger.info('🖼️  Serving for frontend-2...')
+  }
+
   const app = express()
   app.disable('x-powered-by')
 
@@ -199,6 +305,7 @@ export async function init() {
     app.use(compression())
   }
 
+  app.use(corsMiddleware())
   app.use(express.json({ limit: '100mb' }))
   app.use(express.urlencoded({ limit: `${getFileSizeLimitMB()}mb`, extended: false }))
 
@@ -248,7 +355,7 @@ export async function shutdown(): Promise<void> {
 const shouldUseFrontendProxy = () => process.env.NODE_ENV === 'development'
 
 async function createFrontendProxy() {
-  const frontendHost = process.env.FRONTEND_HOST || 'localhost'
+  const frontendHost = process.env.FRONTEND_HOST || '127.0.0.1'
   const frontendPort = process.env.FRONTEND_PORT || 8080
   const { createProxyMiddleware } = await import('http-proxy-middleware')
 
@@ -275,15 +382,13 @@ export async function startHttp(
   let bindAddress = process.env.BIND_ADDRESS || '127.0.0.1'
   let port = process.env.PORT ? toNumber(process.env.PORT) : 3000
 
-  // Handles frontend proxying:
-  // Dev mode -> proxy form the local webpack server
   if (customPortOverride || customPortOverride === 0) port = customPortOverride
   if (shouldUseFrontendProxy()) {
     // app.use('/', frontendProxy)
     app.use(await createFrontendProxy())
 
-    startupLogger.info('✨ Proxying frontend (dev mode):')
-    startupLogger.info(`👉 main application: http://localhost:${port}/`)
+    startupLogger.info('✨ Proxying frontend-1 (dev mode):')
+    startupLogger.info(`👉 main application: http://127.0.0.1:${port}/`)
   }
 
   // Production mode

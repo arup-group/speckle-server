@@ -1,10 +1,12 @@
 # NOTE: Docker context should be set to git root directory, to include the viewer
 ARG NODE_ENV=production
 ARG SPECKLE_SERVER_VERSION=custom
+ARG DISABLE_POSTHOG_TRACKING=true
 # build stage
-FROM node:18.15.0-bullseye-slim as build-stage
+FROM node:18.17.1-bullseye-slim as build-stage
 ARG NODE_ENV
 ARG SPECKLE_SERVER_VERSION
+ARG DISABLE_POSTHOG_TRACKING
 
 ENV NODE_ENV=${NODE_ENV}
 
@@ -14,6 +16,7 @@ COPY .yarn ./.yarn
 COPY package.json yarn.lock ./
 
 # Onyl copy in the relevant package.json files for the dependencies
+COPY packages/frontend-2/type-augmentations/stubs ./packages/frontend-2/type-augmentations/stubs/
 COPY packages/frontend/package.json ./packages/frontend/
 COPY packages/viewer/package.json ./packages/viewer/
 COPY packages/objectloader/package.json ./packages/objectloader/
@@ -29,6 +32,7 @@ COPY packages/shared ./packages/shared/
 
 # This way the foreach only builds the frontend and its deps
 RUN --mount=type=secret,id=posthog_api_key \
+    export VITE_DISABLE_POSTHOG_TRACKING=${DISABLE_POSTHOG_TRACKING} \
     export VITE_POSTHOG_API_KEY=$(cat /run/secrets/posthog_api_key) && \
     yarn workspaces foreach run build
 

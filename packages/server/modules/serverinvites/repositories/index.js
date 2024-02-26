@@ -1,4 +1,4 @@
-const { ServerInvites } = require('@/modules/core/dbSchema')
+const { ServerInvites, Streams, knex } = require('@/modules/core/dbSchema')
 const { getUserByEmail, getUser } = require('@/modules/core/repositories/users')
 const { ResourceNotResolvableError } = require('@/modules/serverinvites/errors')
 const {
@@ -9,6 +9,26 @@ const {
 } = require('@/modules/serverinvites/helpers/inviteHelper')
 const { uniq, isArray } = require('lodash')
 const { getStream } = require('@/modules/core/repositories/streams')
+
+/**
+ * Use this wherever you're retrieving invites, not necessarily where you're writing to them
+ */
+const getInvitesBaseQuery = (sort = 'asc') => {
+  const q = ServerInvites.knex().select(ServerInvites.cols)
+
+  // join just to ensure we don't retrieve invalid invites
+  q.leftJoin(Streams.name, (j) => {
+    j.onNotNull(ServerInvites.col.resourceId)
+      .andOnVal(ServerInvites.col.resourceTarget, ResourceTargets.Streams)
+      .andOn(Streams.col.id, ServerInvites.col.resourceId)
+  }).where((w1) => {
+    w1.whereNull(ServerInvites.col.resourceId).orWhereNotNull(Streams.col.id)
+  })
+
+  q.orderBy(ServerInvites.col.createdAt, sort)
+
+  return q
+}
 
 /**
  *
@@ -30,11 +50,13 @@ async function getResource(invite) {
 /**
  * Try to find a user using the target value
  * @param {string} target
- * @returns {Promise<import('@/modules/core/helpers/userHelper').UserRecord>}
+ * @returns {Promise<import('@/modules/core/repositories/users').UserWithOptionalRole | undefined>}
  */
 async function getUserFromTarget(target) {
   const { userEmail, userId } = resolveTarget(target)
-  return userEmail ? await getUserByEmail(userEmail) : await getUser(userId)
+  return userEmail
+    ? await getUserByEmail(userEmail, { withRole: true })
+    : await getUser(userId, { withRole: true })
 }
 
 /**
@@ -73,7 +95,7 @@ async function insertInviteAndDeleteOld(invite, alternateTargets = []) {
 async function getServerInvite(email, token = undefined) {
   if (!email) return null
 
-  const q = ServerInvites.knex().where({
+  const q = getInvitesBaseQuery().where({
     [ServerInvites.col.target]: email.toLowerCase()
   })
 
@@ -126,7 +148,7 @@ async function updateAllInviteTargets(oldTargets, newTarget) {
 async function getAllStreamInvites(streamId) {
   if (!streamId) return []
 
-  const q = ServerInvites.knex().where({
+  const q = getInvitesBaseQuery().where({
     [ServerInvites.col.resourceTarget]: ResourceTargets.Streams,
     [ServerInvites.col.resourceId]: streamId
   })
@@ -143,7 +165,7 @@ async function getAllUserStreamInvites(userId) {
   if (!userId) return []
   const target = buildUserTarget(userId)
 
-  const q = ServerInvites.knex().where({
+  const q = getInvitesBaseQuery().where({
     [ServerInvites.col.target]: target,
     [ServerInvites.col.resourceTarget]: ResourceTargets.Streams
   })
@@ -166,7 +188,7 @@ async function getStreamInvite(
 ) {
   if (!target && !token && !inviteId) return null
 
-  const q = ServerInvites.knex().where({
+  const q = getInvitesBaseQuery().where({
     [ServerInvites.col.resourceTarget]: ResourceTargets.Streams,
     [ServerInvites.col.resourceId]: streamId
   })
@@ -203,8 +225,8 @@ async function deleteStreamInvite(inviteId) {
     .delete()
 }
 
-function findServerInvitesBaseQuery(searchQuery) {
-  const q = ServerInvites.knex()
+function findServerInvitesBaseQuery(searchQuery, sort) {
+  const q = getInvitesBaseQuery(sort)
 
   if (searchQuery) {
     // TODO: Is this safe from SQL injection?
@@ -224,7 +246,7 @@ function findServerInvitesBaseQuery(searchQuery) {
  */
 async function countServerInvites(searchQuery) {
   const q = findServerInvitesBaseQuery(searchQuery)
-  const [count] = await q.count()
+  const [count] = await knex().count().from(q.as('sq1'))
   return parseInt(count.count)
 }
 
@@ -243,13 +265,27 @@ async function findServerInvites(searchQuery, limit, offset) {
 }
 
 /**
+ *
+ * @param {string|null} searchQuery
+ * @param {number} limit
+ * @param {Date|null} cursor
+ * @returns {Promise<ServerInviteRecord[]>}
+ */
+async function queryServerInvites(searchQuery, limit, cursor) {
+  const q = findServerInvitesBaseQuery(searchQuery, 'desc').limit(limit)
+
+  if (cursor) q.where(ServerInvites.col.createdAt, '<', cursor.toISOString())
+  return await q
+}
+
+/**
  * Retrieve a specific invite (irregardless of the type)
  * @param {string} inviteId
  * @returns {Promise<ServerInviteRecord | null>}
  */
 async function getInvite(inviteId) {
   if (!inviteId) return null
-  return await ServerInvites.knex().where(ServerInvites.col.id, inviteId).first()
+  return await getInvitesBaseQuery().where(ServerInvites.col.id, inviteId).first()
 }
 
 /**
@@ -259,7 +295,7 @@ async function getInvite(inviteId) {
  */
 async function getInviteByToken(inviteToken) {
   if (!inviteToken) return null
-  return await ServerInvites.knex().where(ServerInvites.col.token, inviteToken).first()
+  return await getInvitesBaseQuery().where(ServerInvites.col.token, inviteToken).first()
 }
 
 /**
@@ -314,12 +350,26 @@ async function deleteAllUserInvites(userId) {
 }
 
 /**
+ * Delete all invites for the specified stream
+ * @param {string} streamId
+ * @returns {Promise<boolean>}
+ */
+async function deleteAllStreamInvites(streamId) {
+  if (!streamId) return false
+  await ServerInvites.knex()
+    .where(ServerInvites.col.resourceId, streamId)
+    .andWhere(ServerInvites.col.resourceTarget, ResourceTargets.Streams)
+    .delete()
+  return true
+}
+
+/**
  * Get all invites by IDs
  * @returns {Promise<ServerInviteRecord[]>}
  */
 async function getInvites(inviteIds) {
   if (!inviteIds?.length) return []
-  return await ServerInvites.knex().whereIn(ServerInvites.col.id, inviteIds)
+  return await getInvitesBaseQuery().whereIn(ServerInvites.col.id, inviteIds)
 }
 
 module.exports = {
@@ -340,5 +390,7 @@ module.exports = {
   getResource,
   getAllUserStreamInvites,
   getInvites,
-  getInviteByToken
+  getInviteByToken,
+  deleteAllStreamInvites,
+  queryServerInvites
 }

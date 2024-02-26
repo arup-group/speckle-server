@@ -76,7 +76,13 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
           })
           // ID is used later for verifying access token
           req.user.id = myUser.id
-          identify(myUser)
+
+          if (
+            process.env.DISABLE_POSTHOG_TRACKING !== 'true' &&
+            process.env.POSTHOG_API_KEY
+          ) {
+            identify(myUser)
+          }
           return next()
         }
 
@@ -88,7 +94,12 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
           })
           // ID is used later for verifying access token
           req.user.id = myUser.id
-          identify(myUser)
+          if (
+            process.env.DISABLE_POSTHOG_TRACKING !== 'true' &&
+            process.env.POSTHOG_API_KEY
+          ) {
+            identify(myUser)
+          }
 
           req.user.isNewUser = myUser.isNewUser
 
@@ -111,11 +122,22 @@ module.exports = async (app, session, sessionStorage, finalizeAuth) => {
         const validInvite = await validateServerInvite(user.email, req.session.token)
 
         // create the user
-        const myUser = await findOrCreateUser({ user, rawProfile: req.user._json })
+        const myUser = await findOrCreateUser({
+          user: {
+            ...user,
+            role: validInvite?.serverRole
+          },
+          rawProfile: req.user._json
+        })
 
         // ID is used later for verifying access token
         req.user.id = myUser.id
-        identify(myUser)
+        if (
+          process.env.DISABLE_POSTHOG_TRACKING !== 'true' &&
+          process.env.POSTHOG_API_KEY
+        ) {
+          identify(myUser)
+        }
 
         req.user.isInvite = !!validInvite
         req.log = req.log.child({ userId: myUser.id })

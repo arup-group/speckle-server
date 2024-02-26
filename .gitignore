@@ -10,6 +10,7 @@ packages/*/dist-esm
 packages/*/dist-cjs
 *.env
 *.env.test
+*.envrc
 *.crt
 .nyc_output
 coverage/
@@ -58,3 +59,9 @@ packages/server/.vscode/*.log
 
 # GitGuardian
 .cache_ggshield
+
+storybook-static
+build-storybook.log
+ensure-tailwind-deps.mjs.lock
+vite.config.ts.timestamp-*.mjs
+introspected-schema.graphql

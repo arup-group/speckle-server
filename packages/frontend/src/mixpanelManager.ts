@@ -52,7 +52,7 @@ export function getMixpanelServerId(): string {
  */
 export function getMixpanel(): OverridedMixpanel {
   if (!mixpanelInitialized) {
-    throw new Error('Attempting to use uninitialized mixpanel instance')
+    // throw new Error('Attempting to use uninitialized mixpanel instance')
   }
 
   return mixpanel
@@ -69,10 +69,13 @@ export function initialize(params: {
   const { hostApp, hostAppDisplayName } = params
 
   // Register session
+  const serverId = getMixpanelServerId()
   mp.register({
-    server_id: getMixpanelServerId(),
+    server_id: serverId,
     hostApp
   })
+
+  mp.disable()
 
   // Identify user, if any
   const userId = getMixpanelUserId()
@@ -80,6 +83,7 @@ export function initialize(params: {
     mp.identify(userId)
     mp.people.set('Identified', true)
     mp.people.set('Theme Web', ThemeStateManager.isDarkTheme() ? 'dark' : 'light')
+    mp.add_group('server_id', serverId)
   }
 
   // Track UTM

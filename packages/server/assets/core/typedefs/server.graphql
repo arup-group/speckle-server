@@ -12,9 +12,13 @@ type ServerInfo {
   adminContact: String
   canonicalUrl: String
   termsOfService: String
-  roles: [Role]!
-  scopes: [Scope]!
+  roles: [Role!]!
+    @deprecated(
+      reason: "Use role constants from the @speckle/shared npm package instead"
+    )
+  scopes: [Scope!]!
   inviteOnly: Boolean
+  guestModeEnabled: Boolean!
   version: String
   createDefaultGlobals: Boolean
   defaultGlobals: JSONObject
@@ -23,15 +27,22 @@ type ServerInfo {
   showJobNumberInput: Boolean
   requireJobNumberToCreateStreams: Boolean
   requireJobNumberToCreateCommits: Boolean
+  serverRoles: [ServerRoleItem!]!
+  """
+  Base URL of Speckle Automate, if set
+  """
+  automateUrl: String
 }
 
-"""
-Available roles.
-"""
 type Role {
   name: String!
   description: String!
   resourceTarget: String!
+}
+
+type ServerRoleItem {
+  id: String!
+  title: String!
 }
 
 """
@@ -44,7 +55,7 @@ type Scope {
 
 extend type Mutation {
   serverInfoUpdate(info: ServerInfoUpdateInput!): Boolean
-    @hasRole(role: "server:admin")
+    @hasServerRole(role: SERVER_ADMIN)
     @hasScope(scope: "server:setup")
 }
 
@@ -63,4 +74,5 @@ input ServerInfoUpdateInput {
   showJobNumberInput: Boolean
   requireJobNumberToCreateStreams: Boolean
   requireJobNumberToCreateCommits: Boolean
+  guestModeEnabled: Boolean
 }

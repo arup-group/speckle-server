@@ -11,7 +11,10 @@ const {
   createAndSendInvite
 } = require('@/modules/serverinvites/services/inviteCreationService')
 const {
-  finalizeStreamInvite,
+  createStreamInviteAndNotify,
+  useStreamInviteAndNotify
+} = require('@/modules/serverinvites/services/management')
+const {
   cancelStreamInvite,
   resendInvite,
   deleteInvite
@@ -23,13 +26,15 @@ const {
 const { authorizeResolver } = require('@/modules/shared')
 const { chunk } = require('lodash')
 
+/** @type {import('@/modules/core/graph/generated/graphql').Resolvers} */
 module.exports = {
   Mutation: {
     async serverInviteCreate(_parent, args, context) {
       await createAndSendInvite({
         target: args.input.email,
         inviterId: context.userId,
-        message: args.input.message
+        message: args.input.message,
+        serverRole: args.input.serverRole
       })
 
       return true
@@ -37,23 +42,7 @@ module.exports = {
 
     async streamInviteCreate(_parent, args, context) {
       await authorizeResolver(context.userId, args.input.streamId, Roles.Stream.Owner)
-      const { email, userId, message, streamId, role } = args.input
-
-      if (!email && !userId) {
-        throw new InviteCreateValidationError(
-          'Either email or userId must be specified'
-        )
-      }
-
-      const target = userId ? buildUserTarget(userId) : email
-      await createAndSendInvite({
-        target,
-        inviterId: context.userId,
-        message,
-        resourceTarget: ResourceTargets.Streams,
-        resourceId: streamId,
-        role: role || Roles.Stream.Contributor
-      })
+      await createStreamInviteAndNotify(args.input, context.userId)
 
       return true
     },
@@ -69,7 +58,8 @@ module.exports = {
             createAndSendInvite({
               target: params.email,
               inviterId: context.userId,
-              message: params.message
+              message: params.message,
+              serverRole: params.serverRole
             })
           )
         )
@@ -96,7 +86,7 @@ module.exports = {
       for (const paramsBatchArray of batches) {
         await Promise.all(
           paramsBatchArray.map((params) => {
-            const { email, userId, message, streamId, role } = params
+            const { email, userId, message, streamId, role, serverRole } = params
             const target = userId ? buildUserTarget(userId) : email
             return createAndSendInvite({
               target,
@@ -104,7 +94,8 @@ module.exports = {
               message,
               resourceTarget: ResourceTargets.Streams,
               resourceId: streamId,
-              role: role || Roles.Stream.Contributor
+              role: role || Roles.Stream.Contributor,
+              serverRole
             })
           })
         )
@@ -114,11 +105,7 @@ module.exports = {
     },
 
     async streamInviteUse(_parent, args, ctx) {
-      const { accept, streamId, token } = args
-      const { userId } = ctx
-
-      await finalizeStreamInvite(accept, streamId, token, userId)
-
+      await useStreamInviteAndNotify(args, ctx.userId)
       return true
     },
 
@@ -151,8 +138,11 @@ module.exports = {
   Query: {
     async streamInvite(_parent, args, context) {
       const { streamId, token } = args
-
       return await getUserPendingStreamInvite(streamId, context.userId, token)
+    },
+    async projectInvite(_parent, args, context) {
+      const { projectId, token } = args
+      return await getUserPendingStreamInvite(projectId, context.userId, token)
     },
     async streamInvites(_parrent, _args, context) {
       const { userId } = context

@@ -67,7 +67,7 @@ describe('Services @apps-services', () => {
       name: 'test application',
       public: true,
       scopes: [Scopes.Streams.Read],
-      redirectUrl: 'http://localhost:1335'
+      redirectUrl: 'http://127.0.0.1:1335'
     })
 
     expect(res).to.have.property('id')
@@ -84,11 +84,11 @@ describe('Services @apps-services', () => {
   it('Should get all the public apps on this server', async () => {
     const apps = await getAllPublicApps()
     expect(apps).to.be.an('array')
-    expect(apps.length).to.equal(7)
+    expect(apps.length).to.equal(8)
   })
 
   it('Should fail to register an app with no scopes', async () => {
-    await createApp({ name: 'test application2', redirectUrl: 'http://localhost:1335' })
+    await createApp({ name: 'test application2', redirectUrl: 'http://127.0.0.1:1335' })
       .then(() => {
         throw new Error('this should have been rejected')
       })
@@ -217,7 +217,15 @@ describe('Services @apps-services', () => {
       .catch((err) => expect(err.message).to.equal('Access code not found.'))
   })
 
-  const defaultApps = ['spklwebapp', 'explorer', 'sdm', 'sca', 'spklexcel']
+  const defaultApps = [
+    'spklwebapp',
+    'explorer',
+    'sdm',
+    'sca',
+    'spklexcel',
+    'spklpwerbi',
+    'spklautoma'
+  ]
   defaultApps.forEach((speckleAppId) => {
     it(`Should not invalidate tokens, refresh tokens and access codes for default app: ${speckleAppId}, if updated`, async () => {
       const [unusedAccessCode, usedAccessCode] = await Promise.all([

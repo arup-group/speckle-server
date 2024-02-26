@@ -85,7 +85,7 @@ module.exports = {
     return parseInt(res.count)
   },
 
-  async dispatchStreamEvent({ streamId, event, eventPayload }) {
+  async dispatchStreamEvent({ streamId, event, eventPayload }, { trx } = {}) {
     if (useKafka === 'true') produceMsg(event, eventPayload)
 
     // Add server info
@@ -95,10 +95,13 @@ module.exports = {
 
     // Add stream info
     if (eventPayload.streamId) {
-      eventPayload.stream = await getStream({
-        streamId: eventPayload.streamId,
-        userId: eventPayload.userId
-      })
+      eventPayload.stream = await getStream(
+        {
+          streamId: eventPayload.streamId,
+          userId: eventPayload.userId
+        },
+        { trx }
+      )
     }
 
     // Add user info (except email and pwd)
@@ -111,7 +114,11 @@ module.exports = {
         delete eventPayload.user.passwordDigest
       }
       // Capture the user email in posthog to look up ADS data
-      capture(event, eventPayload)
+      if (
+        process.env.DISABLE_POSTHOG_TRACKING !== 'true' &&
+        process.env.POSTHOG_API_KEY
+      )
+        capture(event, eventPayload)
       if (eventPayload.user) {
         delete eventPayload.user.email
       }
@@ -134,11 +141,13 @@ module.exports = {
       eventPayload.webhook.triggers = Object.keys(eventPayload.webhook.triggers)
       delete eventPayload.webhook.secret
 
-      await WebhooksEvents().insert({
+      const q = WebhooksEvents().insert({
         id: crs({ length: 20 }),
         webhookId: wh.id,
         payload: JSON.stringify(eventPayload)
       })
+      if (trx) q.transacting(trx)
+      await q
     }
   },
 

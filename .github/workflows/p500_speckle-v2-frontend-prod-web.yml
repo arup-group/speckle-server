@@ -34,6 +34,7 @@ jobs:
           file: ./packages/frontend/Dockerfile
           build-args: |
             VUE_APP_GRAPHQL_WS=wss://${{ secrets.P500_SPECKLE_BACKEND }}/graphql
+            DISABLE_POSTHOG_TRACKING=false
           secrets: |
             "posthog_api_key=${{ secrets.POSTHOG_API_KEY }}"
 

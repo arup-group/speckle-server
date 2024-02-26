@@ -31,7 +31,8 @@ export function initialize() {
   if (client || !enableMixpanel()) return
 
   client = Mixpanel.init('acd87c5a50b56df91a795e999812a3a4', {
-    host: 'analytics.speckle.systems'
+    host: 'analytics.speckle.systems',
+    opt_out_tracking_by_default: true
   })
 }
 

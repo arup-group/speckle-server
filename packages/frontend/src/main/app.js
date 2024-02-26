@@ -35,18 +35,6 @@ import '@/plugins/helpers'
 import { AppLocalStorage } from '@/utils/localStorage'
 import { InvalidAuthTokenError } from '@/main/lib/auth/errors'
 
-// import VueMatomo from 'vue-matomo'
-
-// Vue.use(VueMatomo, {
-//   host: 'https://arupdt.matomo.cloud',
-//   siteId: 1,
-//   router,
-//   userId: localStorage.getItem('suuid')
-// })
-
-import posthogPlugin from '@/plugins/posthog'
-Vue.use(posthogPlugin)
-
 // Async ApexChart load
 Vue.component('ApexChart', async () => {
   const VueApexCharts = await import('vue-apexcharts')
@@ -87,7 +75,13 @@ async function init() {
 
   // no auth token - check if we can resolve it from access code
   if (!authToken) {
-    await checkAccessCodeAndGetTokens()
+    const gotToken = await checkAccessCodeAndGetTokens()
+    if (gotToken) {
+      // Remove access_code get param from current url
+      const url = new URL(window.location.href)
+      url.searchParams.delete('access_code')
+      window.history.replaceState({}, document.title, url.toString())
+    }
   }
 
   // try to retrieve user info with auth token

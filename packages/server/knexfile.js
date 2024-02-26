@@ -5,7 +5,10 @@
 const { packageRoot } = require('./bootstrap')
 const fs = require('fs')
 const path = require('path')
-const { isTestEnv } = require('@/modules/shared/helpers/envHelper')
+const {
+  isTestEnv,
+  ignoreMissingMigrations
+} = require('@/modules/shared/helpers/envHelper')
 
 function walk(dir) {
   let results = []
@@ -29,11 +32,12 @@ const migrationModulesDir = path.resolve(
   packageRoot,
   isTestEnv() ? './modules' : './dist/modules'
 )
-if (!fs.existsSync(migrationModulesDir)) {
+const migrationDirsExist = fs.existsSync(migrationModulesDir)
+if (!migrationDirsExist && !ignoreMissingMigrations()) {
   throw new Error('App must be built into /dist, to enable work with migrations')
 }
 
-const migrationDirs = walk(migrationModulesDir)
+const migrationDirs = migrationDirsExist ? walk(migrationModulesDir) : []
 
 // this is for readability, many users struggle to set the postgres connection uri
 // in the env variables. This way its a bit easier to understand, also backward compatible.
@@ -80,14 +84,14 @@ const config = {
   test: {
     ...commonConfig,
     connection: {
-      connectionString: connectionUri || 'postgres://localhost/speckle2_test',
+      connectionString: connectionUri || 'postgres://127.0.0.1/speckle2_test',
       application_name: 'speckle_server'
     }
   },
   development: {
     ...commonConfig,
     connection: {
-      connectionString: connectionUri || 'postgres://localhost/speckle2_dev',
+      connectionString: connectionUri || 'postgres://127.0.0.1/speckle2_dev',
       application_name: 'speckle_server'
     }
   },

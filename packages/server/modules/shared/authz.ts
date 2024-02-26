@@ -4,7 +4,7 @@ import {
   ServerRoles,
   StreamRoles
 } from '@/modules/core/helpers/mainConstants'
-import { getRoles } from '@/modules/shared'
+import { getRoles } from '@/modules/shared/roles'
 import { getStream } from '@/modules/core/services/streams'
 
 import {
@@ -114,17 +114,13 @@ export function validateRole<T extends AvailableRoles>({
     // role validation has nothing to do with auth...
     //this check doesn't belong here, move it out to the auth pipeline
     if (!context.auth)
-      return authFailed(
-        context,
-        new UnauthorizedError('Cannot validate role without auth')
-      )
+      return authFailed(context, new UnauthorizedError('Must provide an auth token'))
 
     const contextRole = roleGetter(context)
-    if (!contextRole)
-      return authFailed(
-        context,
-        new ForbiddenError('You do not have the required role')
-      )
+    const missingRoleMessage = `You do not have the required ${
+      requiredRole.split(':')[0]
+    } role`
+    if (!contextRole) return authFailed(context, new ForbiddenError(missingRoleMessage))
 
     const role = roles.find((r) => r.name === requiredRole)
     const myRole = roles.find((r) => r.name === contextRole)
@@ -138,7 +134,7 @@ export function validateRole<T extends AvailableRoles>({
       return authFailed(context, new ForbiddenError('Your role is not valid'))
     if (myRole.name === iddqd || myRole.weight >= role.weight)
       return authSuccess(context)
-    return authFailed(context, new ForbiddenError('You do not have the required role'))
+    return authFailed(context, new ForbiddenError(missingRoleMessage))
   }
 }
 
@@ -264,16 +260,29 @@ export const authPipelineCreator = (
 }
 
 export const streamWritePermissions = [
-  validateServerRole({ requiredRole: Roles.Server.User }),
+  validateServerRole({ requiredRole: Roles.Server.Guest }),
   validateScope({ requiredScope: Scopes.Streams.Write }),
   contextRequiresStream(getStream as StreamGetter),
   validateStreamRole({ requiredRole: Roles.Stream.Contributor })
 ]
 export const streamReadPermissions = [
-  validateServerRole({ requiredRole: Roles.Server.User }),
+  validateServerRole({ requiredRole: Roles.Server.Guest }),
   validateScope({ requiredScope: Scopes.Streams.Read }),
   contextRequiresStream(getStream as StreamGetter),
   validateStreamRole({ requiredRole: Roles.Stream.Contributor })
 ]
 
 if (adminOverrideEnabled()) streamReadPermissions.push(allowForServerAdmins)
+
+export const throwForNotHavingServerRole = async (
+  context: AuthContext,
+  requiredRole: ServerRoles
+) => {
+  const { authResult } = await validateServerRole({ requiredRole })({
+    context,
+    authResult: { authorized: false }
+  })
+  if (authHasFailed(authResult))
+    throw authResult.error ?? new Error('Auth failed without an error')
+  return true
+}
