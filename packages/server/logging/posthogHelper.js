@@ -1,7 +1,7 @@
 const PostHog = require('posthog-node')
 
 const client = new PostHog(process.env.POSTHOG_API_KEY, {
-  host: 'https://posthog.insights.arup.com'
+  host: 'https://eu.posthog.com'
 })
 
 module.exports = {
