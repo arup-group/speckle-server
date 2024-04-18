@@ -6,7 +6,7 @@ export default {
   install(Vue) {
     Vue.prototype.$posthog = posthog.init(posthogApiKey, {
       // eslint-disable-next-line camelcase
-      api_host: 'https://posthog.insights.arup.com',
+      api_host: 'https://eu.posthog.com',
       autocapture: false,
       // eslint-disable-next-line camelcase
       capture_pageview: false,
